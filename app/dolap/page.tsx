@@ -60,7 +60,7 @@ export default function DolapPage() {
 
         {rows.length === 0 ? (
           <Card className="p-4">
-            <EmptyState title={UI.emptyWardrobe} body={UI.emptyWardrobeSub} />
+            <EmptyState title={UI.emptyWardrobe} subtitle={UI.emptyWardrobeSub} />
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -103,4 +103,3 @@ export default function DolapPage() {
     </AppShell>
   );
 }
-

@@ -14,7 +14,7 @@ function familyBadgeClass(family: string): string {
   const val = family.toLowerCase();
   if (val.includes('odunsu')) return 'border-[#5fb6a0]/40 text-[#8ad7c3]';
   if (val.includes('oryantal')) return 'border-[#d5a579]/40 text-[#e6c39f]';
-  if (val.includes('çiçek')) return 'border-[#cf8ac8]/40 text-[#e2ace0]';
+  if (val.includes('cicek')) return 'border-[#cf8ac8]/40 text-[#e2ace0]';
   return 'border-white/[.09] text-muted';
 }
 
@@ -51,7 +51,7 @@ export default function GecmisPage() {
         </div>
         {!hasRows ? (
           <Card className="p-4">
-            <EmptyState title="Henüz geçmiş yok" body="İlk analizi yaptığında sonuçlar burada birikir." />
+            <EmptyState title="Henuz gecmis yok" subtitle="Ilk analizi yaptiginda sonuclar burada birikir." />
           </Card>
         ) : (
           <div className="space-y-6">
@@ -63,7 +63,7 @@ export default function GecmisPage() {
                     <Link key={item.id} href={`/?replay=${encodeURIComponent(item.id)}&mode=text`} className="no-underline">
                       <Card className="p-4 h-full hover-lift hover:border-[var(--gold-line)] transition-colors">
                         <p className="font-display italic text-[1.5rem] leading-[1.08] text-cream">{item.name}</p>
-                        <p className="text-[11px] text-muted mt-1">{item.description.slice(0, 92)}…</p>
+                        <p className="text-[11px] text-muted mt-1">{item.description.slice(0, 92)}...</p>
                         <div className="mt-4 flex items-center justify-between gap-3">
                           <span className={`text-[10px] px-2 py-1 rounded-full border ${familyBadgeClass(item.family)}`}>{item.family}</span>
                           <span className="text-[10px] text-muted">{item.intensity}%</span>

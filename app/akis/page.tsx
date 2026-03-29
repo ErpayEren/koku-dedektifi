@@ -90,7 +90,7 @@ export default function AkisPage() {
 
         {feed.length === 0 ? (
           <Card className="p-4">
-            <EmptyState title={UI.emptyCommunity} body={UI.emptyCommunitySub} />
+            <EmptyState title={UI.emptyCommunity} subtitle={UI.emptyCommunitySub} />
           </Card>
         ) : (
           <Card className="p-5 md:p-6 hover-lift">
@@ -127,4 +127,3 @@ export default function AkisPage() {
     </AppShell>
   );
 }
-

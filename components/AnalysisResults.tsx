@@ -343,11 +343,18 @@ function RadarWheel({ values }: { values: number[] }) {
 
   return (
     <svg viewBox="0 0 180 180" width="170" height="170" aria-label="Koku carki">
+      <g transform="translate(90,90)">
+        <path d="M0,0 L0,-80 A80,80,0,0,1,69.3,-40 Z" fill="rgba(126,184,164,.25)" stroke="rgba(126,184,164,.5)" strokeWidth=".8" />
+        <path d="M0,0 L69.3,-40 A80,80,0,0,1,80,0 Z" fill="rgba(201,169,110,.2)" stroke="rgba(201,169,110,.4)" strokeWidth=".8" />
+        <path d="M0,0 L80,0 A80,80,0,0,1,40,69.3 Z" fill="rgba(90,180,200,.15)" stroke="rgba(90,180,200,.35)" strokeWidth=".8" />
+        <path d="M0,0 L40,69.3 A80,80,0,0,1,-40,69.3 Z" fill="rgba(200,140,180,.15)" stroke="rgba(200,140,180,.35)" strokeWidth=".8" />
+        <path d="M0,0 L-40,69.3 A80,80,0,0,1,-80,0 A80,80,0,0,1,0,-80 Z" fill="rgba(201,169,110,.12)" stroke="rgba(201,169,110,.3)" strokeWidth=".8" />
+      </g>
       <circle cx="90" cy="90" r="64" fill="transparent" stroke="rgba(255,255,255,.12)" />
       <circle cx="90" cy="90" r="48" fill="transparent" stroke="rgba(255,255,255,.08)" />
       <circle cx="90" cy="90" r="32" fill="transparent" stroke="rgba(255,255,255,.06)" />
-      <line x1="90" y1="26" x2="90" y2="154" stroke="rgba(255,255,255,.08)" />
-      <line x1="26" y1="90" x2="154" y2="90" stroke="rgba(255,255,255,.08)" />
+      <line x1="90" y1="10" x2="90" y2="170" stroke="rgba(255,255,255,.08)" />
+      <line x1="10" y1="90" x2="170" y2="90" stroke="rgba(255,255,255,.08)" />
       <polygon points={points} fill="rgba(201,169,110,.22)" stroke="rgba(201,169,110,.64)" strokeWidth="1.4" />
     </svg>
   );

@@ -90,7 +90,7 @@ export function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-6">
+      <nav className="flex-1 overflow-y-auto py-6" role="navigation" aria-label="Ana menu">
         {NAV.map((group) => (
           <div key={group.section} className="mb-6">
             <p className="text-[9px] font-mono tracking-[.14em] uppercase text-hint px-7 mb-2">{group.section}</p>
@@ -137,4 +137,3 @@ export function Sidebar() {
     </aside>
   );
 }
-

@@ -224,6 +224,8 @@ export function HeroInput({
             type="button"
             onClick={onAnalyze}
             disabled={!canAnalyze}
+            aria-busy={isAnalyzing}
+            aria-label={isAnalyzing ? 'Analiz yapiliyor, lutfen bekleyin' : 'Kokuyu analiz et'}
             className={`w-full md:w-auto md:self-end md:ml-auto flex items-center justify-center gap-2 px-6 py-3 rounded-[10px]
                         text-[11px] font-mono tracking-[.1em] uppercase transition-all
             ${
@@ -232,10 +234,22 @@ export function HeroInput({
                 : 'bg-white/[.04] text-muted cursor-not-allowed border border-white/[.08]'
             }`}
           >
-            {isAnalyzing ? UI.analyzing : UI.analyzeBtn}
-            <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M2 6h8M7 3l3 3-3 3" />
-            </svg>
+            {isAnalyzing ? (
+              <>
+                <svg className="animate-spin" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="8 24" strokeLinecap="round" />
+                </svg>
+                <span>Analiz ediliyor...</span>
+              </>
+            ) : (
+              <>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.3" />
+                  <circle cx="6" cy="6" r="2" fill="currentColor" />
+                </svg>
+                <span>{UI.analyzeBtn}</span>
+              </>
+            )}
           </button>
         </div>
       </div>

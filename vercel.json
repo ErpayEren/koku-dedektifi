@@ -1,0 +1,69 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "rewrites": [
+    {
+      "source": "/api/health",
+      "destination": "/api/ops?r=health"
+    },
+    {
+      "source": "/api/client-config",
+      "destination": "/api/ops?r=client-config"
+    },
+    {
+      "source": "/api/event",
+      "destination": "/api/ops?r=event"
+    },
+    {
+      "source": "/api/metrics",
+      "destination": "/api/ops?r=metrics"
+    },
+    {
+      "source": "/api/error-log",
+      "destination": "/api/ops?r=error-log"
+    },
+    {
+      "source": "/api/wardrobe-health",
+      "destination": "/api/ops?r=wardrobe-health"
+    },
+    {
+      "source": "/api/feed-health",
+      "destination": "/api/ops?r=feed-health"
+    },
+    {
+      "source": "/api/perfume-vote",
+      "destination": "/api/labs?r=perfume-vote"
+    },
+    {
+      "source": "/api/perfume-finder",
+      "destination": "/api/labs?r=perfume-finder"
+    },
+    {
+      "source": "/api/layering-lab",
+      "destination": "/api/labs?r=layering-lab"
+    },
+    {
+      "source": "/api/barcode-lookup",
+      "destination": "/api/labs?r=barcode-lookup"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    }
+  ]
+}

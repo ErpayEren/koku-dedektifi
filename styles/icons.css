@@ -1,0 +1,120 @@
+.ui-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.ui-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.analyze-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.advisor-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.advisor-fab .ui-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.upload-icon {
+  color: rgba(200, 169, 126, 0.9);
+}
+
+.upload-icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.scent-badge-icon {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+}
+
+.scent-badge-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.history-item-img-placeholder .scent-badge-icon {
+  width: 30px;
+  height: 30px;
+  opacity: 0.92;
+}
+
+.compare-result-icon {
+  width: 14px;
+  height: 14px;
+  color: rgba(200, 169, 126, 0.95);
+}
+
+.compare-result-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.persona-row-icon {
+  color: rgba(200, 169, 126, 0.92);
+}
+
+.persona-row-icon .scent-badge-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.persona-inline-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  color: rgba(200, 169, 126, 0.96);
+}
+
+.persona-inline-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.buy-link-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.buy-link-icon svg {
+  width: 100%;
+  height: 100%;
+}

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Koku Dedektifi | Offline</title>
+  <style>
+    :root {
+      --bg: #0d0b0f;
+      --card: #17131c;
+      --text: #efeaf5;
+      --muted: #b7afc0;
+      --accent: #c8a97e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(900px 500px at 10% -10%, rgba(200,169,126,0.16), transparent 65%),
+        radial-gradient(800px 400px at 110% 110%, rgba(111,179,160,0.12), transparent 55%),
+        var(--bg);
+      color: var(--text);
+      font: 16px/1.5 "DM Sans", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      padding: 24px;
+    }
+    .card {
+      width: min(560px, 100%);
+      background: linear-gradient(160deg, rgba(23,19,28,0.95), rgba(14,12,18,0.96));
+      border: 1px solid rgba(200,169,126,0.28);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.3rem;
+      letter-spacing: 0.02em;
+    }
+    p {
+      margin: 0 0 12px;
+      color: var(--muted);
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    button, a {
+      border: 1px solid rgba(200,169,126,0.4);
+      background: rgba(200,169,126,0.12);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 16px;
+      text-decoration: none;
+      cursor: pointer;
+      font: inherit;
+      transition: 0.2s ease;
+    }
+    button:hover, a:hover {
+      background: rgba(200,169,126,0.2);
+      border-color: rgba(200,169,126,0.64);
+    }
+    .hint {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: #9e93a9;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Baglanti gecici olarak kesildi</h1>
+    <p>Uygulama iskeleti cihazinda hazir. Internet geri geldiginde analiz ve danisman akisi otomatik calisacak.</p>
+    <div class="row">
+      <button type="button" onclick="location.reload()">Tekrar dene</button>
+      <a href="/index.html">Ana ekrana don</a>
+    </div>
+    <p class="hint">Ipuclari: Son acilan sayfalar cache'ten acilabilir, API cagrilari internet gerektirir.</p>
+  </main>
+</body>
+</html>

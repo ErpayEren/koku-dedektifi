@@ -1,0 +1,8 @@
+# Copy this file to android/key.properties and fill with your real values.
+# This file is safe to commit. The real key.properties must stay private.
+
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=upload
+# Path is resolved from mobile_flutter/android/app
+storeFile=../../keystore/upload-keystore.jks

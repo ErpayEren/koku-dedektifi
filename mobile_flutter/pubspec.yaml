@@ -1,0 +1,24 @@
+name: koku_dedektifi_mobile
+description: Koku Dedektifi mobile wrapper app built with Flutter.
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  url_launcher: ^6.3.1
+  webview_flutter: ^4.9.0
+  webview_flutter_android: ^4.3.0
+  webview_flutter_wkwebview: ^3.16.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

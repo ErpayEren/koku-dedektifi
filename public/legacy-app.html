@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>Koku Dedektifi — AI Parfüm Analizi</title>
+<meta name="description" content="Fotoğraf çek veya yaz — yapay zeka kokunun DNA'sını çözsün. Parfüm analizi, molekül görselleştirme, koku önerileri.">
+ 
+<!-- OG / Social Sharing -->
+<meta property="og:title" content="Koku Dedektifi">
+<meta property="og:description" content="Fotoğraf çek veya parfüm adı yaz — AI kokunun DNA'sını analiz etsin. Moleküler yapı, koku piramidi, size özel öneriler.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://koku-dedektifi.vercel.app">
+<meta property="og:image" content="https://koku-dedektifi.vercel.app/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Koku Dedektifi">
+<meta name="twitter:description" content="AI ile parfüm analizi — moleküler yapı, koku piramidi, size özel öneriler.">
+ 
+<!-- PWA -->
+<meta name="theme-color" content="#0d0b0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Koku Dedektifi">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.svg">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 56 56' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cline x1='14' y1='22' x2='28' y2='14' stroke='%23c8a97e' stroke-width='1.4' stroke-linecap='round'/%3E%3Cline x1='28' y1='14' x2='42' y2='22' stroke='%23c8a97e' stroke-width='1.4' stroke-linecap='round'/%3E%3Cline x1='29' y1='16.5' x2='43' y2='24.5' stroke='%23c8a97e' stroke-width='1.4' stroke-linecap='round' opacity='0.4'/%3E%3Cline x1='42' y1='22' x2='42' y2='38' stroke='%23c8a97e' stroke-width='1.4' stroke-linecap='round'/%3E%3Cline x1='42' y1='38' x2='28' y2='46' stroke='%23c8a97e' stroke-width='1.4' stroke-linecap='round'/%3E%3Cline x1='41' y1='40.5' x2='27' y2='48.5' stroke='%23c8a97e' stroke-width='1.4' stroke-linecap='round' opacity='0.4'/%3E%3Cline x1='28' y1='46' x2='14' y2='38' stroke='%23c8a97e' stroke-width='1.4' stroke-linecap='round'/%3E%3Cline x1='14' y1='38' x2='14' y2='22' stroke='%23c8a97e' stroke-width='1.4' stroke-linecap='round'/%3E%3Cline x1='11.5' y1='38' x2='11.5' y2='22' stroke='%23c8a97e' stroke-width='1.4' stroke-linecap='round' opacity='0.4'/%3E%3Ccircle cx='28' cy='30' r='8' fill='none' stroke='%23c8a97e' stroke-width='0.7' stroke-dasharray='3 2.5' opacity='0.3'/%3E%3Ccircle cx='28' cy='14' r='4' fill='%230d0b0f' stroke='%23c8a97e' stroke-width='1'/%3E%3Ctext font-size='5.5' font-weight='600' fill='%23c8a97e' x='28' y='14' text-anchor='middle' dominant-baseline='central'%3EN%3C/text%3E%3Ccircle cx='28' cy='46' r='4' fill='%230d0b0f' stroke='%23c8a97e' stroke-width='1'/%3E%3Ctext font-size='5.5' font-weight='600' fill='%23c8a97e' x='28' y='46' text-anchor='middle' dominant-baseline='central'%3EN%3C/text%3E%3Ccircle cx='42' cy='22' r='3.2' fill='%230d0b0f' stroke='%23c8a97e' stroke-width='0.8' opacity='0.7'/%3E%3Ctext font-size='4.5' fill='%23c8a97e' opacity='0.65' x='42' y='22' text-anchor='middle' dominant-baseline='central'%3EC%3C/text%3E%3Ccircle cx='42' cy='38' r='3.2' fill='%230d0b0f' stroke='%23c8a97e' stroke-width='0.8' opacity='0.7'/%3E%3Ctext font-size='4.5' fill='%23c8a97e' opacity='0.65' x='42' y='38' text-anchor='middle' dominant-baseline='central'%3EC%3C/text%3E%3Ccircle cx='14' cy='22' r='3.2' fill='%230d0b0f' stroke='%23c8a97e' stroke-width='0.8' opacity='0.7'/%3E%3Ctext font-size='4.5' fill='%23c8a97e' opacity='0.65' x='14' y='22' text-anchor='middle' dominant-baseline='central'%3EC%3C/text%3E%3Ccircle cx='14' cy='38' r='3.2' fill='%230d0b0f' stroke='%23c8a97e' stroke-width='0.8' opacity='0.7'/%3E%3Ctext font-size='4.5' fill='%23c8a97e' opacity='0.65' x='14' y='38' text-anchor='middle' dominant-baseline='central'%3EC%3C/text%3E%3Ccircle cx='28' cy='7' r='1.2' fill='%23c8a97e' opacity='0.5'/%3E%3Ccircle cx='33' cy='4' r='0.9' fill='%239b6fa0' opacity='0.45'/%3E%3Ccircle cx='23' cy='3' r='0.7' fill='%236fb3a0' opacity='0.35'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css?v=20260329r12">
+</head>
+<body>
+<div class="aura-layer" id="aura-layer"></div>
+<header>
+  <div class="logo-mark" onclick="reset()" title="Yeni analiz yap">
+    <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Pyrazine ring center 28,30 r=16 flat-top hex -->
+      <!-- Vertices: top(28,14) top-r(42,22) bot-r(42,38) bot(28,46) bot-l(14,38) top-l(14,22) -->
+      <!-- top-l to top single -->
+      <line x1="14" y1="22" x2="28" y2="14" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round"/>
+      <!-- top to top-r double -->
+      <line x1="28" y1="14" x2="42" y2="22" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="29" y1="16.5" x2="43" y2="24.5" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round" opacity="0.4"/>
+      <!-- top-r to bot-r single -->
+      <line x1="42" y1="22" x2="42" y2="38" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round"/>
+      <!-- bot-r to bot double -->
+      <line x1="42" y1="38" x2="28" y2="46" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="41" y1="40.5" x2="27" y2="48.5" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round" opacity="0.4"/>
+      <!-- bot to bot-l single -->
+      <line x1="28" y1="46" x2="14" y2="38" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round"/>
+      <!-- bot-l to top-l double -->
+      <line x1="14" y1="38" x2="14" y2="22" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="11.5" y1="38" x2="11.5" y2="22" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round" opacity="0.4"/>
+      <!-- Aromatic dashed circle -->
+      <circle cx="28" cy="30" r="8" fill="none" stroke="#c8a97e" stroke-width="0.7" stroke-dasharray="3 2.5" opacity="0.3"/>
+      <!-- N atoms -->
+      <circle cx="28" cy="14" r="4" fill="#0d0b0f" stroke="#c8a97e" stroke-width="1"/>
+      <text font-size="5.5" font-weight="600" fill="#c8a97e" x="28" y="14" text-anchor="middle" dominant-baseline="central">N</text>
+      <circle cx="28" cy="46" r="4" fill="#0d0b0f" stroke="#c8a97e" stroke-width="1"/>
+      <text font-size="5.5" font-weight="600" fill="#c8a97e" x="28" y="46" text-anchor="middle" dominant-baseline="central">N</text>
+      <!-- C atoms -->
+      <circle cx="42" cy="22" r="3.2" fill="#0d0b0f" stroke="#c8a97e" stroke-width="0.8" opacity="0.7"/>
+      <text font-size="4.5" fill="#c8a97e" opacity="0.65" x="42" y="22" text-anchor="middle" dominant-baseline="central">C</text>
+      <circle cx="42" cy="38" r="3.2" fill="#0d0b0f" stroke="#c8a97e" stroke-width="0.8" opacity="0.7"/>
+      <text font-size="4.5" fill="#c8a97e" opacity="0.65" x="42" y="38" text-anchor="middle" dominant-baseline="central">C</text>
+      <circle cx="14" cy="22" r="3.2" fill="#0d0b0f" stroke="#c8a97e" stroke-width="0.8" opacity="0.7"/>
+      <text font-size="4.5" fill="#c8a97e" opacity="0.65" x="14" y="22" text-anchor="middle" dominant-baseline="central">C</text>
+      <circle cx="14" cy="38" r="3.2" fill="#0d0b0f" stroke="#c8a97e" stroke-width="0.8" opacity="0.7"/>
+      <text font-size="4.5" fill="#c8a97e" opacity="0.65" x="14" y="38" text-anchor="middle" dominant-baseline="central">C</text>
+      <!-- Floating particles -->
+      <circle cx="28" cy="7" r="1.2" fill="#c8a97e" opacity="0.5"/>
+      <circle cx="33" cy="4" r="0.9" fill="#9b6fa0" opacity="0.45"/>
+      <circle cx="23" cy="3" r="0.7" fill="#6fb3a0" opacity="0.35"/>
+    </svg>
+  </div>
+  <h1>Koku <em>Dedektifi</em></h1>
+  <div class="header-actions">
+    <button class="billing-entry-btn" id="billing-entry-btn" type="button" onclick="toggleBillingPanel()">Pro</button>
+    <button class="auth-entry-btn" id="auth-entry-btn" type="button" onclick="toggleAuthPanel()">Giriş Yap</button>
+  </div>
+</header>
+ 
+<div class="main-card" id="main-card">
+ 
+  <!-- Tabs -->
+  <div class="input-tabs">
+    <button class="input-tab active" id="tab-photo" onclick="switchTab('photo')">
+      <span class="ui-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 8h3l1.5-2h7L17 8h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+      </span>
+      <span class="tab-label">Fotoğraf</span>
+    </button>
+    <button class="input-tab" id="tab-text" onclick="switchTab('text')">
+      <span class="ui-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 20h4l10-10-4-4L4 16v4z"/>
+          <path d="M13 7l4 4"/>
+        </svg>
+      </span>
+      <span class="tab-label">Metin</span>
+    </button>
+    <button class="input-tab" id="tab-notes" onclick="switchTab('notes')">
+      <span class="ui-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="7" cy="7" r="3"/>
+          <circle cx="17" cy="7" r="3"/>
+          <circle cx="12" cy="16" r="3"/>
+          <path d="M9.7 8.9l2.6 5.1"/>
+          <path d="M14.3 8.9l-2.6 5.1"/>
+        </svg>
+      </span>
+      <span class="tab-label">Notalar</span>
+    </button>
+  </div>
+ 
+  <!-- Photo panel -->
+  <div class="photo-panel" id="photo-panel">
+    <div class="upload-zone" id="upload-zone" role="button" aria-label="Fotoğraf yüklemek için tıkla" tabindex="0">
+      <input type="file" id="file-input" accept="image/*" capture="environment" aria-label="Görsel seç">
+      <img id="preview-img" alt="Yüklenen görsel">
+      <div class="img-overlay"></div>
+      <div class="upload-placeholder" id="upload-placeholder">
+        <div class="upload-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 8h3l1.5-2h7L17 8h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+        </div>
+        <p>Fotoğraf çek veya seç</p>
+        <span>Koku kaynağını yakala</span>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- Text panel -->
+  <div class="text-panel" id="text-panel">
+    <label class="text-panel-label" for="text-input">Kokuyu tarif et veya parfüm adı yaz</label>
+    <textarea
+      class="text-input-field"
+      id="text-input"
+      placeholder="Örn: Chanel No.5, yağmur sonrası toprak kokusu, vanilya ve sandal ağacı..."
+      oninput="checkReady()"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();if(!document.getElementById('analyze-btn').disabled)analyze();}"
+    ></textarea>
+    <div class="text-suggestions-label">Popüler aramalar</div>
+    <div class="text-suggestions">
+      <span class="text-suggestion-chip" onclick="fillSuggestion('Dior Sauvage')">Dior Sauvage</span>
+      <span class="text-suggestion-chip" onclick="fillSuggestion('Chanel No 5')">Chanel No 5</span>
+      <span class="text-suggestion-chip" onclick="fillSuggestion('Taze deniz esintisi')">Taze deniz</span>
+      <span class="text-suggestion-chip" onclick="fillSuggestion('Oud ve gül')">Oud & Gül</span>
+      <span class="text-suggestion-chip" onclick="fillSuggestion('Tom Ford Black Orchid')">TF Black Orchid</span>
+      <span class="text-suggestion-chip" onclick="fillSuggestion('Lavanta tarlası')">Lavanta</span>
+      <span class="text-suggestion-chip" onclick="fillSuggestion('Creed Aventus')">Creed Aventus</span>
+      <span class="text-suggestion-chip" onclick="fillSuggestion('Vanilya ve karamel')">Vanilya & Karamel</span>
+    </div>
+  </div>
+
+  <!-- Note list panel -->
+  <div class="notes-panel" id="notes-panel">
+    <label class="text-panel-label" for="notes-input">Notaları virgülle ayırarak gir</label>
+    <textarea
+      class="text-input-field notes-input-field"
+      id="notes-input"
+      placeholder="Örn: bergamot, lavanta, yasemin, amber, vanilya"
+      oninput="checkReady()"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();if(!document.getElementById('analyze-btn').disabled)analyze();}"
+    ></textarea>
+    <div class="text-suggestions-label">Popüler nota setleri</div>
+    <div class="text-suggestions notes-suggestions">
+      <span class="text-suggestion-chip" onclick="fillNoteInput('bergamot, greyfurt, lavanta, ambroxan, sedir')">Fresh Aromatik</span>
+      <span class="text-suggestion-chip" onclick="fillNoteInput('safran, yasemin, ambergris, sedir')">Amber Ciceksi</span>
+      <span class="text-suggestion-chip" onclick="fillNoteInput('gul, oud, misk, vanilya')">Gul Oud</span>
+      <span class="text-suggestion-chip" onclick="fillNoteInput('deniz notalari, mandalina, ada cayi, vetiver')">Aquatic</span>
+    </div>
+  </div>
+ 
+  <div class="controls" id="controls">
+    <button class="analyze-btn" id="analyze-btn" onclick="analyze()" disabled
+      aria-label="Kokuyu yapay zeka ile analiz et" aria-disabled="true">
+      <div class="btn-shimmer" aria-hidden="true"></div>
+      <span class="ui-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 3c1.8 0 3 1.3 3 3.2 0 2.4-1.4 4.4-2.9 6.4-1 1.4-1.6 2.7-1.6 4 0 2 1.5 3.4 3.6 3.4 1.7 0 3-1 3.5-2.6"/>
+          <path d="M13 19.9c1.3.1 2.5.1 3.7-.3 1.9-.7 3.3-2.4 3.3-4.6 0-1.9-1-3.4-2.5-4.1"/>
+        </svg>
+      </span>
+      <span>Kokuyu Analiz Et</span>
+    </button>
+    <div class="smart-actions" id="smart-actions">
+      <button class="install-app-btn" id="install-app-btn" type="button" onclick="installApp()" style="display:none">
+        ↳ Uygulama Olarak Yukle
+      </button>
+      <p class="install-note" id="install-note" style="display:none"></p>
+    </div>
+    <div class="labs-shortcuts">
+      <button class="lab-btn ghost" type="button" onclick="openBarcodeOverlay()">Barkod Tara</button>
+      <button class="lab-btn" type="button" onclick="openFinderOverlay()">Nota Avcısı</button>
+      <button class="lab-btn ghost" type="button" onclick="openLayeringLabOverlay()">Katmanlama Lab</button>
+    </div>
+  </div>
+ 
+  <div class="loading-state" id="loading-state" role="status" aria-live="polite" aria-label="Analiz ediliyor">
+    <div class="radar-wrap" aria-hidden="true">
+      <div class="radar-ring r1"></div>
+      <div class="radar-ring r2"></div>
+      <div class="radar-ring r3"></div>
+      <div class="radar-sweep"></div>
+      <div class="radar-center">
+        <div class="orb-center"></div>
+      </div>
+      <div class="radar-dot d1"></div>
+      <div class="radar-dot d2"></div>
+      <div class="radar-dot d3"></div>
+    </div>
+    <p class="loading-text" id="loading-text">Yapay zeka analiz ediyor…</p>
+    <p style="font-size:11px;color:var(--muted);opacity:0.5;margin-top:-8px;">Bu 10–25 saniye sürebilir</p>
+    <p class="loading-hint">Analiz adimlari: profil cozumleme, nota piramidi ve molekul katmani olusturma.</p>
+    <div class="skeleton-single" id="loading-skeleton" aria-hidden="true">
+      <div class="skeleton-single-line"></div>
+    </div>
+  </div>
+</div>
+
+<div class="growth-prompt" id="growth-prompt" style="display:none" aria-live="polite">
+  <div class="growth-prompt-head">
+    <div class="growth-prompt-title" id="growth-prompt-title">Koku Motoru</div>
+    <button class="growth-prompt-close" type="button" onclick="dismissGrowthPrompt()">x</button>
+  </div>
+  <p class="growth-prompt-text" id="growth-prompt-text"></p>
+  <div class="growth-prompt-actions" id="growth-prompt-actions"></div>
+</div>
+
+<div class="status-chip" id="status-chip" aria-live="polite">Sistem kontrol ediliyor...</div>
+ 
+<div class="result-card" id="result-card">
+  <div class="result-top-card">
+    <div class="result-header">
+      <div class="scent-badge" id="result-emoji"></div>
+      <div class="scent-title">
+        <div class="label">Tespit Edilen Koku</div>
+        <h2 id="result-name">—</h2>
+      </div>
+      <button class="share-btn" id="share-btn" onclick="shareResult()" title="Paylaş" style="display:none">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        </svg>
+      </button>
+    </div>
+    <div class="intensity-bar">
+      <span class="intensity-label">Yoğunluk</span>
+      <div class="intensity-track" id="intensity-track">
+        <div class="intensity-fill" id="intensity-fill"></div>
+      </div>
+      <span class="intensity-value" id="intensity-value"></span>
+    </div>
+  </div>
+ 
+  <div class="result-sections">
+    <div class="result-section compare-result-box" id="sec-compare" style="display:none">
+      <div class="section-label">Yan Yana Karsilastirma</div>
+      <p class="section-text" id="compare-result-summary"></p>
+      <div class="compare-result-grid" id="compare-result-grid"></div>
+      <div class="decision-actions">
+        <button class="decision-btn" id="compare-open-source" type="button">Mevcut sonuca git</button>
+        <button class="decision-btn ghost" id="compare-open-target" type="button">Karsilastirilan sonuca git</button>
+      </div>
+    </div>
+    <div class="result-section" id="sec-description">
+      <div class="section-label">Koku Açıklaması</div>
+      <p class="section-text" id="desc-text"></p>
+      <div class="meta-row" id="meta-row" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;"></div>
+    </div>
+    <div class="result-section" id="sec-pyramid" style="display:none">
+      <div class="section-label">Koku Piramidi</div>
+      <div class="pyramid-rows" id="pyramid-rows"></div>
+      <div id="pyramid-timeline" style="display:none">
+        <div class="pyr-time-wrap" style="position:relative">
+          <canvas id="scent-particle-canvas" class="scent-particle-canvas"></canvas>
+          <div class="pyr-time-labels">
+            <span>İlk Buğu</span><span>Açılım</span><span>Kalp</span><span>Derin İz</span>
+          </div>
+          <input type="range" class="time-slider" id="time-slider" min="0" max="3" step="0.01" value="0" oninput="updateTimelineDisplay(this.value)">
+          <div class="pyr-time-stage" id="time-display">İlk Buğu — 0–15 dk</div>
+        </div>
+        <div class="time-notes" id="time-notes" style="min-height:88px"></div>
+      </div>
+    </div>
+    <div class="result-section" id="sec-note-ontology" data-advanced="true" style="display:none">
+      <div class="section-label">Nota Ontolojisi v1</div>
+      <p class="section-text" id="note-ontology-summary"></p>
+      <div class="ontology-tags" id="note-ontology-tags"></div>
+    </div>
+
+    <div class="result-section" id="sec-fragrance-wheel" data-advanced="true" style="display:none">
+      <div class="section-label">Koku Çarkı</div>
+      <p class="section-text">Nota ailelerinin dengesi görsel çarkta.</p>
+      <div id="fragrance-wheel"></div>
+    </div>
+ 
+    <div class="result-section tech-box" id="sec-technical" data-advanced="true" style="display:none">
+      <div class="section-label">Teknik Analiz</div>
+      <div id="technical-rows"></div>
+    </div>
+ 
+    <div class="result-section" id="sec-scores" data-advanced="true" style="display:none">
+      <div class="section-label">Koku Karakteri</div>
+      <div id="scores-wrap"></div>
+      <div id="persona-wrap" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;"></div>
+    </div>
+ 
+    <div class="result-section molecule-box" id="sec-molecule" style="display:none">
+      <div class="section-label">Anahtar Moleküller</div>
+      <div class="mol-section">
+        <div class="mol-carousel-wrap">
+          <div class="mol-scroll-wrap" id="mol-cards-container"></div>
+          <button class="mol-arrow-btn mol-arrow-prev" id="mol-arrow-prev" onclick="molScrollPrev()" aria-label="Önceki molekül" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button class="mol-arrow-btn mol-arrow-next" id="mol-arrow-next" onclick="molScrollNext()" aria-label="Sonraki molekül" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="mol-dot-nav" id="mol-dots"></div>
+      </div>
+    </div>
+ 
+    <div class="result-section" id="sec-similar">
+      <div class="section-label">Benzer Kokular & Parfüm Önerisi</div>
+      <div class="similar-pills" id="similar-pills"></div>
+      <p class="similarity-insight" id="similarity-insight" style="display:none"></p>
+      <p class="molecule-note" id="molecule-note" style="font-size:11px;font-weight:300;opacity:0.5;font-style:italic;color:#8a8090;line-height:1.5;margin-top:8px"></p>
+    </div>
+
+    <div class="result-section" id="sec-community-pulse" style="display:none">
+      <div class="section-label">Topluluk Nabzı</div>
+      <p class="section-text" id="community-pulse-summary">Bu parfum icin topluluk verisi hazirlaniyor.</p>
+      <div class="community-bars">
+        <div class="community-row">
+          <span class="community-label">Kalıcılık</span>
+          <div class="community-track"><div class="community-fill" id="community-longevity-fill"></div></div>
+          <span class="community-value" id="community-longevity-value">-</span>
+        </div>
+        <div class="community-row">
+          <span class="community-label">Yayılım</span>
+          <div class="community-track"><div class="community-fill alt" id="community-sillage-fill"></div></div>
+          <span class="community-value" id="community-sillage-value">-</span>
+        </div>
+      </div>
+      <div class="community-vote-grid" id="community-vote-grid">
+        <button class="feedback-chip mini" type="button" data-vote-key="strong-loud" onclick="submitCommunityVote('strong','loud')">Guclu + Yayinli</button>
+        <button class="feedback-chip mini" type="button" data-vote-key="balanced-moderate" onclick="submitCommunityVote('balanced','moderate')">Dengeli</button>
+        <button class="feedback-chip mini" type="button" data-vote-key="weak-soft" onclick="submitCommunityVote('weak','soft')">Hafif</button>
+      </div>
+      <p class="feedback-status-text" id="community-vote-status"></p>
+    </div>
+
+    <div class="result-section" id="sec-store-links" style="display:none">
+      <div class="section-label">Nerede Denerim?</div>
+      <p class="section-text">Yerel mağaza/marketlerde benzer profil taraması.</p>
+      <div class="decision-actions" id="store-link-list"></div>
+    </div>
+ 
+    <div class="result-section layering-box" id="sec-layering" data-advanced="true" style="display:none">
+      <div class="section-label">Koku Katmanlama</div>
+      <p class="section-text" id="layering-desc"></p>
+      <div class="layering-combo" id="layering-combo"></div>
+      <p class="layer-result" id="layering-result"></p>
+    </div>
+ 
+    <div class="result-section persona-card" id="sec-persona" data-advanced="true" style="display:none">
+      <div class="section-label">Sana Yakisir mi?</div>
+      <div id="persona-rows"></div>
+    </div>
+ 
+    <div class="result-section dupe-box" id="sec-dupe" data-advanced="true" style="display:none">
+      <div class="section-label">Benzer Profil Alternatifleri</div>
+      <div id="dupe-pills"></div>
+      <p class="dupe-note" id="dupe-note"></p>
+    </div>
+ 
+  </div>
+</div>
+ 
+<div class="compare-overlay" id="compare-overlay" style="display:none" onclick="closeCompareOverlay(true)">
+  <div class="compare-card" role="dialog" aria-modal="true" aria-label="Koku karsilastirma" onclick="event.stopPropagation()">
+    <div class="compare-header">
+      <span class="compare-title">Kokulari Karsilastir</span>
+      <button class="compare-close" type="button" onclick="closeCompareOverlay()">x</button>
+    </div>
+    <p class="compare-sub" id="compare-source-label">Mevcut sonucu ikinci bir koku ile yan yana degerlendir.</p>
+    <label class="compare-label">
+      Ikinci koku veya parfum
+      <input class="compare-input" id="compare-target-input" type="text" maxlength="120" placeholder="Orn. Bleu de Chanel veya Zara Vibrant Leather">
+    </label>
+    <div class="compare-suggestions" id="compare-suggestions"></div>
+    <p class="compare-msg" id="compare-msg"></p>
+    <button class="compare-submit" type="button" onclick="submitCompareRequest()">Yan Yana Karsilastir</button>
+  </div>
+</div>
+
+<!-- KOKU DANIŞMANI -->
+<div class="advisor-overlay" id="advisor-overlay" style="display:none">
+  <div class="advisor-card">
+    <div class="advisor-header">
+      <span class="advisor-title"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.5L19 9.4l-3.8 3.2 1.1 5-4.3-2.6-4.3 2.6 1.1-5L5 9.4l5.1-1.9z"/></svg></span>Koku Danismani</span>
+      <button class="advisor-close" onclick="toggleAdvisor()">✕</button>
+    </div>
+    <div class="advisor-messages" id="advisor-messages">
+      <div class="advisor-msg bot">Hedefi net yaz, en iyi seçenekleri çıkarayım.
+        <div class="advisor-chips">
+          <button class="advisor-chip" onclick="chipSend('1000-2000 TL araliginda, ofiste rahatsiz etmeyen ama kalici bir imza koku oner.')">Ofis + Kalici</button>
+          <button class="advisor-chip" onclick="chipSend('Yaz icin ferah, temiz ve gunluk kullanima uygun 3 secenek oner.')">Yazlik Ferah</button>
+          <button class="advisor-chip" onclick="chipSend('Dior Sauvage benzer profilinde ama daha uygun fiyatli 3 alternatif bul.')">Sauvage Benzer Profil</button>
+          <button class="advisor-chip" onclick="chipSend('Aksam icin daha cekici ve iz birakan 3 parfum oner.')">Aksam Rotasi</button>
+        </div>
+      </div>
+    </div>
+    <div class="advisor-input-wrap">
+      <textarea class="advisor-input" id="advisor-input" placeholder="Koku danışmanına sor…" rows="2" onkeydown="advisorKeydown(event)"></textarea>
+      <button class="advisor-send" onclick="sendAdvisorMessage()">→</button>
+    </div>
+  </div>
+</div>
+<button class="advisor-fab" onclick="toggleAdvisor()" title="Koku Danismani"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.5L19 9.4l-3.8 3.2 1.1 5-4.3-2.6-4.3 2.6 1.1-5L5 9.4l5.1-1.9z"/></svg></span></button>
+ 
+<div class="billing-overlay" id="billing-overlay" style="display:none" onclick="closeBillingPanel(true)">
+  <div class="billing-card" role="dialog" aria-modal="true" aria-label="Paketler" onclick="event.stopPropagation()">
+    <div class="billing-header">
+      <span class="billing-title">Paketler</span>
+      <button class="billing-close" type="button" onclick="closeBillingPanel()">x</button>
+    </div>
+    <p class="billing-entitlement" id="billing-entitlement">Plan bilgisi yukleniyor...</p>
+    <div class="billing-plan-list" id="billing-plan-list"></div>
+    <p class="billing-msg" id="billing-msg"></p>
+  </div>
+</div>
+
+<div class="auth-overlay" id="auth-overlay" style="display:none" onclick="closeAuthPanel(true)">
+  <div class="auth-card" role="dialog" aria-modal="true" aria-label="Hesap paneli" onclick="event.stopPropagation()">
+    <div class="auth-header">
+      <span class="auth-title">Hesap</span>
+      <button class="auth-close" type="button" onclick="closeAuthPanel()">x</button>
+    </div>
+    <div class="auth-body">
+      <div class="auth-mode-tabs" id="auth-mode-tabs">
+        <button type="button" id="auth-tab-login" class="auth-mode-tab active" onclick="setAuthMode('login')">Giris</button>
+        <button type="button" id="auth-tab-register" class="auth-mode-tab" onclick="setAuthMode('register')">Kayit</button>
+      </div>
+      <div id="auth-guest-view">
+        <label class="auth-label" id="auth-name-wrap" style="display:none">
+          Ad Soyad
+          <input class="auth-input" id="auth-name-input" type="text" maxlength="60" autocomplete="name" placeholder="Ad Soyad">
+        </label>
+        <label class="auth-label">
+          Email
+          <input class="auth-input" id="auth-email-input" type="email" maxlength="120" autocomplete="email" placeholder="ornek@mail.com">
+        </label>
+        <label class="auth-label">
+          Sifre
+          <input class="auth-input" id="auth-password-input" type="password" minlength="8" maxlength="120" autocomplete="current-password" placeholder="En az 8 karakter">
+        </label>
+        <button class="auth-primary-btn" id="auth-submit-btn" type="button" onclick="submitAuth()">Giris Yap</button>
+      </div>
+      <div id="auth-user-view" style="display:none">
+        <div class="auth-user-summary">
+          <div class="auth-user-name" id="auth-user-name">Hesap</div>
+          <div class="auth-user-email" id="auth-user-email">-</div>
+        </div>
+        <label class="auth-label">
+          Gorunen Ad
+          <input class="auth-input" id="profile-display-name" type="text" maxlength="60" placeholder="Gorunen ad">
+        </label>
+        <label class="auth-label">
+          Sehir
+          <input class="auth-input" id="profile-city" type="text" maxlength="40" placeholder="Sehir">
+        </label>
+        <label class="auth-label">
+          Butce Araligi
+          <input class="auth-input" id="profile-budget-band" type="text" maxlength="40" placeholder="300-800 TL">
+        </label>
+        <label class="auth-label">
+          Cinsiyet
+          <select class="auth-input" id="profile-gender">
+            <option value="">Belirtmek istemiyorum</option>
+            <option value="female">Kadin</option>
+            <option value="male">Erkek</option>
+            <option value="unisex">Unisex</option>
+          </select>
+        </label>
+        <label class="auth-label">
+          Favori Koku Aileleri
+          <input class="auth-input" id="profile-families" type="text" maxlength="240" placeholder="fresh, floral, woody">
+        </label>
+        <div class="auth-user-actions">
+          <button class="auth-primary-btn" type="button" onclick="saveProfile()">Profili Kaydet</button>
+          <button class="auth-secondary-btn" type="button" onclick="logoutAuth()">Cikis Yap</button>
+        </div>
+      </div>
+      <p class="auth-msg" id="auth-msg"></p>
+    </div>
+  </div>
+</div>
+
+<div class="onboarding-overlay" id="onboarding-overlay" style="display:none">
+  <div class="onboarding-card" role="dialog" aria-modal="true" aria-label="Onboarding">
+    <div class="onboarding-header">
+      <div>
+        <div class="onboarding-title">Hizli Baslangic</div>
+        <p class="onboarding-sub">2 dakikada profiline uygun deneyimi acalim.</p>
+      </div>
+      <button class="onboarding-skip-top" type="button" onclick="skipOnboarding()">Gec</button>
+    </div>
+
+    <div class="onboarding-section">
+      <div class="onboarding-label">Koku amacin</div>
+      <div class="onboarding-chips" id="onboarding-purpose">
+        <button type="button" class="onboarding-chip" data-value="self" onclick="onboardingSelectPurpose('self')">Kendim icin</button>
+        <button type="button" class="onboarding-chip" data-value="rotation" onclick="onboardingSelectPurpose('rotation')">Rota kurmak</button>
+        <button type="button" class="onboarding-chip" data-value="explore" onclick="onboardingSelectPurpose('explore')">Yeni kesif</button>
+      </div>
+    </div>
+
+    <div class="onboarding-section">
+      <div class="onboarding-label">Butce bandi</div>
+      <div class="onboarding-chips" id="onboarding-budget">
+        <button type="button" class="onboarding-chip" data-value="300 TL alti" onclick="onboardingSelectBudget('300 TL alti')">300 alti</button>
+        <button type="button" class="onboarding-chip" data-value="300-800 TL" onclick="onboardingSelectBudget('300-800 TL')">300-800</button>
+        <button type="button" class="onboarding-chip" data-value="800-2000 TL" onclick="onboardingSelectBudget('800-2000 TL')">800-2000</button>
+        <button type="button" class="onboarding-chip" data-value="2000+ TL" onclick="onboardingSelectBudget('2000+ TL')">2000+</button>
+      </div>
+    </div>
+
+    <div class="onboarding-section">
+      <div class="onboarding-label">Favori aileler (max 3)</div>
+      <div class="onboarding-chips" id="onboarding-families">
+        <button type="button" class="onboarding-chip" data-value="fresh" onclick="onboardingToggleFamily('fresh')">Fresh</button>
+        <button type="button" class="onboarding-chip" data-value="floral" onclick="onboardingToggleFamily('floral')">Floral</button>
+        <button type="button" class="onboarding-chip" data-value="woody" onclick="onboardingToggleFamily('woody')">Woody</button>
+        <button type="button" class="onboarding-chip" data-value="gourmand" onclick="onboardingToggleFamily('gourmand')">Gourmand</button>
+        <button type="button" class="onboarding-chip" data-value="oriental" onclick="onboardingToggleFamily('oriental')">Oriental</button>
+      </div>
+    </div>
+
+    <p class="onboarding-msg" id="onboarding-msg"></p>
+
+    <div class="onboarding-actions">
+      <button type="button" class="onboarding-primary" onclick="completeOnboarding()">Kaydet ve Devam</button>
+      <button type="button" class="onboarding-secondary" onclick="onboardingStartFirstAnalysis()">Ilk Analizi Hazirla</button>
+      <button type="button" class="onboarding-tertiary" onclick="skipOnboarding()">Simdilik Gec</button>
+    </div>
+  </div>
+</div>
+
+<div class="error-box" id="error-box"></div>
+ 
+<button class="reset-btn" id="reset-btn" onclick="reset()">Yeni Analiz Yap</button>
+ 
+<div class="history-section" id="history-section">
+  <div class="history-header">
+    <span class="history-title">Koku Geçmişi</span>
+    <button class="history-clear" onclick="clearHistory()">Temizle</button>
+  </div>
+  <div class="history-grid" id="history-grid"></div>
+</div>
+
+<div class="history-section shelf-section" id="shelf-section" style="display:none">
+  <div class="history-header">
+    <span class="history-title">Koku Dolabım</span>
+    <span class="history-subtitle" id="shelf-count-label">0 kayıt</span>
+  </div>
+  <div class="history-subtitle" id="wear-summary">Analiz yaptıkça kullanım özetin burada görünür.</div>
+  <div class="shelf-actions compact" id="shelf-filters"></div>
+  <div class="history-grid shelf-grid" id="shelf-grid"></div>
+  <div class="decision-actions">
+    <button class="decision-btn ghost" type="button" onclick="openBarcodeOverlay()">Barkod Tara</button>
+    <button class="decision-btn" type="button" onclick="openLayeringLabOverlay()">Katmanlama Lab</button>
+    <button class="decision-btn ghost" type="button" onclick="openFinderOverlay()">Nota Avcısı</button>
+  </div>
+</div>
+
+<div class="history-section" id="feed-section" style="display:none">
+  <div class="history-header">
+      <span class="history-title">Koku Akışı (Beta)</span>
+    <button class="history-clear" onclick="clearFeed()">Temizle</button>
+  </div>
+  <div class="history-grid" id="feed-grid"></div>
+</div>
+
+<div class="compare-overlay" id="barcode-overlay" style="display:none" onclick="closeBarcodeOverlay(true)">
+  <div class="compare-card finder-card" role="dialog" aria-modal="true" aria-label="Barcode Scanner" onclick="event.stopPropagation()">
+    <div class="compare-header">
+      <span class="compare-title">Barkod Tarayıcı</span>
+      <button class="compare-close" type="button" onclick="closeBarcodeOverlay()">x</button>
+    </div>
+    <p class="compare-sub">Kutu barkodunu okut veya kodu manuel yaz.</p>
+    <video id="barcode-video" class="barcode-video" autoplay muted playsinline></video>
+    <label class="compare-label">
+      Barkod (manuel)
+      <input class="compare-input" id="barcode-input" type="text" maxlength="24" inputmode="numeric" placeholder="Orn: 3348901520196">
+    </label>
+    <p class="compare-msg" id="barcode-msg"></p>
+    <button class="compare-submit" type="button" onclick="submitBarcodeManual()">Barkodu Ara</button>
+  </div>
+</div>
+
+<div class="compare-overlay" id="finder-overlay" style="display:none" onclick="closeFinderOverlay(true)">
+  <div class="compare-card finder-card" role="dialog" aria-modal="true" aria-label="Nota Avcısı" onclick="event.stopPropagation()">
+    <div class="compare-header">
+      <span class="compare-title">Nota Avcısı</span>
+      <button class="compare-close" type="button" onclick="closeFinderOverlay()">x</button>
+    </div>
+    <p class="compare-sub">Ornek: tutun, vanilya ama tatlilik dusuk.</p>
+    <label class="compare-label">
+      Dahil notalar
+      <input class="compare-input" id="finder-include" type="text" maxlength="220" placeholder="Orn. tobacco, vanilla, amber">
+    </label>
+    <label class="compare-label">
+      Haric notalar
+      <input class="compare-input" id="finder-exclude" type="text" maxlength="220" placeholder="Orn. caramel">
+    </label>
+    <label class="compare-label">
+      Max tatlılık (0-100)
+      <span class="compare-field-note">Hedef tatlılık (0-100)</span>
+      <input class="compare-input" id="finder-sweetness" type="number" min="0" max="100" value="65">
+    </label>
+    <p class="compare-msg" id="finder-msg"></p>
+    <button class="compare-submit" type="button" onclick="runPerfumeFinder()">Sonuçları Getir</button>
+    <div class="history-grid" id="finder-results"></div>
+  </div>
+</div>
+
+<div class="compare-overlay" id="layering-lab-overlay" style="display:none" onclick="closeLayeringLabOverlay(true)">
+  <div class="compare-card finder-card" role="dialog" aria-modal="true" aria-label="Katmanlama Lab" onclick="event.stopPropagation()">
+    <div class="compare-header">
+      <span class="compare-title">Katmanlama Lab</span>
+      <button class="compare-close" type="button" onclick="closeLayeringLabOverlay()">x</button>
+    </div>
+    <p class="compare-sub">Dolabından iki parfüm seç, AI birlikte nasıl kokacaklarını hesaplasın.</p>
+    <label class="compare-label">
+      Sol parfüm
+      <select class="compare-input" id="layering-left"></select>
+    </label>
+    <label class="compare-label">
+      Sağ parfüm
+      <select class="compare-input" id="layering-right"></select>
+    </label>
+    <p class="compare-msg" id="layering-lab-msg"></p>
+    <button class="compare-submit" type="button" onclick="runLayeringLab()">Katmanlamayı Analiz Et</button>
+  </div>
+</div>
+
+<div class="app-toast" id="app-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<footer class="site-footer">
+  <a href="/privacy-policy.html" target="_blank" rel="noopener noreferrer">Gizlilik Politikası</a>
+  <span>•</span>
+  <a href="/terms-and-conditions.html" target="_blank" rel="noopener noreferrer">Kullanım Koşulları</a>
+  <span>•</span>
+  <a href="/refund-policy.html" target="_blank" rel="noopener noreferrer">İade Politikası</a>
+  <span>•</span>
+  <a href="/pricing.html" target="_blank" rel="noopener noreferrer">Paketler</a>
+  <span>•</span>
+  <a href="/api/health" target="_blank" rel="noopener noreferrer">Sistem Durumu</a>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+<script src="https://unpkg.com/smiles-drawer@2.0.1/dist/smiles-drawer.min.js"></script>
+  <script src="/lib/icon-system.js?v=20260329r12" defer></script>
+  <script src="/lib/frontend-core.js?v=20260329r12" defer></script>
+  <script src="/lib/premium-emoji.js?v=20260329r12" defer></script>
+  <script src="/lib/official-links.js?v=20260329r12" defer></script>
+  <script src="/lib/share-card.js?v=20260329r12" defer></script>
+  <script src="/lib/fragrance-wheel.js?v=20260329r12" defer></script>
+  <script src="/lib/product-labs.js?v=20260329r12" defer></script>
+  <script src="/app.js?v=20260329r12" defer></script>
+  <script src="/lib/app/labs-core.js?v=20260329r12" defer></script>
+  <script src="/lib/app/wardrobe.js?v=20260329r12" defer></script>
+  <script src="/lib/app/auth.js?v=20260329r12" defer></script>
+  <script src="/lib/bootstrap-guard.js?v=20260329r12" defer></script>
+</body>
+</html>

@@ -1,11 +1,12 @@
+import type { Route } from 'next';
 import Link from 'next/link';
 
 const LINKS = [
   { href: '/gizlilik', label: 'Gizlilik' },
-  { href: '/kullanim-kosullari', label: 'Kullanım Koşulları' },
-  { href: '/iade-politikasi', label: 'İade Politikası' },
+  { href: '/kullanim-kosullari', label: 'Kullanim Kosullari' },
+  { href: '/iade-politikasi', label: 'Iade Politikasi' },
   { href: '/paketler', label: 'Paketler' },
-];
+] as const;
 
 export function LegalFooter() {
   return (
@@ -16,7 +17,7 @@ export function LegalFooter() {
         {LINKS.map(({ href, label }) => (
           <Link
             key={href}
-            href={href}
+            href={href as Route}
             className="text-[11px] font-mono text-muted hover:text-cream transition-colors no-underline"
           >
             {label}

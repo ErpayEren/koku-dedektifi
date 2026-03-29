@@ -224,7 +224,13 @@ export function OpsClient() {
 
         <article style={{ background: '#15131a', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, padding: 14 }}>
           <h2 style={{ margin: '0 0 10px', color: '#c8a97e', fontSize: 13, letterSpacing: '.05em', textTransform: 'uppercase' }}>Gunluk Seri</h2>
-          <BarList rows={metrics?.series || []} emptyText="Seri verisi yok." />
+          <BarList
+            rows={(metrics?.series || []).map((row) => ({
+              value: row.day,
+              count: row.total,
+            }))}
+            emptyText="Seri verisi yok."
+          />
         </article>
 
         <article style={{ background: '#15131a', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, padding: 14 }}>
@@ -350,4 +356,3 @@ const tdStyle: CSSProperties = {
   borderBottom: '1px solid rgba(255,255,255,0.08)',
   padding: '8px 6px',
 };
-

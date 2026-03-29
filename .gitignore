@@ -1,20 +1,37 @@
 .vercel
-.env*.local
-.runtime
-.env
 android_env
 flutter_sdk
 flutter_windows_stable.zip
 extract_*.log
 node_modules
-.next
 dist
 build
 coverage
 *.tsbuildinfo
 *.log
-mobile_flutter/build
-mobile_flutter/.dart_tool
+tools/mingit
+tools/*.zip
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Runtime
+.runtime/
+
+# Next.js
+.next/
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Flutter (monorepo'da ayri tutmak icin)
+mobile_flutter/.dart_tool/
+mobile_flutter/build/
 mobile_flutter/.packages
 mobile_flutter/.flutter-plugins
 mobile_flutter/.flutter-plugins-dependencies
@@ -22,5 +39,4 @@ mobile_flutter/android/.gradle
 mobile_flutter/android/local.properties
 mobile_flutter/android/key.properties
 mobile_flutter/keystore
-tools/mingit
-tools/*.zip
+

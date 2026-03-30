@@ -3,9 +3,21 @@ import { Redis } from '@upstash/redis/cloudflare';
 
 let redisClient: Redis | null = null;
 
+function resolveRedisEnv(): { url: string; token: string } {
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '';
+
+  if (!url || !token) {
+    throw new Error('Redis REST env must be set (UPSTASH_REDIS_REST_* or KV_REST_API_*)');
+  }
+
+  return { url, token };
+}
+
 function getRedisClient(): Redis {
   if (redisClient) return redisClient;
-  redisClient = Redis.fromEnv();
+  const { url, token } = resolveRedisEnv();
+  redisClient = new Redis({ url, token });
   return redisClient;
 }
 

@@ -1,16 +1,18 @@
-const CACHE_VERSION = 'v31-next-ui-refresh';
+const CACHE_VERSION = 'v32-next-ui-refresh';
 const APP_SHELL_CACHE = `koku-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `koku-runtime-${CACHE_VERSION}`;
 
 const APP_SHELL_ASSETS = [
   '/',
   '/offline.html',
+  '/manifest.webmanifest',
   '/manifest.json',
   '/icon-192.svg',
   '/icon-512.svg',
 ];
 
 const SECURITY_EXCLUDE_PREFIXES = ['/api/'];
+const NEVER_CACHE_PREFIXES = ['/_next/static/', '/_next/image'];
 
 function shouldHandleRequest(request) {
   if (request.method !== 'GET') return false;
@@ -98,6 +100,12 @@ self.addEventListener('fetch', (event) => {
   if (!shouldHandleRequest(event.request)) return;
 
   const url = new URL(event.request.url);
+
+  if (NEVER_CACHE_PREFIXES.some((prefix) => url.pathname.startsWith(prefix))) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   if (event.request.mode === 'navigate') {
     event.respondWith(networkFirstNavigation(event.request));
     return;
@@ -110,4 +118,3 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(staleWhileRevalidate(event.request));
 });
-

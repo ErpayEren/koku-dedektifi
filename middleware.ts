@@ -1,4 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Redis } from '@upstash/redis/cloudflare';
+
+let redisClient: Redis | null = null;
+
+function getRedisClient(): Redis {
+  if (redisClient) return redisClient;
+  redisClient = Redis.fromEnv();
+  return redisClient;
+}
 
 /**
  * Timing-safe string comparison.
@@ -18,35 +27,28 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/**
- * In-memory rate limiter fallback.
- * If Redis is available, prefer Redis-based limiting.
- */
-const rl = new Map<string, { n: number; t: number }>();
-
-function isRateLimited(key: string, max: number, windowMs: number): boolean {
-  const now = Date.now();
-  const entry = rl.get(key);
-
-  if (!entry || entry.t < now) {
-    rl.set(key, { n: 1, t: now + windowMs });
-    return false;
+async function isRateLimited(key: string, max: number, windowMs: number): Promise<boolean> {
+  const redis = getRedisClient();
+  const counter = await redis.incr(key);
+  if (counter === 1) {
+    await redis.expire(key, Math.ceil(windowMs / 1000));
   }
-  if (entry.n >= max) return true;
-  entry.n += 1;
-  return false;
+  return counter > max;
 }
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const opsPassword = process.env.OPS_PASSWORD;
+
+  if (!opsPassword) {
+    throw new Error('OPS_PASSWORD env must be set');
+  }
 
   if (pathname.startsWith('/ops')) {
     const auth = req.headers.get('authorization') ?? '';
     const expected =
       'Basic ' +
-      Buffer.from(
-        `${process.env.OPS_USER ?? 'admin'}:${process.env.OPS_PASSWORD ?? 'changeme'}`,
-      ).toString('base64');
+      btoa(`${process.env.OPS_USER ?? 'admin'}:${opsPassword}`);
 
     if (!timingSafeEqual(auth, expected)) {
       return new NextResponse('Bu alana erisim kisitlidir.', {
@@ -62,6 +64,11 @@ export function middleware(req: NextRequest) {
 
   const isApiRoute =
     pathname.startsWith('/api/analyze') ||
+    pathname.startsWith('/api/proxy') ||
+    pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api/billing') ||
+    pathname.startsWith('/api/wardrobe') ||
+    pathname.startsWith('/api/feed') ||
     pathname.startsWith('/api/labs') ||
     pathname.startsWith('/api/perfume') ||
     pathname.startsWith('/api/barcode') ||
@@ -73,7 +80,8 @@ export function middleware(req: NextRequest) {
       req.headers.get('x-real-ip') ??
       'unknown';
 
-    if (isRateLimited(`${ip}:${pathname.split('/')[2]}`, 30, 60_000)) {
+    const endpoint = pathname.split('/')[2] || 'api';
+    if (await isRateLimited(`rl:${ip}:${endpoint}`, 30, 60_000)) {
       return new NextResponse(
         JSON.stringify({
           error: 'Cok fazla istek gonderdiniz. Lutfen 1 dakika bekleyin.',
@@ -98,10 +106,14 @@ export const config = {
   matcher: [
     '/ops/:path*',
     '/api/analyze/:path*',
+    '/api/proxy',
+    '/api/auth',
+    '/api/billing/:path*',
+    '/api/wardrobe',
+    '/api/feed',
     '/api/labs/:path*',
     '/api/perfume/:path*',
     '/api/barcode/:path*',
     '/api/layering/:path*',
   ],
 };
-

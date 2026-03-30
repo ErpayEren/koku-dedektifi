@@ -1,0 +1,17 @@
+{
+  "extends": ["next/core-web-vitals", "plugin:@typescript-eslint/recommended"],
+  "overrides": [
+    {
+      "files": ["**/*.js"],
+      "rules": {
+        "@typescript-eslint/no-var-requires": "off"
+      }
+    },
+    {
+      "files": ["lib/app/**/*.js"],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": "off"
+      }
+    }
+  ]
+}

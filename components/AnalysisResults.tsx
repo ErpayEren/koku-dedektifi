@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { toPng } from 'html-to-image';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { UI } from '@/lib/strings';
 import type { AnalysisResult, MoleculeItem } from '@/lib/client/types';
 import { Card } from './ui/Card';
@@ -92,8 +93,7 @@ function parseContributionPct(value: string, index: number, total: number): numb
 }
 
 function resolveMoleculeType(family: string): string {
-  const text = family.trim();
-  return text || 'Aromatik Bilesik';
+  return family.trim() || 'Aromatik Bilesik';
 }
 
 function resolveMoleculeOrigin(origin: string): string[] {
@@ -101,8 +101,7 @@ function resolveMoleculeOrigin(origin: string): string[] {
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean);
-  if (list.length > 0) return list.slice(0, 4);
-  return ['Dogal profil'];
+  return list.length > 0 ? list.slice(0, 4) : ['Dogal profil'];
 }
 
 function toMoleculeData(molecules: MoleculeItem[]): MoleculeData[] {
@@ -155,6 +154,8 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
   const [molCardIdx, setMolCardIdx] = useState<number | null>(null);
   const [visible, setVisible] = useState(false);
   const [barsReady, setBarsReady] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
+  const shareCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setMoleculeIndex(0);
@@ -203,26 +204,27 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
 
   if (!result) return null;
 
-  const season = toList(result.season, 6);
-  const similar = toList(result.similar, 10);
+  const activeResult = result;
+
+  const season = toList(activeResult.season, 6);
+  const similar = toList(activeResult.similar, 10);
   const similarItems = buildSimilarItems(similar);
-  const dupes = toList(result.dupes, 8);
-  const molecules = sanitizeMolecules(result.molecules);
+  const dupes = toList(activeResult.dupes, 8);
+  const molecules = sanitizeMolecules(activeResult.molecules);
   const moleculeData = toMoleculeData(molecules);
   const moleculeSafeIndex = Math.max(0, Math.min(moleculeIndex, Math.max(0, moleculeData.length - 1)));
   const molecule = moleculeData[moleculeSafeIndex] || null;
-
-  const occasionList = toList(result.persona?.occasions, 5);
+  const occasionList = toList(activeResult.persona?.occasions, 5);
   const scores = {
-    freshness: clampPercent(result.scores?.freshness, 50),
-    sweetness: clampPercent(result.scores?.sweetness, 50),
-    warmth: clampPercent(result.scores?.warmth, 50),
+    freshness: clampPercent(activeResult.scores?.freshness, 50),
+    sweetness: clampPercent(activeResult.scores?.sweetness, 50),
+    warmth: clampPercent(activeResult.scores?.warmth, 50),
   };
-  const intensity = clampPercent(result.intensity, 65);
+  const intensity = clampPercent(activeResult.intensity, 65);
   const wheelValues = [scores.freshness, scores.sweetness, scores.warmth, intensity];
-  const confidence = resolveConfidence(result);
-  const heartNotes = result.pyramid?.middle ?? [];
-  const glowColor = FAMILY_GLOW[result.family] ?? 'rgba(201,169,110,.06)';
+  const confidence = resolveConfidence(activeResult);
+  const heartNotes = activeResult.pyramid?.middle ?? [];
+  const glowColor = FAMILY_GLOW[activeResult.family] ?? 'rgba(201,169,110,.06)';
 
   const cardMotion = (index: number) => ({
     opacity: visible ? 1 : 0,
@@ -230,11 +232,51 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
     transition: `opacity .4s ease ${index * 80}ms, transform .4s var(--ease) ${index * 80}ms`,
   });
 
+  async function shareResultCard(): Promise<void> {
+    if (!shareCardRef.current || shareBusy) return;
+    setShareBusy(true);
+    try {
+      const dataUrl = await toPng(shareCardRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: '#09080a',
+      });
+      const blob = await fetch(dataUrl).then((response) => response.blob());
+      const file = new File([blob], `${activeResult.name.toLowerCase().replace(/\s+/g, '-')}.png`, {
+        type: 'image/png',
+      });
+      const supportsFiles =
+        typeof navigator !== 'undefined' &&
+        typeof navigator.share === 'function' &&
+        (typeof navigator.canShare !== 'function' || navigator.canShare({ files: [file] }));
+
+      if (supportsFiles) {
+        await navigator.share({
+          title: activeResult.name,
+          files: [file],
+        });
+      } else {
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = downloadUrl;
+        anchor.download = file.name;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        window.URL.revokeObjectURL(downloadUrl);
+      }
+    } catch (error) {
+      console.error('[analysis-results] share failed.', error);
+    } finally {
+      setShareBusy(false);
+    }
+  }
+
   return (
     <section className="px-5 md:px-12 pb-8 anim-up-2">
       <SectionDivider label="Analiz Sonucu" />
 
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_360px] gap-5 mb-5">
+      <div ref={shareCardRef} className="grid grid-cols-1 md:grid-cols-[1fr_360px] gap-5 mb-5">
         <Card
           className="p-7 md:p-9 hover-lift relative overflow-hidden"
           glow
@@ -246,9 +288,23 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
           <div className="absolute top-5 right-5">
             <ConfidenceRing pct={confidence} />
           </div>
+          <div className="absolute top-5 left-5">
+            <button
+              type="button"
+              onClick={() => void shareResultCard()}
+              disabled={shareBusy}
+              className="rounded-full border border-white/[.08] bg-black/20 px-3 py-2 text-[10px] font-mono uppercase tracking-[.08em] text-muted hover:text-cream hover:border-[var(--gold-line)] transition-colors disabled:opacity-50"
+            >
+              {shareBusy ? 'Paylasiliyor' : 'Paylas'}
+            </button>
+          </div>
           <CardTitle>{UI.detectedScent}</CardTitle>
           <div className="flex items-start gap-4 pr-20">
-            <ScentGlyph token={result.iconToken} size={64} className="inline-flex items-center justify-center rounded-2xl border border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold" />
+            <ScentGlyph
+              token={result.iconToken}
+              size={64}
+              className="inline-flex items-center justify-center rounded-2xl border border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold"
+            />
             <div className="flex-1 min-w-0">
               <h2 className="font-display italic text-[2rem] md:text-[2.35rem] leading-[1.05] text-cream">{result.name}</h2>
               <p className="text-[11px] font-mono uppercase tracking-[.1em] text-gold mt-2">{result.family || 'Aromatik'}</p>
@@ -261,7 +317,10 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
               <span className="text-[12px] text-cream">{intensity}%</span>
             </div>
             <div className="h-[6px] rounded-full bg-white/[.08] overflow-hidden">
-              <div className="h-full rounded-full bg-gradient-to-r from-[#9f4f64] via-[#d97568] to-[#f08f66] transition-all duration-500 ease-out" style={{ width: `${intensity}%` }} />
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#9f4f64] via-[#d97568] to-[#f08f66] transition-all duration-500 ease-out"
+                style={{ width: `${intensity}%` }}
+              />
             </div>
           </div>
 
@@ -293,7 +352,11 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
             <div className="text-[9px] font-mono tracking-[.14em] uppercase mb-4" style={{ color: 'var(--muted)' }}>
               - Koku Gelisimi
             </div>
-            <ScentTimeline topNotes={toList(result.pyramid?.top, 6)} heartNotes={toList(heartNotes, 8)} baseNotes={toList(result.pyramid?.base, 8)} />
+            <ScentTimeline
+              topNotes={toList(result.pyramid?.top, 6)}
+              heartNotes={toList(heartNotes, 8)}
+              baseNotes={toList(result.pyramid?.base, 8)}
+            />
           </div>
 
           <div className="mt-7 pt-6 border-t border-white/[.06]">
@@ -326,7 +389,13 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
                 <MoleculeSketch seed={molecule.name} />
               </button>
               <div className="mt-4 flex items-center justify-between gap-3">
-                <button type="button" onClick={() => setMoleculeIndex((prev) => Math.max(0, prev - 1))} className="icon-btn" disabled={moleculeSafeIndex === 0} aria-label="Onceki molekul">
+                <button
+                  type="button"
+                  onClick={() => setMoleculeIndex((prev) => Math.max(0, prev - 1))}
+                  className="icon-btn"
+                  disabled={moleculeSafeIndex === 0}
+                  aria-label="Onceki molekul"
+                >
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8">
                     <path d="M8.8 2.3 4.2 7l4.6 4.7" />
                   </svg>
@@ -357,7 +426,9 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
                         key={`${item.name}-${index}`}
                         type="button"
                         onClick={() => setMoleculeIndex(index)}
-                        className={`h-1.5 rounded-full transition-all ${index === moleculeSafeIndex ? 'w-8 bg-gold' : 'w-1.5 bg-white/[.25]'}`}
+                        className={`h-1.5 rounded-full transition-all ${
+                          index === moleculeSafeIndex ? 'w-8 bg-gold' : 'w-1.5 bg-white/[.25]'
+                        }`}
                         aria-label={`${index + 1}. molekule git`}
                       />
                     ))}
@@ -376,7 +447,9 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
                             setMolCardIdx(index);
                           }}
                           className={`w-full text-left px-3 py-2 rounded-lg border transition-all duration-150 ${
-                            index === moleculeSafeIndex ? 'border-[var(--gold-line)] bg-[var(--gold-dim)]/30' : 'border-white/[.07] hover:border-[var(--gold-line)]'
+                            index === moleculeSafeIndex
+                              ? 'border-[var(--gold-line)] bg-[var(--gold-dim)]/30'
+                              : 'border-white/[.07] hover:border-[var(--gold-line)]'
                           }`}
                           aria-label={`${item.name} detayini goster`}
                         >
@@ -387,7 +460,14 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
                             </span>
                           </div>
                           <div className="h-1 rounded-full bg-white/[.08] mt-2 overflow-hidden">
-                            <div className="h-full rounded-full mol-bar" style={{ width: barsReady ? `${pct}%` : '0%', background: color, transition: 'width .8s var(--ease)' }} />
+                            <div
+                              className="h-full rounded-full mol-bar"
+                              style={{
+                                width: barsReady ? `${pct}%` : '0%',
+                                background: color,
+                                transition: 'width .8s var(--ease)',
+                              }}
+                            />
                           </div>
                         </button>
                       );
@@ -415,7 +495,9 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <span className="text-[14px] text-cream block truncate">{item.name}</span>
-                      <span className="text-[11px] text-muted block mt-1">Tek dokunusla bu profile yeniden analiz calistir</span>
+                      <span className="text-[11px] text-muted block mt-1">
+                        Tek dokunusla bu profile yeniden analiz calistir
+                      </span>
                     </div>
                     <SimilarityArc pct={item.similarity} />
                   </div>
@@ -531,7 +613,16 @@ function SimilarityArc({ pct }: { pct: number }) {
     <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
       <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
         <circle cx="18" cy="18" r={r} stroke="var(--border-md)" strokeWidth="2" />
-        <circle cx="18" cy="18" r={r} stroke={color} strokeWidth="2" strokeLinecap="round" strokeDasharray={`${dash} ${circ}`} transform="rotate(-90 18 18)" />
+        <circle
+          cx="18"
+          cy="18"
+          r={r}
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${circ}`}
+          transform="rotate(-90 18 18)"
+        />
         <text x="18" y="22" textAnchor="middle" fontFamily="var(--font-mono)" fontSize="8" fill={color}>
           {pct}
         </text>
@@ -596,7 +687,14 @@ function MoleculeSketch({ seed }: { seed: string }) {
         return (
           <g key={`${char}-${x}`}>
             {index > 0 ? (
-              <line x1={x - 36} y1={70 + ((index - 1) % 2 === 0 ? -14 : 14)} x2={x} y2={y} stroke="rgba(201,169,110,.65)" strokeWidth="2" />
+              <line
+                x1={x - 36}
+                y1={70 + ((index - 1) % 2 === 0 ? -14 : 14)}
+                x2={x}
+                y2={y}
+                stroke="rgba(201,169,110,.65)"
+                strokeWidth="2"
+              />
             ) : null}
             <circle cx={x} cy={y} r="11" fill="rgba(9,8,10,.82)" stroke="rgba(201,169,110,.6)" />
             <text x={x} y={y + 3} textAnchor="middle" fontFamily="var(--font-mono)" fontSize="9" fill="#E8DFC9">
@@ -608,4 +706,3 @@ function MoleculeSketch({ seed }: { seed: string }) {
     </svg>
   );
 }
-

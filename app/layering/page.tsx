@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
@@ -13,7 +14,7 @@ import type { AnalysisResult } from '@/lib/client/types';
 
 const FALLBACK = [
   'Dior Sauvage Eau de Parfum',
-  'Chanel N°5 Eau de Parfum',
+  'Chanel No.5 Eau de Parfum',
   'Creed Aventus',
   'Maison Margiela By the Fireplace',
   'Tom Ford Black Orchid',
@@ -37,25 +38,25 @@ function Picker({ label, value, options, onChange }: PickerProps) {
         setOpen(false);
       }
     }
+
     document.addEventListener('mousedown', onDocClick);
     return () => document.removeEventListener('mousedown', onDocClick);
   }, []);
 
   return (
     <div ref={rootRef} className="relative">
-      <label className="block text-[11px] text-muted mb-1.5">{label}</label>
+      <label className="mb-1.5 block text-[11px] text-muted">{label}</label>
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="w-full rounded-xl border border-white/[.08] bg-[#15131a] p-3 text-cream outline-none
-                   focus:border-[var(--gold-line)] flex items-center justify-between"
+        className="flex w-full items-center justify-between rounded-xl border border-white/[.08] bg-[#15131a] p-3 text-cream outline-none focus:border-[var(--gold-line)]"
       >
-        <span className="truncate">{value || 'Seç...'}</span>
+        <span className="truncate">{value || 'Sec...'}</span>
         <span className="text-muted">▾</span>
       </button>
 
       {open ? (
-        <div className="absolute top-[calc(100%+8px)] left-0 right-0 z-30 rounded-xl border border-white/[.08] bg-[#17141d] shadow-[0_18px_36px_rgba(0,0,0,.45)] max-h-56 overflow-y-auto">
+        <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-56 overflow-y-auto rounded-xl border border-white/[.08] bg-[#17141d] shadow-[0_18px_36px_rgba(0,0,0,.45)]">
           {options.map((name) => (
             <button
               key={`${label}-${name}`}
@@ -64,8 +65,9 @@ function Picker({ label, value, options, onChange }: PickerProps) {
                 onChange(name);
                 setOpen(false);
               }}
-              className={`w-full text-left px-3.5 py-2.5 text-[13px] transition-colors
-                ${name === value ? 'text-gold bg-[var(--gold-dim)]' : 'text-cream hover:bg-white/[.04]'}`}
+              className={`w-full px-3.5 py-2.5 text-left text-[13px] transition-colors ${
+                name === value ? 'bg-[var(--gold-dim)] text-gold' : 'text-cream hover:bg-white/[.04]'
+              }`}
             >
               {name}
             </button>
@@ -99,20 +101,22 @@ export default function LayeringPage() {
 
   async function run(): Promise<void> {
     if (!left || !right) return;
+
     if (left === right) {
-      setError('Katmanlama için iki farklı parfüm seçmelisin.');
+      setError('Katmanlama icin iki farkli parfum secmelisin.');
       return;
     }
 
     setLoading(true);
     setError('');
+
     try {
       const response = await runLayering({ left, right });
       setResult(response.result);
       setCompatibility(response.compatibility);
       setShared(response.sharedNotes);
-    } catch (err) {
-      setError(readableError(err));
+    } catch (errorValue) {
+      setError(readableError(errorValue));
       setResult(null);
       setCompatibility(0);
       setShared([]);
@@ -123,79 +127,86 @@ export default function LayeringPage() {
 
   return (
     <AppShell>
-      <TopBar title={UI.layeringLab} />
-      <div className="px-5 md:px-12 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-5">
-          <Card className="p-5 md:p-6 h-fit hover-lift">
-            <CardTitle>{UI.layeringLab}</CardTitle>
-            <p className="text-[13px] text-muted mb-5">
-              Dolabından iki parfüm seç. Sistem ortak notaları ve karakter uyumunu hesaplayıp tek bir blend profili çıkarır.
-            </p>
+      <ErrorBoundary>
+        <TopBar title={UI.layeringLab} />
+        <div className="px-5 py-8 md:px-12">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[420px_1fr]">
+            <Card className="h-fit p-5 md:p-6 hover-lift">
+              <CardTitle>{UI.layeringLab}</CardTitle>
+              <p className="mb-5 text-[13px] text-muted">
+                Dolabindan iki parfum sec. Sistem ortak notalari ve karakter uyumunu hesaplayip tek bir blend
+                profili cikarir.
+              </p>
 
-            <div className="space-y-4">
-              <Picker label={UI.leftScent} value={left} options={nameOptions} onChange={setLeft} />
-              <Picker label={UI.rightScent} value={right} options={nameOptions} onChange={setRight} />
-            </div>
+              <div className="space-y-4">
+                <Picker label={UI.leftScent} value={left} options={nameOptions} onChange={setLeft} />
+                <Picker label={UI.rightScent} value={right} options={nameOptions} onChange={setRight} />
+              </div>
 
-            <button
-              type="button"
-              onClick={run}
-              disabled={loading || !left || !right}
-              className={`mt-5 w-full rounded-xl py-3 text-[11px] font-mono uppercase tracking-[.1em] transition-colors
-                ${
+              <button
+                type="button"
+                onClick={run}
+                disabled={loading || !left || !right}
+                className={`mt-5 w-full rounded-xl py-3 text-[11px] font-mono uppercase tracking-[.1em] transition-colors ${
                   loading || !left || !right
-                    ? 'bg-white/[.06] text-muted border border-white/[.08]'
+                    ? 'border border-white/[.08] bg-white/[.06] text-muted'
                     : 'bg-gold text-bg hover:bg-[#d8b676]'
                 }`}
-            >
-              {loading ? 'Hesaplanıyor…' : UI.analyzeLayering}
-            </button>
-            {error ? <p className="mt-4 text-[12px] text-[#f1a2a2]">{error}</p> : null}
-          </Card>
+              >
+                {loading ? 'Hesaplaniyor...' : UI.analyzeLayering}
+              </button>
+              {error ? <p className="mt-4 text-[12px] text-[#f1a2a2]">{error}</p> : null}
+            </Card>
 
-          <Card className="p-5 md:p-6 hover-lift">
-            <CardTitle>Katmanlama Sonucu</CardTitle>
-            {!result ? (
-              <p className="text-[13px] text-muted">Sol ve sağ parfüm seçip analizi çalıştırdığında sonuç burada görünür.</p>
-            ) : (
-              <div className="anim-up">
-                <p className="font-display italic text-[2rem] text-cream leading-[1.05]">{result.name}</p>
-                <p className="text-[12px] text-muted mt-2">{result.description}</p>
-                <div className="mt-4 rounded-xl border border-white/[.08] p-3.5">
-                  <div className="flex justify-between text-[11px] text-muted mb-1.5">
-                    <span>Uyumluluk</span>
-                    <span>{compatibility}/100</span>
-                  </div>
-                  <div className="h-[6px] bg-white/[.08] rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-sage rounded-full transition-all duration-500"
-                      style={{ width: `${Math.max(0, Math.min(100, compatibility))}%` }}
-                    />
-                  </div>
-                </div>
-                {shared.length > 0 ? (
-                  <div className="mt-4">
-                    <p className="text-[11px] text-muted mb-2">Ortak notalar</p>
-                    <div className="flex flex-wrap gap-2">
-                      {shared.map((tag) => (
-                        <span key={tag} className="text-[10px] px-2 py-1 rounded-full border border-[var(--gold-line)] text-gold">
-                          {tag}
-                        </span>
-                      ))}
+            <Card className="p-5 md:p-6 hover-lift">
+              <CardTitle>Katmanlama Sonucu</CardTitle>
+              {!result ? (
+                <p className="text-[13px] text-muted">
+                  Sol ve sag parfum secip analizi calistirdiginda sonuc burada gorunur.
+                </p>
+              ) : (
+                <div className="anim-up">
+                  <p className="font-display text-[2rem] italic leading-[1.05] text-cream">{result.name}</p>
+                  <p className="mt-2 text-[12px] text-muted">{result.description}</p>
+                  <div className="mt-4 rounded-xl border border-white/[.08] p-3.5">
+                    <div className="mb-1.5 flex justify-between text-[11px] text-muted">
+                      <span>Uyumluluk</span>
+                      <span>{compatibility}/100</span>
+                    </div>
+                    <div className="h-[6px] overflow-hidden rounded-full bg-white/[.08]">
+                      <div
+                        className="h-full rounded-full bg-sage transition-all duration-500"
+                        style={{ width: `${Math.max(0, Math.min(100, compatibility))}%` }}
+                      />
                     </div>
                   </div>
-                ) : null}
-                <Link
-                  href={`/?mode=text&q=${encodeURIComponent(result.name)}`}
-                  className="inline-flex mt-4 text-[11px] font-mono uppercase tracking-[.08em] text-gold hover:text-cream transition-colors no-underline"
-                >
-                  Bu blendi ana analizde aç →
-                </Link>
-              </div>
-            )}
-          </Card>
+                  {shared.length > 0 ? (
+                    <div className="mt-4">
+                      <p className="mb-2 text-[11px] text-muted">Ortak notalar</p>
+                      <div className="flex flex-wrap gap-2">
+                        {shared.map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-full border border-[var(--gold-line)] px-2 py-1 text-[10px] text-gold"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  <Link
+                    href={`/?mode=text&q=${encodeURIComponent(result.name)}`}
+                    className="mt-4 inline-flex text-[11px] font-mono uppercase tracking-[.08em] text-gold no-underline transition-colors hover:text-cream"
+                  >
+                    Bu blendi ana analizde ac →
+                  </Link>
+                </div>
+              )}
+            </Card>
+          </div>
         </div>
-      </div>
+      </ErrorBoundary>
     </AppShell>
   );
 }

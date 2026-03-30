@@ -1,116 +1,27 @@
 const crypto = require('crypto');
-const { createRuntimeStore } = require('../lib/server/runtime-store');
-const { fetchSupabaseUserById, hasSupabaseAuthUsersConfig } = require('../lib/server/supabase-auth-users');
+const { MAX_BODY_BYTES, cleanString, setCorsHeaders, setSecurityHeaders } = require('../lib/server/config');
+const { readAuthSession } = require('../lib/server/auth-session');
+const {
+  billingStore,
+  checkoutKey,
+  getBillingProvider,
+  getPlanCatalog,
+  getPlanById,
+  isDevActivationAllowed,
+  normalizeEntitlement,
+  readEntitlementForUser,
+  writeEntitlementForUser,
+} = require('../lib/server/billing-store');
 
-const ALLOWED_ORIGINS = [
-  'https://koku-dedektifi.vercel.app',
-  'http://localhost:3000',
-  'http://localhost:5500',
-  'http://127.0.0.1:5500',
-];
-
-const SECURITY_HEADERS = {
-  'Cache-Control': 'no-store, max-age=0',
-  Pragma: 'no-cache',
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'Referrer-Policy': 'no-referrer',
-  'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
-  'X-Robots-Tag': 'noindex, nofollow',
-};
-
-const MAX_BODY_BYTES = 20 * 1024;
-const BILLING_RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const BILLING_RATE_LIMIT_MAX = 30;
-const BILLING_TTL_MS = 400 * 24 * 60 * 60 * 1000;
-const PLAN_ID_RE = /^[a-z0-9_-]{2,24}$/i;
-
-const userStore = createRuntimeStore({
-  cacheTtlMs: 365 * 24 * 60 * 60 * 1000,
-  cacheMaxEntries: 30000,
-  keyPrefix: 'koku-auth-user',
-});
-
-const sessionStore = createRuntimeStore({
-  cacheTtlMs: 30 * 24 * 60 * 60 * 1000,
-  cacheMaxEntries: 50000,
-  keyPrefix: 'koku-auth-session',
-});
-
-const billingStore = createRuntimeStore({
-  rateLimitWindowMs: BILLING_RATE_LIMIT_WINDOW_MS,
-  rateLimitMax: BILLING_RATE_LIMIT_MAX,
-  cacheTtlMs: BILLING_TTL_MS,
-  cacheMaxEntries: 20000,
-  keyPrefix: 'koku-billing',
-});
-
-function cleanString(value) {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function cleanNumber(value, fallback) {
-  const parsed = Number.parseFloat(cleanString(value));
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
-}
+const BILLING_MAX_BODY_BYTES = Math.min(MAX_BODY_BYTES, 20 * 1024);
 
 function getClientIP(req) {
-  return req.headers['x-forwarded-for']?.split(',')[0]?.trim()
-    || req.headers['x-real-ip']
-    || req.socket?.remoteAddress
-    || 'unknown';
-}
-
-function setSecurityHeaders(res) {
-  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
-    res.setHeader(key, value);
-  }
-}
-
-function getAllowedOrigins(req) {
-  const origins = new Set(ALLOWED_ORIGINS);
-  const forwardedHost = cleanString(req.headers['x-forwarded-host']);
-  const host = cleanString(req.headers.host);
-  const candidateHost = forwardedHost || host;
-
-  if (candidateHost) {
-    const proto = cleanString(req.headers['x-forwarded-proto'])
-      || (/^(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/i.test(candidateHost) ? 'http' : 'https');
-    origins.add(`${proto}://${candidateHost}`);
-  }
-
-  return origins;
-}
-
-function setCorsHeaders(req, res) {
-  const origin = cleanString(req.headers.origin);
-  if (!origin) {
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Access-Control-Max-Age', '86400');
-    return true;
-  }
-
-  if (!getAllowedOrigins(req).has(origin)) return false;
-
-  res.setHeader('Access-Control-Allow-Origin', origin);
-  res.setHeader('Vary', 'Origin');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Max-Age', '86400');
-  return true;
-}
-
-function hashSha256(value) {
-  return crypto.createHash('sha256').update(String(value)).digest('hex');
-}
-
-function sessionKey(token) {
-  return `session:${hashSha256(token)}`;
-}
-
-function userKey(userId) {
-  return `user:${userId}`;
+  return (
+    req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+    req.headers['x-real-ip'] ||
+    req.socket?.remoteAddress ||
+    'unknown'
+  );
 }
 
 function parseBody(req) {
@@ -125,114 +36,12 @@ function parseBody(req) {
   return body && typeof body === 'object' ? body : null;
 }
 
-function getAuthToken(req) {
-  const authHeader = cleanString(req.headers.authorization);
-  if (!authHeader.startsWith('Bearer ')) return '';
-  return cleanString(authHeader.slice(7));
-}
-
-async function readAuthSession(req) {
-  const token = getAuthToken(req);
-  if (!token) return null;
-
-  const session = await sessionStore.getCache(sessionKey(token));
-  if (!session || session.active !== true || !session.userId) return null;
-
-  let user = await userStore.getCache(userKey(session.userId));
-  if (!user && hasSupabaseAuthUsersConfig()) {
-    try {
-      user = await fetchSupabaseUserById(session.userId);
-      if (user?.id) {
-        await userStore.setCache(userKey(user.id), user);
-      }
-    } catch (error) {
-      console.warn('[billing] Supabase auth user lookup failed.', error?.message || error);
-    }
-  }
-  if (!user) return null;
-
-  return { token, session, user };
-}
-
-function getPlanCatalog() {
-  const currency = cleanString(process.env.BILLING_CURRENCY) || 'TRY';
-  const interval = cleanString(process.env.BILLING_INTERVAL) || 'month';
-
-  return [
-    {
-      id: 'free',
-      name: 'Free',
-      price: 0,
-      currency,
-      interval,
-      featured: false,
-      features: [
-        'Gunluk temel analiz',
-        'Standart koku danismani',
-        'Yerel gecmis kaydi',
-      ],
-    },
-    {
-      id: 'pro',
-      name: 'Pro',
-      price: cleanNumber(process.env.BILLING_PRICE_PRO, 199),
-      currency,
-      interval,
-      featured: true,
-      features: [
-        'Oncelikli cevap hizi',
-        'Gelişmis kişiselleştirme',
-        'Derin analiz + ops gorunurlugu',
-      ],
-    },
-  ];
-}
-
-function normalizeEntitlement(entry) {
-  const src = entry && typeof entry === 'object' ? entry : {};
-  const tier = cleanString(src.tier).toLowerCase();
-  const status = cleanString(src.status).toLowerCase();
-  return {
-    tier: tier || 'free',
-    status: status || 'active',
-    source: cleanString(src.source) || 'default',
-    updatedAt: cleanString(src.updatedAt) || null,
-    checkoutPlanId: cleanString(src.checkoutPlanId) || '',
-    checkoutStartedAt: cleanString(src.checkoutStartedAt) || null,
-    cancelAtPeriodEnd: src.cancelAtPeriodEnd === true,
-  };
-}
-
-function entitlementKey(userId) {
-  return `entitlement:user:${userId}`;
-}
-
-function checkoutKey(userId) {
-  return `checkout:user:${userId}`;
-}
-
-function isDevActivationAllowed() {
-  if (cleanString(process.env.BILLING_ALLOW_DEV_ACTIVATION).toLowerCase() === 'true') {
-    return true;
-  }
-  const nodeEnv = cleanString(process.env.NODE_ENV).toLowerCase();
-  const vercelEnv = cleanString(process.env.VERCEL_ENV).toLowerCase();
-  if (nodeEnv && nodeEnv !== 'production') return true;
-  if (vercelEnv && vercelEnv !== 'production') return true;
-  return false;
-}
-
 function getCheckoutUrl(planId) {
   const upper = String(planId || '').toUpperCase();
   const direct = cleanString(process.env[`BILLING_CHECKOUT_URL_${upper}`]);
   if (direct) return direct;
-
   if (planId === 'pro') return cleanString(process.env.BILLING_CHECKOUT_URL_PRO);
   return '';
-}
-
-function getBillingProvider() {
-  return cleanString(process.env.BILLING_PROVIDER).toLowerCase() || 'manual';
 }
 
 function getStripePriceId(planId) {
@@ -263,14 +72,6 @@ function getPaddleCheckoutUrl() {
   return cleanString(process.env.BILLING_PADDLE_CHECKOUT_URL);
 }
 
-function parseProviderError(payload, fallback = '') {
-  const direct = cleanString(payload?.error?.detail || payload?.error?.message);
-  if (direct) return direct;
-  const firstListDetail = cleanString(payload?.errors?.[0]?.detail || payload?.errors?.[0]?.message);
-  if (firstListDetail) return firstListDetail;
-  return fallback;
-}
-
 function getStripeApiBase() {
   return cleanString(process.env.BILLING_STRIPE_API_BASE) || 'https://api.stripe.com/v1';
 }
@@ -288,15 +89,23 @@ function buildManualCheckoutUrl(checkoutUrl, userId, planId) {
   return `${checkoutUrl}${connector}uid=${encodeURIComponent(userId)}&pid=${encodeURIComponent(planId)}`;
 }
 
+function parseProviderError(payload, fallback = '') {
+  const direct = cleanString(payload?.error?.detail || payload?.error?.message);
+  if (direct) return direct;
+  const firstListDetail = cleanString(payload?.errors?.[0]?.detail || payload?.errors?.[0]?.message);
+  if (firstListDetail) return firstListDetail;
+  return fallback;
+}
+
 async function createStripeCheckout(auth, plan) {
   const secret = cleanString(process.env.BILLING_STRIPE_SECRET_KEY);
   if (!secret) {
-    return { ok: false, code: 'checkout_unavailable', error: 'Stripe secret tanimli degil.', status: 503 };
+    return { ok: false, code: 'checkout_unavailable', error: 'Stripe secret tanımlı değil.', status: 503 };
   }
 
   const priceId = getStripePriceId(plan.id);
   if (!priceId) {
-    return { ok: false, code: 'checkout_unavailable', error: 'Stripe price id tanimli degil.', status: 503 };
+    return { ok: false, code: 'checkout_unavailable', error: 'Stripe price id tanımlı değil.', status: 503 };
   }
 
   const successUrl = getStripeSuccessUrl();
@@ -305,7 +114,7 @@ async function createStripeCheckout(auth, plan) {
     return {
       ok: false,
       code: 'checkout_unavailable',
-      error: 'Stripe success/cancel URL tanimli degil.',
+      error: 'Stripe success/cancel URL tanımlı değil.',
       status: 503,
     };
   }
@@ -321,9 +130,8 @@ async function createStripeCheckout(auth, plan) {
   body.set('line_items[0][quantity]', '1');
   body.set('allow_promotion_codes', 'true');
 
-  const apiBase = getStripeApiBase().replace(/\/+$/, '');
   try {
-    const response = await fetch(`${apiBase}/checkout/sessions`, {
+    const response = await fetch(`${getStripeApiBase().replace(/\/+$/, '')}/checkout/sessions`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${secret}`,
@@ -338,13 +146,13 @@ async function createStripeCheckout(auth, plan) {
     } catch {}
 
     if (!response.ok) {
-      const detail = cleanString(payload?.error?.message) || `Stripe checkout baslatilamadi (${response.status})`;
+      const detail = cleanString(payload?.error?.message) || `Stripe checkout başlatılamadı (${response.status})`;
       return { ok: false, code: 'checkout_unavailable', error: detail, status: 503 };
     }
 
     const url = cleanString(payload?.url);
     if (!url) {
-      return { ok: false, code: 'checkout_unavailable', error: 'Stripe checkout URL bos dondu.', status: 503 };
+      return { ok: false, code: 'checkout_unavailable', error: 'Stripe checkout URL boş döndü.', status: 503 };
     }
 
     return {
@@ -354,29 +162,24 @@ async function createStripeCheckout(auth, plan) {
       provider: 'stripe',
     };
   } catch {
-    return { ok: false, code: 'checkout_unavailable', error: 'Stripe servisine baglanilamadi.', status: 503 };
+    return { ok: false, code: 'checkout_unavailable', error: 'Stripe servisine bağlanılamadı.', status: 503 };
   }
 }
 
 async function createPaddleCheckout(auth, plan) {
   const apiKey = getPaddleApiKey();
   if (!apiKey) {
-    return { ok: false, code: 'checkout_unavailable', error: 'Paddle API key tanimli degil.', status: 503 };
+    return { ok: false, code: 'checkout_unavailable', error: 'Paddle API key tanımlı değil.', status: 503 };
   }
 
   const priceId = getPaddlePriceId(plan.id);
   if (!priceId) {
-    return { ok: false, code: 'checkout_unavailable', error: 'Paddle price id tanimli degil.', status: 503 };
+    return { ok: false, code: 'checkout_unavailable', error: 'Paddle price id tanımlı değil.', status: 503 };
   }
 
   const body = {
     collection_mode: 'automatic',
-    items: [
-      {
-        price_id: priceId,
-        quantity: 1,
-      },
-    ],
+    items: [{ price_id: priceId, quantity: 1 }],
     custom_data: {
       userId: auth.user.id,
       planId: plan.id,
@@ -388,9 +191,8 @@ async function createPaddleCheckout(auth, plan) {
     body.checkout = { url: checkoutUrl };
   }
 
-  const apiBase = getPaddleApiBase().replace(/\/+$/, '');
   try {
-    const response = await fetch(`${apiBase}/transactions`, {
+    const response = await fetch(`${getPaddleApiBase().replace(/\/+$/, '')}/transactions`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -405,13 +207,13 @@ async function createPaddleCheckout(auth, plan) {
     } catch {}
 
     if (!response.ok) {
-      const detail = parseProviderError(payload, `Paddle checkout baslatilamadi (${response.status})`);
+      const detail = parseProviderError(payload, `Paddle checkout başlatılamadı (${response.status})`);
       return { ok: false, code: 'checkout_unavailable', error: detail, status: 503 };
     }
 
     const url = cleanString(payload?.data?.checkout?.url);
     if (!url) {
-      return { ok: false, code: 'checkout_unavailable', error: 'Paddle checkout URL bos dondu.', status: 503 };
+      return { ok: false, code: 'checkout_unavailable', error: 'Paddle checkout URL boş döndü.', status: 503 };
     }
 
     return {
@@ -421,28 +223,19 @@ async function createPaddleCheckout(auth, plan) {
       provider: 'paddle',
     };
   } catch {
-    return { ok: false, code: 'checkout_unavailable', error: 'Paddle servisine baglanilamadi.', status: 503 };
+    return { ok: false, code: 'checkout_unavailable', error: 'Paddle servisine bağlanılamadı.', status: 503 };
   }
 }
 
 async function resolveCheckout(auth, plan) {
   const provider = getBillingProvider();
 
-  if (provider === 'stripe') {
-    return createStripeCheckout(auth, plan);
-  }
-  if (provider === 'paddle') {
-    return createPaddleCheckout(auth, plan);
-  }
+  if (provider === 'stripe') return createStripeCheckout(auth, plan);
+  if (provider === 'paddle') return createPaddleCheckout(auth, plan);
 
   const checkoutUrl = getCheckoutUrl(plan.id);
   if (!checkoutUrl) {
-    return {
-      ok: false,
-      code: 'checkout_unavailable',
-      error: 'Checkout URL tanimli degil.',
-      status: 503,
-    };
+    return { ok: false, code: 'checkout_unavailable', error: 'Checkout URL tanımlı değil.', status: 503 };
   }
 
   return {
@@ -451,26 +244,6 @@ async function resolveCheckout(auth, plan) {
     externalCheckoutId: '',
     provider: provider || 'manual',
   };
-}
-
-function getPlanById(planId) {
-  const id = cleanString(planId).toLowerCase();
-  if (!PLAN_ID_RE.test(id)) return null;
-  return getPlanCatalog().find((plan) => plan.id === id) || null;
-}
-
-async function readEntitlementForUser(userId) {
-  const row = await billingStore.getCache(entitlementKey(userId));
-  return normalizeEntitlement(row);
-}
-
-async function writeEntitlementForUser(userId, entitlement) {
-  const next = normalizeEntitlement({
-    ...entitlement,
-    updatedAt: new Date().toISOString(),
-  });
-  await billingStore.setCache(entitlementKey(userId), next);
-  return next;
 }
 
 function sanitizeUser(user) {
@@ -482,19 +255,18 @@ function sanitizeUser(user) {
   };
 }
 
-async function handleStartCheckout(req, res, auth, body) {
-  if (!auth) return res.status(401).json({ error: 'Checkout icin giris gerekli.' });
+async function handleStartCheckout(res, auth, body) {
+  if (!auth) return res.status(401).json({ error: 'Checkout için giriş gerekli.' });
 
-  const planId = cleanString(body.planId).toLowerCase();
-  const plan = getPlanById(planId);
+  const plan = getPlanById(cleanString(body.planId).toLowerCase());
   if (!plan || plan.id === 'free') {
-    return res.status(400).json({ error: 'Gecersiz plan secimi.' });
+    return res.status(400).json({ error: 'Geçersiz plan seçimi.' });
   }
 
   const checkoutResult = await resolveCheckout(auth, plan);
   if (!checkoutResult.ok) {
     return res.status(checkoutResult.status || 503).json({
-      error: checkoutResult.error || 'Checkout baslatilamadi.',
+      error: checkoutResult.error || 'Checkout başlatılamadı.',
       code: checkoutResult.code || 'checkout_unavailable',
     });
   }
@@ -518,15 +290,14 @@ async function handleStartCheckout(req, res, auth, body) {
   });
 }
 
-async function handleActivateDev(req, res, auth, body) {
-  if (!auth) return res.status(401).json({ error: 'Dev aktivasyon icin giris gerekli.' });
+async function handleActivateDev(res, auth, body) {
+  if (!auth) return res.status(401).json({ error: 'Dev aktivasyon için giriş gerekli.' });
   if (!isDevActivationAllowed()) {
-    return res.status(403).json({ error: 'Dev aktivasyon production ortamda kapali.' });
+    return res.status(403).json({ error: 'Dev aktivasyon production ortamda kapalı.' });
   }
 
-  const planId = cleanString(body.planId).toLowerCase();
-  const plan = getPlanById(planId);
-  if (!plan) return res.status(400).json({ error: 'Gecersiz plan secimi.' });
+  const plan = getPlanById(cleanString(body.planId).toLowerCase());
+  if (!plan) return res.status(400).json({ error: 'Geçersiz plan seçimi.' });
 
   const entitlement = await writeEntitlementForUser(auth.user.id, {
     tier: plan.id,
@@ -535,14 +306,11 @@ async function handleActivateDev(req, res, auth, body) {
     cancelAtPeriodEnd: false,
   });
 
-  return res.status(200).json({
-    ok: true,
-    entitlement,
-  });
+  return res.status(200).json({ ok: true, entitlement });
 }
 
-async function handleCancel(req, res, auth) {
-  if (!auth) return res.status(401).json({ error: 'Iptal icin giris gerekli.' });
+async function handleCancel(res, auth) {
+  if (!auth) return res.status(401).json({ error: 'İptal için giriş gerekli.' });
   const current = await readEntitlementForUser(auth.user.id);
   const next = await writeEntitlementForUser(auth.user.id, {
     ...current,
@@ -555,8 +323,8 @@ async function handleCancel(req, res, auth) {
 
 async function handler(req, res) {
   setSecurityHeaders(res);
-  if (!setCorsHeaders(req, res)) {
-    return res.status(403).json({ error: 'Bu origin icin erisim izni yok.' });
+  if (!setCorsHeaders(req, res, { methods: 'GET, POST, OPTIONS' })) {
+    return res.status(403).json({ error: 'Bu origin için erişim izni yok.' });
   }
 
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -564,12 +332,11 @@ async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const ip = getClientIP(req);
-  const rate = await billingStore.checkRateLimit(`billing:${ip}`);
+  const rate = await billingStore.checkRateLimit(`billing:${getClientIP(req)}`);
   if (!rate.allowed) {
     const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
     res.setHeader('Retry-After', retryAfter);
-    return res.status(429).json({ error: 'Cok fazla billing istegi', retryAfter });
+    return res.status(429).json({ error: 'Çok fazla billing isteği', retryAfter });
   }
 
   const auth = await readAuthSession(req);
@@ -587,23 +354,17 @@ async function handler(req, res) {
   }
 
   const body = parseBody(req);
-  if (!body) return res.status(400).json({ error: 'Gecersiz JSON govdesi' });
-  if (Buffer.byteLength(JSON.stringify(body), 'utf8') > MAX_BODY_BYTES) {
-    return res.status(413).json({ error: 'Istek cok buyuk' });
+  if (!body) return res.status(400).json({ error: 'Geçersiz JSON gövdesi' });
+  if (Buffer.byteLength(JSON.stringify(body), 'utf8') > BILLING_MAX_BODY_BYTES) {
+    return res.status(413).json({ error: 'İstek çok büyük' });
   }
 
   const action = cleanString(body.action).toLowerCase();
   if (!action) return res.status(400).json({ error: 'action gerekli' });
 
-  if (action === 'start_checkout') {
-    return handleStartCheckout(req, res, auth, body);
-  }
-  if (action === 'activate_dev_plan') {
-    return handleActivateDev(req, res, auth, body);
-  }
-  if (action === 'cancel_subscription') {
-    return handleCancel(req, res, auth);
-  }
+  if (action === 'start_checkout') return handleStartCheckout(res, auth, body);
+  if (action === 'activate_dev_plan') return handleActivateDev(res, auth, body);
+  if (action === 'cancel_subscription') return handleCancel(res, auth);
 
   return res.status(400).json({ error: 'Bilinmeyen action' });
 }

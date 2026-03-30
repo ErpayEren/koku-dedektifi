@@ -1,11 +1,13 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useInstallPrompt } from '@/lib/client/useInstallPrompt';
 import { Logo } from './ui/Logo';
 import { ProBadge } from './ui/ProBadge';
 
 export function TopBar({ title }: { title?: string }) {
   const router = useRouter();
+  const { canInstall, install } = useInstallPrompt();
 
   return (
     <header
@@ -20,6 +22,15 @@ export function TopBar({ title }: { title?: string }) {
       </span>
 
       <div className="flex items-center gap-3">
+        {canInstall ? (
+          <button
+            type="button"
+            onClick={() => void install()}
+            className="inline-flex items-center justify-center rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)] px-3 py-2 text-[10px] font-mono uppercase tracking-[.08em] text-gold hover:bg-gold hover:text-bg transition-colors"
+          >
+            Ana ekrana ekle
+          </button>
+        ) : null}
         <ProBadge />
         <button
           type="button"
@@ -38,4 +49,3 @@ export function TopBar({ title }: { title?: string }) {
     </header>
   );
 }
-

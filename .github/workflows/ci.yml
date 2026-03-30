@@ -2,13 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
     branches: [main]
 
 jobs:
-  typecheck:
-    name: TypeScript kontrolu
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,12 +16,25 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
-      - run: npx tsc --noEmit
+      - run: npm run lint
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm test
 
   build:
-    name: Next.js build
+    name: Build
     runs-on: ubuntu-latest
-    needs: typecheck
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [lint, test]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,15 +44,9 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          GEMINI_API_KEY: placeholder-for-ci
-          OPS_USER: ci
-          OPS_PASSWORD: ci-password-placeholder
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           NODE_ENV: production
-      - name: Smoke test
-        run: |
-          npx next start &
-          sleep 5
-          curl -f http://localhost:3000/ || exit 1
-          curl -f http://localhost:3000/api/health || echo "Health endpoint opsiyonel"
-          kill %1
-

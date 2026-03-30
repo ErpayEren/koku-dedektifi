@@ -15,7 +15,7 @@
   --sage-dim: rgba(126, 184, 164, 0.1);
 
   --cream: #ebe4d8;
-  --muted: #7a7470;
+  --muted: #8a8480;
   --hint: #3f3b45;
 
   --border: rgba(255, 255, 255, 0.06);
@@ -295,7 +295,7 @@ body::after {
 :focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 3px;
-  border-radius: 2px;
+  border-radius: 4px;
 }
 
 :focus:not(:focus-visible) {
@@ -355,4 +355,12 @@ body::after {
 
 .similar-item:hover {
   transform: translateX(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

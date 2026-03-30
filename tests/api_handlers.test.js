@@ -1,5 +1,4 @@
 const crypto = require('crypto');
-const test = require('node:test');
 const assert = require('node:assert/strict');
 
 process.env.KV_REST_API_URL = '';
@@ -34,6 +33,9 @@ const feedHealthHandler = require('../api_internal/feed-health');
 const barcodeLookupHandler = require('../api_internal/barcode-lookup');
 const { buildAdvisorRagContext } = require('../lib/server/advisor-rag');
 const { enrichAnalysisResult, deriveMoleculesFromPyramid } = require('../lib/server/perfume-knowledge');
+const { writeEntitlementForUser } = require('../lib/server/billing-store');
+
+let requestCounter = 0;
 
 function createRes() {
   return {
@@ -60,6 +62,7 @@ function createRes() {
 }
 
 function buildReq(method, body = null, extras = {}) {
+  requestCounter += 1;
   const req = {
     method,
     headers: {
@@ -69,7 +72,7 @@ function buildReq(method, body = null, extras = {}) {
     body,
     query: {},
     socket: {
-      remoteAddress: '127.0.0.1',
+      remoteAddress: `127.0.0.${(requestCounter % 200) + 1}`,
     },
   };
 
@@ -90,6 +93,45 @@ function buildReq(method, body = null, extras = {}) {
 
 function uniqueEmail() {
   return `qa+${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}@example.com`;
+}
+
+function getSetCookie(res) {
+  const raw = res.headers['Set-Cookie'];
+  if (Array.isArray(raw)) return String(raw[0] || '');
+  return typeof raw === 'string' ? raw : '';
+}
+
+function getAuthHeadersFromResponse(res) {
+  const cookie = getSetCookie(res);
+  assert.equal(cookie.includes('kd_token='), true);
+  return { cookie };
+}
+
+async function registerProUser(name, password = 'ProUserPass123!') {
+  const email = uniqueEmail();
+  const registerReq = buildReq('POST', {
+    action: 'register',
+    name,
+    email,
+    password,
+  });
+  const registerRes = createRes();
+  await authHandler(registerReq, registerRes);
+  assert.equal(registerRes.statusCode, 201);
+
+  await writeEntitlementForUser(registerRes.body.user.id, {
+    tier: 'pro',
+    status: 'active',
+    source: 'test-suite',
+    checkoutPlanId: 'pro',
+  });
+
+  return {
+    email,
+    password,
+    userId: registerRes.body.user.id,
+    authHeaders: getAuthHeadersFromResponse(registerRes),
+  };
 }
 
 function signBillingPayload(rawBody) {
@@ -195,9 +237,8 @@ test('wardrobe endpoint blocks runtime-store fallback in strict mode when Supaba
     await authHandler(registerReq, registerRes);
     assert.equal(registerRes.statusCode, 201);
 
-    const token = registerRes.body.token;
     const req = buildReq('GET', null, {
-      headers: { authorization: `Bearer ${token}` },
+      headers: getAuthHeadersFromResponse(registerRes),
     });
     const res = createRes();
     await wardrobeHandler(req, res);
@@ -409,8 +450,7 @@ test('wardrobe endpoint supports cross-device shelf sync', async () => {
   await authHandler(registerReq, registerRes);
   assert.equal(registerRes.statusCode, 201);
 
-  const token = registerRes.body.token;
-  const authHeaders = { authorization: `Bearer ${token}` };
+  const authHeaders = getAuthHeadersFromResponse(registerRes);
 
   const getBeforeReq = buildReq('GET', null, { headers: authHeaders });
   const getBeforeRes = createRes();
@@ -464,8 +504,7 @@ test('feed endpoint supports authenticated cloud sync payload', async () => {
   await authHandler(registerReq, registerRes);
   assert.equal(registerRes.statusCode, 201);
 
-  const token = registerRes.body.token;
-  const authHeaders = { authorization: `Bearer ${token}` };
+  const authHeaders = getAuthHeadersFromResponse(registerRes);
 
   const feedPayload = [
     {
@@ -494,7 +533,12 @@ test('feed endpoint supports authenticated cloud sync payload', async () => {
 });
 
 test('barcode lookup endpoint resolves known barcode and handles unknown codes', async () => {
-  const hitReq = buildReq('GET', null, { query: { code: '3348901520196' } });
+  const session = await registerProUser('Barcode Pro User');
+
+  const hitReq = buildReq('GET', null, {
+    query: { code: '3348901520196' },
+    headers: session.authHeaders,
+  });
   const hitRes = createRes();
   await barcodeLookupHandler(hitReq, hitRes);
   assert.equal(hitRes.statusCode, 200);
@@ -503,7 +547,10 @@ test('barcode lookup endpoint resolves known barcode and handles unknown codes',
   assert.equal(typeof hitRes.body.perfume, 'string');
   assert.equal(hitRes.body.perfume.length > 3, true);
 
-  const missReq = buildReq('GET', null, { query: { code: '0000000000000' } });
+  const missReq = buildReq('GET', null, {
+    query: { code: '0000000000000' },
+    headers: session.authHeaders,
+  });
   const missRes = createRes();
   await barcodeLookupHandler(missReq, missRes);
   assert.equal(missRes.statusCode, 200);
@@ -555,9 +602,12 @@ test('perfume finder endpoint returns ranked candidates by notes', async () => {
 });
 
 test('layering lab endpoint returns blend analysis for known perfumes', async () => {
+  const session = await registerProUser('Layering Pro User');
   const req = buildReq('POST', {
     left: 'Creed Aventus',
     right: 'Dior Sauvage',
+  }, {
+    headers: session.authHeaders,
   });
   const res = createRes();
   await layeringLabHandler(req, res);
@@ -625,12 +675,11 @@ test('auth endpoint supports register -> me -> patch -> logout flow', async () =
   await authHandler(registerReq, registerRes);
 
   assert.equal(registerRes.statusCode, 201);
-  assert.equal(typeof registerRes.body.token, 'string');
+  assert.equal(getSetCookie(registerRes).includes('kd_token='), true);
   assert.equal(registerRes.body.user.email, email);
   assert.equal(registerRes.body.user.name, 'Test User');
 
-  const token = registerRes.body.token;
-  const authHeader = { authorization: `Bearer ${token}` };
+  const authHeader = getAuthHeadersFromResponse(registerRes);
 
   const meReq = buildReq('GET', null, { headers: authHeader });
   const meRes = createRes();
@@ -707,7 +756,7 @@ test('auth endpoint rejects duplicate register and supports login', async () => 
   await authHandler(loginReq, loginRes);
 
   assert.equal(loginRes.statusCode, 200);
-  assert.equal(typeof loginRes.body.token, 'string');
+  assert.equal(getSetCookie(loginRes).includes('kd_token='), true);
   assert.equal(loginRes.body.user.email, email);
 });
 
@@ -724,7 +773,7 @@ test('billing endpoint returns plans and supports authenticated checkout', async
   const registerRes = createRes();
   await authHandler(registerReq, registerRes);
   assert.equal(registerRes.statusCode, 201);
-  const token = registerRes.body.token;
+  const authHeaders = getAuthHeadersFromResponse(registerRes);
 
   const publicReq = buildReq('GET');
   const publicRes = createRes();
@@ -739,7 +788,6 @@ test('billing endpoint returns plans and supports authenticated checkout', async
   await billingHandler(noAuthCheckoutReq, noAuthCheckoutRes);
   assert.equal(noAuthCheckoutRes.statusCode, 401);
 
-  const authHeaders = { authorization: `Bearer ${token}` };
   const authCheckoutReq = buildReq(
     'POST',
     { action: 'start_checkout', planId: 'pro' },
@@ -813,9 +861,8 @@ test('billing endpoint can create stripe checkout session when configured', asyn
     await authHandler(registerReq, registerRes);
     assert.equal(registerRes.statusCode, 201);
 
-    const token = registerRes.body.token;
     const userId = registerRes.body.user.id;
-    const authHeaders = { authorization: `Bearer ${token}` };
+    const authHeaders = getAuthHeadersFromResponse(registerRes);
     const checkoutReq = buildReq(
       'POST',
       { action: 'start_checkout', planId: 'pro' },
@@ -875,8 +922,7 @@ test('billing endpoint returns checkout_unavailable when stripe config is missin
     await authHandler(registerReq, registerRes);
     assert.equal(registerRes.statusCode, 201);
 
-    const token = registerRes.body.token;
-    const authHeaders = { authorization: `Bearer ${token}` };
+    const authHeaders = getAuthHeadersFromResponse(registerRes);
     const checkoutReq = buildReq(
       'POST',
       { action: 'start_checkout', planId: 'pro' },
@@ -943,9 +989,8 @@ test('billing endpoint can create paddle checkout transaction when configured', 
     await authHandler(registerReq, registerRes);
     assert.equal(registerRes.statusCode, 201);
 
-    const token = registerRes.body.token;
     const userId = registerRes.body.user.id;
-    const authHeaders = { authorization: `Bearer ${token}` };
+    const authHeaders = getAuthHeadersFromResponse(registerRes);
     const checkoutReq = buildReq(
       'POST',
       { action: 'start_checkout', planId: 'pro' },
@@ -1003,8 +1048,7 @@ test('billing endpoint returns checkout_unavailable when paddle config is missin
     await authHandler(registerReq, registerRes);
     assert.equal(registerRes.statusCode, 201);
 
-    const token = registerRes.body.token;
-    const authHeaders = { authorization: `Bearer ${token}` };
+    const authHeaders = getAuthHeadersFromResponse(registerRes);
     const checkoutReq = buildReq(
       'POST',
       { action: 'start_checkout', planId: 'pro' },
@@ -1131,9 +1175,8 @@ test('billing webhook validates signature, is idempotent, and syncs entitlement'
   await authHandler(registerReq, registerRes);
   assert.equal(registerRes.statusCode, 201);
 
-  const token = registerRes.body.token;
   const userId = registerRes.body.user.id;
-  const authHeaders = { authorization: `Bearer ${token}` };
+  const authHeaders = getAuthHeadersFromResponse(registerRes);
 
   const activatePayload = {
     id: `evt_${Date.now().toString(36)}_activate`,
@@ -1228,9 +1271,8 @@ test('billing webhook supports stripe-signature format and event mapping', async
   await authHandler(registerReq, registerRes);
   assert.equal(registerRes.statusCode, 201);
 
-  const token = registerRes.body.token;
   const userId = registerRes.body.user.id;
-  const authHeaders = { authorization: `Bearer ${token}` };
+  const authHeaders = getAuthHeadersFromResponse(registerRes);
 
   const stripeActivatePayload = {
     id: `evt_${Date.now().toString(36)}_stripe_activate`,
@@ -1331,9 +1373,8 @@ test('billing webhook supports paddle-signature format and paddle event fields',
   await authHandler(registerReq, registerRes);
   assert.equal(registerRes.statusCode, 201);
 
-  const token = registerRes.body.token;
   const userId = registerRes.body.user.id;
-  const authHeaders = { authorization: `Bearer ${token}` };
+  const authHeaders = getAuthHeadersFromResponse(registerRes);
 
   const activatePayload = {
     event_id: `evt_${Date.now().toString(36)}_paddle_activate`,

@@ -1,123 +1,44 @@
 const crypto = require('crypto');
-const { createRuntimeStore } = require('../lib/server/runtime-store');
 const {
   hasSupabaseAuthUsersConfig,
-  fetchSupabaseUserByEmail,
-  fetchSupabaseUserById,
   insertSupabaseUser,
   updateSupabaseUser,
 } = require('../lib/server/supabase-auth-users');
+const {
+  MAX_BODY_BYTES,
+  cleanString,
+  setCorsHeaders,
+  setSecurityHeaders,
+} = require('../lib/server/config');
+const {
+  normalizeEmail,
+  hashPassword,
+  secureCompareHex,
+  createToken,
+  sanitizeUser,
+  hydrateRuntimeUserCache,
+  findUserByEmail,
+  readAuthSession,
+  sessionKey,
+  setAuthCookie,
+  clearAuthCookie,
+  sessionStore,
+} = require('../lib/server/auth-session');
+const { mergeLocalWardrobeIntoServer } = require('../lib/server/wardrobe-store');
 
-const ALLOWED_ORIGINS = [
-  'https://koku-dedektifi.vercel.app',
-  'http://localhost:3000',
-  'http://localhost:5500',
-  'http://127.0.0.1:5500',
-];
-
-const SECURITY_HEADERS = {
-  'Cache-Control': 'no-store, max-age=0',
-  Pragma: 'no-cache',
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'Referrer-Policy': 'no-referrer',
-  'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
-  'X-Robots-Tag': 'noindex, nofollow',
-};
-
-const AUTH_RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const AUTH_RATE_LIMIT_MAX = 20;
-const USER_TTL_MS = 365 * 24 * 60 * 60 * 1000;
-const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-const MAX_BODY_BYTES = 24 * 1024;
+const MAX_AUTH_BODY_BYTES = Math.min(MAX_BODY_BYTES, 24 * 1024);
+const MAX_NAME_LEN = 60;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LEN = 8;
 const MAX_PASSWORD_LEN = 120;
-const MAX_NAME_LEN = 60;
-
-const userStore = createRuntimeStore({
-  cacheTtlMs: USER_TTL_MS,
-  cacheMaxEntries: 30000,
-  keyPrefix: 'koku-auth-user',
-});
-
-const sessionStore = createRuntimeStore({
-  rateLimitWindowMs: AUTH_RATE_LIMIT_WINDOW_MS,
-  rateLimitMax: AUTH_RATE_LIMIT_MAX,
-  cacheTtlMs: SESSION_TTL_MS,
-  cacheMaxEntries: 50000,
-  keyPrefix: 'koku-auth-session',
-});
-
-function cleanString(value) {
-  return typeof value === 'string' ? value.trim() : '';
-}
 
 function getClientIP(req) {
-  return req.headers['x-forwarded-for']?.split(',')[0]?.trim()
-    || req.headers['x-real-ip']
-    || req.socket?.remoteAddress
-    || 'unknown';
-}
-
-function setSecurityHeaders(res) {
-  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
-    res.setHeader(key, value);
-  }
-}
-
-function getAllowedOrigins(req) {
-  const origins = new Set(ALLOWED_ORIGINS);
-  const forwardedHost = cleanString(req.headers['x-forwarded-host']);
-  const host = cleanString(req.headers.host);
-  const candidateHost = forwardedHost || host;
-
-  if (candidateHost) {
-    const proto = cleanString(req.headers['x-forwarded-proto'])
-      || (/^(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/i.test(candidateHost) ? 'http' : 'https');
-    origins.add(`${proto}://${candidateHost}`);
-  }
-
-  return origins;
-}
-
-function setCorsHeaders(req, res) {
-  const origin = cleanString(req.headers.origin);
-  if (!origin) {
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Access-Control-Max-Age', '86400');
-    return true;
-  }
-
-  if (!getAllowedOrigins(req).has(origin)) return false;
-
-  res.setHeader('Access-Control-Allow-Origin', origin);
-  res.setHeader('Vary', 'Origin');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Max-Age', '86400');
-  return true;
-}
-
-function hashSha256(value) {
-  return crypto.createHash('sha256').update(String(value)).digest('hex');
-}
-
-function emailKey(email) {
-  return `email:${hashSha256(cleanString(email).toLowerCase())}`;
-}
-
-function userKey(userId) {
-  return `user:${userId}`;
-}
-
-function sessionKey(token) {
-  return `session:${hashSha256(token)}`;
-}
-
-function normalizeEmail(email) {
-  return cleanString(email).toLowerCase();
+  return (
+    req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+    req.headers['x-real-ip'] ||
+    req.socket?.remoteAddress ||
+    'unknown'
+  );
 }
 
 function parseBody(req) {
@@ -130,99 +51,6 @@ function parseBody(req) {
     }
   }
   return body && typeof body === 'object' ? body : null;
-}
-
-function hashPassword(password, salt) {
-  return crypto.pbkdf2Sync(password, salt, 120000, 32, 'sha256').toString('hex');
-}
-
-function secureCompareHex(left, right) {
-  if (typeof left !== 'string' || typeof right !== 'string') return false;
-  if (left.length !== right.length) return false;
-  try {
-    return crypto.timingSafeEqual(Buffer.from(left, 'hex'), Buffer.from(right, 'hex'));
-  } catch {
-    return false;
-  }
-}
-
-function createToken() {
-  return crypto.randomBytes(32).toString('hex');
-}
-
-function sanitizeUser(user) {
-  if (!user) return null;
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    profile: user.profile || {},
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt || null,
-    lastLoginAt: user.lastLoginAt || null,
-  };
-}
-
-async function hydrateRuntimeUserCache(user) {
-  if (!user?.id || !user?.email) return;
-  await userStore.setCache(userKey(user.id), user);
-  await userStore.setCache(emailKey(user.email), user.id);
-}
-
-async function findUserByEmail(email) {
-  const normalizedEmail = normalizeEmail(email);
-  if (!normalizedEmail) return null;
-
-  if (hasSupabaseAuthUsersConfig()) {
-    try {
-      const supabaseUser = await fetchSupabaseUserByEmail(normalizedEmail);
-      if (supabaseUser) {
-        await hydrateRuntimeUserCache(supabaseUser);
-        return supabaseUser;
-      }
-    } catch (error) {
-      console.warn('[auth] Supabase email lookup failed, fallback to runtime store.', error?.message || error);
-    }
-  }
-
-  const existingUserId = await userStore.getCache(emailKey(normalizedEmail));
-  if (!existingUserId) return null;
-  return userStore.getCache(userKey(existingUserId));
-}
-
-async function findUserById(userId) {
-  const normalizedId = cleanString(userId);
-  if (!normalizedId) return null;
-
-  const cached = await userStore.getCache(userKey(normalizedId));
-  if (cached) return cached;
-
-  if (!hasSupabaseAuthUsersConfig()) return null;
-  try {
-    const supabaseUser = await fetchSupabaseUserById(normalizedId);
-    if (supabaseUser) {
-      await hydrateRuntimeUserCache(supabaseUser);
-      return supabaseUser;
-    }
-  } catch (error) {
-    console.warn('[auth] Supabase id lookup failed.', error?.message || error);
-  }
-
-  return null;
-}
-
-async function readAuthSession(req) {
-  const authHeader = cleanString(req.headers.authorization);
-  const token = authHeader.startsWith('Bearer ') ? cleanString(authHeader.slice(7)) : '';
-  if (!token) return null;
-
-  const session = await sessionStore.getCache(sessionKey(token));
-  if (!session || session.active !== true || !session.userId) return null;
-
-  const user = await findUserById(session.userId);
-  if (!user) return null;
-
-  return { token, session, user };
 }
 
 function validateRegisterInput(body) {
@@ -263,7 +91,10 @@ function normalizeProfilePatch(body) {
   const city = cleanString(profile.city).slice(0, 40);
   const gender = cleanString(profile.gender).toLowerCase();
   const favoriteFamilies = Array.isArray(profile.favoriteFamilies)
-    ? profile.favoriteFamilies.map((item) => cleanString(item).slice(0, 30)).filter(Boolean).slice(0, 8)
+    ? profile.favoriteFamilies
+        .map((item) => cleanString(item).slice(0, 30))
+        .filter(Boolean)
+        .slice(0, 8)
     : [];
 
   return {
@@ -331,8 +162,8 @@ async function registerUser(body) {
 
   return {
     status: 201,
+    token,
     data: {
-      token,
       user: sanitizeUser(user),
     },
   };
@@ -364,6 +195,14 @@ async function loginUser(body) {
   }
   await hydrateRuntimeUserCache(user);
 
+  if (Array.isArray(body.localWardrobe) && body.localWardrobe.length > 0) {
+    try {
+      await mergeLocalWardrobeIntoServer(user.id, body.localWardrobe);
+    } catch (error) {
+      console.warn('[auth] localWardrobe merge skipped.', error?.message || error);
+    }
+  }
+
   const token = createToken();
   await sessionStore.setCache(sessionKey(token), {
     userId: user.id,
@@ -374,8 +213,8 @@ async function loginUser(body) {
 
   return {
     status: 200,
+    token,
     data: {
-      token,
       user: sanitizeUser(user),
     },
   };
@@ -443,7 +282,7 @@ async function handler(req, res) {
 
   const body = parseBody(req);
   if (!body) return res.status(400).json({ error: 'Gecersiz JSON govdesi' });
-  if (Buffer.byteLength(JSON.stringify(body), 'utf8') > MAX_BODY_BYTES) {
+  if (Buffer.byteLength(JSON.stringify(body), 'utf8') > MAX_AUTH_BODY_BYTES) {
     return res.status(413).json({ error: 'Istek cok buyuk' });
   }
 
@@ -460,18 +299,21 @@ async function handler(req, res) {
   if (action === 'register') {
     const result = await registerUser(body);
     if (result.error) return res.status(result.status).json({ error: result.error });
+    setAuthCookie(res, result.token, 2592000);
     return res.status(result.status).json(result.data);
   }
 
   if (action === 'login') {
     const result = await loginUser(body);
     if (result.error) return res.status(result.status).json({ error: result.error });
+    setAuthCookie(res, result.token, 2592000);
     return res.status(result.status).json(result.data);
   }
 
   if (action === 'logout') {
     const auth = await readAuthSession(req);
     const result = await logoutUser(auth);
+    clearAuthCookie(res);
     return res.status(result.status).json(result.data);
   }
 

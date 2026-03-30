@@ -1,25 +1,6 @@
 const { matchKnownPerfume, enrichAnalysisResult } = require('../lib/server/perfume-knowledge');
-
-const ALLOWED_ORIGINS = [
-  'https://koku-dedektifi.vercel.app',
-  'http://localhost:3000',
-  'http://localhost:5500',
-  'http://127.0.0.1:5500',
-];
-
-const SECURITY_HEADERS = {
-  'Cache-Control': 'no-store, max-age=0',
-  Pragma: 'no-cache',
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'Referrer-Policy': 'no-referrer',
-  'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
-  'X-Robots-Tag': 'noindex, nofollow',
-};
-
-function cleanString(value) {
-  return typeof value === 'string' ? value.trim() : '';
-}
+const { cleanString, setCorsHeaders, setSecurityHeaders } = require('../lib/server/config');
+const { requirePlan } = require('../lib/server/plan-guard');
 
 function normalizeText(value) {
   return cleanString(value)
@@ -28,46 +9,6 @@ function normalizeText(value) {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
-}
-
-function setSecurityHeaders(res) {
-  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
-    res.setHeader(key, value);
-  }
-}
-
-function getAllowedOrigins(req) {
-  const origins = new Set(ALLOWED_ORIGINS);
-  const forwardedHost = cleanString(req.headers['x-forwarded-host']);
-  const host = cleanString(req.headers.host);
-  const candidateHost = forwardedHost || host;
-
-  if (candidateHost) {
-    const proto = cleanString(req.headers['x-forwarded-proto'])
-      || (/^(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/i.test(candidateHost) ? 'http' : 'https');
-    origins.add(`${proto}://${candidateHost}`);
-  }
-
-  return origins;
-}
-
-function setCorsHeaders(req, res) {
-  const origin = cleanString(req.headers.origin);
-  if (!origin) {
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    res.setHeader('Access-Control-Max-Age', '86400');
-    return true;
-  }
-
-  if (!getAllowedOrigins(req).has(origin)) return false;
-
-  res.setHeader('Access-Control-Allow-Origin', origin);
-  res.setHeader('Vary', 'Origin');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Max-Age', '86400');
-  return true;
 }
 
 function parseBody(req) {
@@ -121,7 +62,7 @@ function buildRuntimeProfile(name, profile) {
     canonicalName: cleanName,
     family: cleanString(src.family) || 'Aromatik',
     season: dedupe(toList(src.season), 4),
-    occasion: cleanString(src.occasion) || 'Gunluk',
+    occasion: cleanString(src.occasion) || 'Günlük',
     pyramid,
     representativeMolecules: Array.isArray(src.molecules) ? src.molecules : [],
   };
@@ -150,8 +91,8 @@ function buildHeuristicProfileFromName(name) {
   return {
     canonicalName: cleanName,
     family: 'Aromatik',
-    season: ['Sonbahar', 'Kis'],
-    occasion: 'Gunluk',
+    season: ['Sonbahar', 'Kış'],
+    occasion: 'Günlük',
     pyramid: {
       top: deduped.slice(0, 2),
       middle: deduped.slice(2, 4).length ? deduped.slice(2, 4) : ['Lavender'],
@@ -167,10 +108,12 @@ function compatibility(left, right, overlapCount) {
   let score = 56;
   if (leftFamily && rightFamily && leftFamily === rightFamily) score += 18;
   if (overlapCount >= 2) score += 15;
-  if ((leftFamily.includes('woody') && rightFamily.includes('oriental'))
-    || (leftFamily.includes('oriental') && rightFamily.includes('woody'))
-    || (leftFamily.includes('gourmand') && rightFamily.includes('oriental'))
-    || (leftFamily.includes('aromatik') && rightFamily.includes('odunsu'))) {
+  if (
+    (leftFamily.includes('woody') && rightFamily.includes('oriental')) ||
+    (leftFamily.includes('oriental') && rightFamily.includes('woody')) ||
+    (leftFamily.includes('gourmand') && rightFamily.includes('oriental')) ||
+    (leftFamily.includes('aromatik') && rightFamily.includes('odunsu'))
+  ) {
     score += 8;
   }
   return Math.max(35, Math.min(96, score));
@@ -180,7 +123,6 @@ function buildBlend(left, right) {
   const leftTop = toList(left?.pyramid?.top);
   const leftMiddle = toList(left?.pyramid?.middle);
   const leftBase = toList(left?.pyramid?.base);
-
   const rightTop = toList(right?.pyramid?.top);
   const rightMiddle = toList(right?.pyramid?.middle);
   const rightBase = toList(right?.pyramid?.base);
@@ -188,11 +130,20 @@ function buildBlend(left, right) {
   const top = dedupe([...leftTop.slice(0, 2), ...rightTop.slice(0, 2)], 4);
   const middle = dedupe([...leftMiddle.slice(0, 3), ...rightMiddle.slice(0, 3)], 6);
   const base = dedupe([...leftBase.slice(0, 3), ...rightBase.slice(0, 3)], 6);
-  const shared = dedupe([
-    ...leftTop.filter((item) => [...rightTop, ...rightMiddle, ...rightBase].some((r) => normalizeText(r) === normalizeText(item))),
-    ...leftMiddle.filter((item) => [...rightTop, ...rightMiddle, ...rightBase].some((r) => normalizeText(r) === normalizeText(item))),
-    ...leftBase.filter((item) => [...rightTop, ...rightMiddle, ...rightBase].some((r) => normalizeText(r) === normalizeText(item))),
-  ], 6);
+  const shared = dedupe(
+    [
+      ...leftTop.filter((item) =>
+        [...rightTop, ...rightMiddle, ...rightBase].some((candidate) => normalizeText(candidate) === normalizeText(item)),
+      ),
+      ...leftMiddle.filter((item) =>
+        [...rightTop, ...rightMiddle, ...rightBase].some((candidate) => normalizeText(candidate) === normalizeText(item)),
+      ),
+      ...leftBase.filter((item) =>
+        [...rightTop, ...rightMiddle, ...rightBase].some((candidate) => normalizeText(candidate) === normalizeText(item)),
+      ),
+    ],
+    6,
+  );
 
   return {
     top,
@@ -205,62 +156,76 @@ function buildBlend(left, right) {
 
 async function handler(req, res) {
   setSecurityHeaders(res);
-  if (!setCorsHeaders(req, res)) {
-    return res.status(403).json({ error: 'Bu origin icin erisim izni yok.' });
+  if (!setCorsHeaders(req, res, { methods: 'POST, OPTIONS', headers: 'Content-Type, Authorization' })) {
+    return res.status(403).json({ error: 'Bu origin için erişim izni yok.' });
   }
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  try {
+    await requirePlan(req, 'pro');
+  } catch (error) {
+    return res.status(error?.statusCode || 403).json(error?.body || { error: 'Pro plan gerekli.', upgrade: '/paketler' });
+  }
+
   const body = parseBody(req);
-  if (!body) return res.status(400).json({ error: 'Gecersiz JSON govdesi' });
+  if (!body) return res.status(400).json({ error: 'Geçersiz JSON gövdesi' });
 
   const leftName = cleanString(body.left || body.source || '').slice(0, 140);
   const rightName = cleanString(body.right || body.target || '').slice(0, 140);
   if (!leftName || !rightName) return res.status(400).json({ error: 'left ve right gerekli' });
 
-  const leftKnown = matchKnownPerfume(leftName);
-  const rightKnown = matchKnownPerfume(rightName);
-  const left = leftKnown
-    || buildRuntimeProfile(leftName, body.leftProfile || body.leftResult || body.leftData)
-    || buildHeuristicProfileFromName(leftName);
-  const right = rightKnown
-    || buildRuntimeProfile(rightName, body.rightProfile || body.rightResult || body.rightData)
-    || buildHeuristicProfileFromName(rightName);
+  const left =
+    matchKnownPerfume(leftName) ||
+    buildRuntimeProfile(leftName, body.leftProfile || body.leftResult || body.leftData) ||
+    buildHeuristicProfileFromName(leftName);
+  const right =
+    matchKnownPerfume(rightName) ||
+    buildRuntimeProfile(rightName, body.rightProfile || body.rightResult || body.rightData) ||
+    buildHeuristicProfileFromName(rightName);
+
   if (!left || !right) {
-    return res.status(404).json({ error: 'Parfumlerden en az biri katalogda bulunamadi' });
+    return res.status(404).json({ error: 'Parfümlerden en az biri katalogda bulunamadı' });
   }
 
   const blend = buildBlend(left, right);
   const blendName = `${left.canonicalName} x ${right.canonicalName} Accord`;
-  const blendDescription = `Katmanlama yorumu: ${left.canonicalName} ve ${right.canonicalName} birlikteliginde ${blend.shared.length >= 2 ? 'ortak nota omurgasi sayesinde daha stabil' : 'kontrast karakter sayesinde daha deneysel'} bir benzer profil ortaya cikar.`;
+  const blendDescription = `Katmanlama yorumu: ${left.canonicalName} ve ${right.canonicalName} birlikteliğinde ${
+    blend.shared.length >= 2 ? 'ortak nota omurgası sayesinde daha stabil' : 'kontrast karakter sayesinde daha deneysel'
+  } bir benzer profil ortaya çıkar.`;
 
-  const enriched = await enrichAnalysisResult({
-    name: blendName,
-    family: left.family || right.family || 'Oryantal',
-    occasion: right.occasion || left.occasion || 'Aksam',
-    season: dedupe([...(left.season || []), ...(right.season || [])], 4),
-    intensity: Math.round((Number(body.intensity || 0) + blend.compatibility) / 2) || blend.compatibility,
-    pyramid: {
-      top: blend.top,
-      middle: blend.middle,
-      base: blend.base,
+  const enriched = await enrichAnalysisResult(
+    {
+      name: blendName,
+      family: left.family || right.family || 'Oryantal',
+      occasion: right.occasion || left.occasion || 'Akşam',
+      season: dedupe([...(left.season || []), ...(right.season || [])], 4),
+      intensity: Math.round((Number(body.intensity || 0) + blend.compatibility) / 2) || blend.compatibility,
+      pyramid: {
+        top: blend.top,
+        middle: blend.middle,
+        base: blend.base,
+      },
+      description: blendDescription,
+      similar: dedupe([left.canonicalName, right.canonicalName], 4),
+      technical: [
+        { label: 'Uyum Skoru', value: blend.compatibility >= 80 ? 'Yüksek' : 'Orta', score: blend.compatibility },
+        { label: 'Ortak Nota', value: String(blend.shared.length) },
+        { label: 'Katmanlama Modu', value: 'Layering Lab v1' },
+      ],
+      layering: {
+        pair: `${left.canonicalName} + ${right.canonicalName}`,
+        result: `Üstte ${blend.top.join(', ')} ile açılıp, kalpte ${blend.middle
+          .slice(0, 3)
+          .join(', ')} baskınlaşır; dipte ${blend.base.slice(0, 3).join(', ')} izi kalır.`,
+      },
     },
-    description: blendDescription,
-    similar: dedupe([left.canonicalName, right.canonicalName], 4),
-    technical: [
-      { label: 'Uyum Skoru', value: blend.compatibility >= 80 ? 'Yuksek' : 'Orta', score: blend.compatibility },
-      { label: 'Ortak Nota', value: String(blend.shared.length) },
-      { label: 'Katmanlama Modu', value: 'Layering Lab v1' },
-    ],
-    layering: {
-      pair: `${left.canonicalName} + ${right.canonicalName}`,
-      result: `Ustte ${blend.top.join(', ')} ile acilip, kalpte ${blend.middle.slice(0, 3).join(', ')} baskinlasir; dipte ${blend.base.slice(0, 3).join(', ')} izi kalir.`,
+    {
+      inputTexts: [`layering lab ${leftName} ${rightName}`],
+      skipCatalogMatch: true,
     },
-  }, {
-    inputTexts: [`layering lab ${leftName} ${rightName}`],
-    skipCatalogMatch: true,
-  });
+  );
 
   return res.status(200).json({
     ok: true,

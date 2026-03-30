@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { UI } from '@/lib/strings';
 import type { InputMode } from '@/lib/client/types';
 
@@ -8,7 +8,7 @@ const QUICK_CHIPS = [
   'Dior Sauvage',
   'Creed Aventus',
   'By the Fireplace',
-  'Oud + Gül',
+  'Oud + Gul',
   'Temiz Deniz',
   'Vanilya + Amber',
 ];
@@ -22,9 +22,48 @@ interface HeroInputProps {
   onModeChange: (mode: InputMode) => void;
   onTextChange: (value: string) => void;
   onNotesChange: (value: string) => void;
-  onImageChange: (file: File) => void;
+  onImageChange: (dataUrl: string) => void;
   onAnalyze: () => void;
   onChipPick: (chip: string) => void;
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+    reader.onerror = () => reject(new Error('Gorsel okunamadi.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+export async function compressImage(
+  dataUrl: string,
+  maxPx = 1024,
+  quality = 0.82,
+): Promise<{ dataUrl: string; sizeKb: number }> {
+  const image = new Image();
+  image.decoding = 'async';
+  image.src = dataUrl;
+  await image.decode();
+
+  const scale = Math.min(1, maxPx / Math.max(image.width, image.height));
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+
+  if (!context) {
+    const roughKb = Math.max(1, Math.round((dataUrl.length * 3) / 4 / 1024));
+    return { dataUrl, sizeKb: roughKb };
+  }
+
+  context.drawImage(image, 0, 0, width, height);
+  const output = canvas.toDataURL('image/jpeg', quality);
+  const base64 = output.split(',')[1] || '';
+  const sizeKb = Math.max(1, Math.round((base64.length * 3) / 4 / 1024));
+  return { dataUrl: output, sizeKb };
 }
 
 function ModeIcon({ mode }: { mode: InputMode }) {
@@ -54,12 +93,24 @@ function ModeIcon({ mode }: { mode: InputMode }) {
 
 function ModeHint({ mode }: { mode: InputMode }) {
   if (mode === 'photo') {
-    return <p className="text-[11px] text-muted">Şişe, kutu veya ortam fotoğrafı yükle. Sistem görselden profil çıkarır.</p>;
+    return (
+      <p className="text-[11px] text-muted">
+        Sise, kutu veya ortam fotografi yukle. Sistem gorselden profil cikarir.
+      </p>
+    );
   }
   if (mode === 'notes') {
-    return <p className="text-[11px] text-muted">Notaları virgülle gir. Örnek: tütün, vanilya, bergamot, paçuli.</p>;
+    return (
+      <p className="text-[11px] text-muted">
+        Notalari virgulle gir. Ornek: tutun, vanilya, bergamot, paculi.
+      </p>
+    );
   }
-  return <p className="text-[11px] text-muted">Kısa bir metin de yeterli: “odunsu ama çok ağır değil” gibi.</p>;
+  return (
+    <p className="text-[11px] text-muted">
+      Kisa bir metin de yeterli: &quot;odunsu ama cok agir degil&quot; gibi.
+    </p>
+  );
 }
 
 function TabButton({
@@ -78,12 +129,14 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`relative flex-1 min-h-[60px] px-2.5 flex items-center justify-center gap-2 transition-colors
-      ${active ? 'text-cream' : 'text-muted hover:text-cream'}`}
+      className={`relative flex-1 min-h-[60px] px-2.5 flex items-center justify-center gap-2 transition-colors ${
+        active ? 'text-cream' : 'text-muted hover:text-cream'
+      }`}
     >
       <span
-        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors shrink-0
-        ${active ? 'border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold' : 'border-white/[.08] text-muted'}`}
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors shrink-0 ${
+          active ? 'border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold' : 'border-white/[.08] text-muted'
+        }`}
       >
         <ModeIcon mode={tabMode} />
       </span>
@@ -91,8 +144,9 @@ function TabButton({
         {label}
       </span>
       <span
-        className={`absolute left-3 right-3 bottom-0 h-px transition-opacity
-        ${active ? 'bg-[var(--gold-line)] opacity-100' : 'bg-transparent opacity-0'}`}
+        className={`absolute left-3 right-3 bottom-0 h-px transition-opacity ${
+          active ? 'bg-[var(--gold-line)] opacity-100' : 'bg-transparent opacity-0'
+        }`}
       />
     </button>
   );
@@ -112,6 +166,8 @@ export function HeroInput({
   onChipPick,
 }: HeroInputProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [compressedKb, setCompressedKb] = useState<number | null>(null);
 
   const canAnalyze = useMemo(() => {
     if (isAnalyzing) return false;
@@ -120,8 +176,15 @@ export function HeroInput({
     return textValue.trim().length > 2;
   }, [imagePreview, isAnalyzing, mode, notesValue, textValue]);
 
+  async function processImageFile(file: File): Promise<void> {
+    const rawDataUrl = await readFileAsDataUrl(file);
+    const compressed = await compressImage(rawDataUrl);
+    setCompressedKb(compressed.sizeKb);
+    onImageChange(compressed.dataUrl);
+  }
+
   return (
-    <section className="max-w-[920px] mx-auto w-full px-5 md:px-12 pt-8 md:pt-12 pb-8 anim-up">
+    <section id="hero-analysis" className="max-w-[920px] mx-auto w-full px-5 md:px-12 pt-8 md:pt-12 pb-8 anim-up">
       <div className="flex items-center gap-2.5 mb-5">
         <div className="w-7 h-px bg-[var(--gold-line)]" />
         <span className="text-[10px] font-mono tracking-[.16em] uppercase text-muted">Premium analiz modu</span>
@@ -130,11 +193,11 @@ export function HeroInput({
       <h1 className="font-display italic text-cream leading-[1.06] tracking-[-0.01em] text-[2rem] md:text-[3rem] mb-3">
         Kokuyu anlat,
         <br />
-        <span className="text-gold not-italic">detayıyla çözümleyelim.</span>
+        <span className="text-gold not-italic">detayiyla cozumleyelim.</span>
       </h1>
       <p className="text-[13px] text-muted max-w-[620px] mb-8">
-        Fotoğraf, metin veya nota listesiyle başla. Analiz tamamlanınca karşılaştırma, katmanlama ve dolap
-        aksiyonları otomatik aktif olur.
+        Fotograf, metin veya nota listesiyle basla. Analiz tamamlaninca karsilastirma, katmanlama ve
+        dolap aksiyonlari otomatik aktif olur.
       </p>
 
       <div className="glass-panel rounded-2xl overflow-hidden shadow-[0_26px_54px_rgba(0,0,0,.44)]">
@@ -146,13 +209,38 @@ export function HeroInput({
 
         <div className="p-5 md:p-6 min-h-[230px]">
           {mode === 'photo' ? (
-            <div className="h-full flex flex-col items-center justify-center gap-4">
+            <div
+              role="region"
+              aria-dropzone="copy"
+              onDragOver={(event) => {
+                event.preventDefault();
+                setIsDragOver(true);
+              }}
+              onDragEnter={(event) => {
+                event.preventDefault();
+                setIsDragOver(true);
+              }}
+              onDragLeave={(event) => {
+                event.preventDefault();
+                if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+                setIsDragOver(false);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                setIsDragOver(false);
+                const file = event.dataTransfer.files?.[0];
+                if (!file) return;
+                void processImageFile(file);
+              }}
+              className={`h-full flex flex-col items-center justify-center gap-4 rounded-2xl p-4 transition-colors ${
+                isDragOver ? 'border border-dashed border-[var(--gold-line)] bg-[var(--gold-dim)]/30' : ''
+              }`}
+            >
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-[98px] h-[98px] rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)]
-                           hover:bg-gold/20 transition-colors flex items-center justify-center text-gold"
-                aria-label="Fotoğraf seç"
+                className="w-[98px] h-[98px] rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)] hover:bg-gold/20 transition-colors flex items-center justify-center text-gold"
+                aria-label="Fotograf sec"
               >
                 <svg width="30" height="30" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.45">
                   <path d="M3 6.5h3l1.3-2h5.4l1.3 2h3v9.5H3z" />
@@ -162,11 +250,18 @@ export function HeroInput({
               <p className="text-[13px] text-muted text-center">{UI.photoPlaceholder}</p>
 
               {imagePreview ? (
-                <img
-                  src={imagePreview}
-                  alt="Seçilen görsel"
-                  className="w-full max-w-[420px] h-[164px] object-cover rounded-xl border border-white/[.08] shadow-[0_16px_30px_rgba(0,0,0,.32)]"
-                />
+                <div className="relative w-full max-w-[420px]">
+                  <img
+                    src={imagePreview}
+                    alt="Secilen gorsel"
+                    className="w-full h-[164px] object-cover rounded-xl border border-white/[.08] shadow-[0_16px_30px_rgba(0,0,0,.32)]"
+                  />
+                  {compressedKb ? (
+                    <span className="absolute left-3 top-3 rounded-full border border-[var(--gold-line)] bg-black/55 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[.06em] text-gold">
+                      Sikistirildi: {compressedKb} KB
+                    </span>
+                  ) : null}
+                </div>
               ) : null}
 
               <input
@@ -176,7 +271,7 @@ export function HeroInput({
                 className="hidden"
                 onChange={(event) => {
                   const file = event.target.files?.[0];
-                  if (file) onImageChange(file);
+                  if (file) void processImageFile(file);
                 }}
               />
             </div>
@@ -186,8 +281,7 @@ export function HeroInput({
             <textarea
               value={textValue}
               onChange={(event) => onTextChange(event.target.value)}
-              className="w-full bg-transparent border border-white/[.07] rounded-xl p-4 md:p-5 outline-none focus:border-[var(--gold-line)]
-                         font-display italic text-[1.1rem] text-cream min-h-[164px] resize-none placeholder:text-hint"
+              className="w-full bg-transparent border border-white/[.07] rounded-xl p-4 md:p-5 outline-none focus:border-[var(--gold-line)] font-display italic text-[1.1rem] text-cream min-h-[164px] resize-none placeholder:text-hint"
               placeholder={UI.textPlaceholder}
             />
           ) : null}
@@ -196,8 +290,7 @@ export function HeroInput({
             <textarea
               value={notesValue}
               onChange={(event) => onNotesChange(event.target.value)}
-              className="w-full bg-transparent border border-white/[.07] rounded-xl p-4 md:p-5 outline-none focus:border-[var(--gold-line)]
-                         font-display italic text-[1.08rem] text-cream min-h-[164px] resize-none placeholder:text-hint"
+              className="w-full bg-transparent border border-white/[.07] rounded-xl p-4 md:p-5 outline-none focus:border-[var(--gold-line)] font-display italic text-[1.08rem] text-cream min-h-[164px] resize-none placeholder:text-hint"
               placeholder={UI.notesPlaceholder}
             />
           ) : null}
@@ -212,8 +305,7 @@ export function HeroInput({
                 key={chip}
                 type="button"
                 onClick={() => onChipPick(chip)}
-                className="text-[10px] font-mono tracking-[.06em] px-3 py-1.5 border border-white/[.08] rounded-full
-                           text-muted hover:text-cream hover:border-[var(--gold-line)] transition-colors"
+                className="text-[10px] font-mono tracking-[.06em] px-3 py-1.5 border border-white/[.08] rounded-full text-muted hover:text-cream hover:border-[var(--gold-line)] transition-colors"
               >
                 {chip}
               </button>
@@ -226,9 +318,7 @@ export function HeroInput({
             disabled={!canAnalyze}
             aria-busy={isAnalyzing}
             aria-label={isAnalyzing ? 'Analiz yapiliyor, lutfen bekleyin' : 'Kokuyu analiz et'}
-            className={`w-full md:w-auto md:self-end md:ml-auto flex items-center justify-center gap-2 px-6 py-3 rounded-[10px]
-                        text-[11px] font-mono tracking-[.1em] uppercase transition-all
-            ${
+            className={`w-full md:w-auto md:self-end md:ml-auto flex items-center justify-center gap-2 px-6 py-3 rounded-[10px] text-[11px] font-mono tracking-[.1em] uppercase transition-all ${
               canAnalyze
                 ? 'btn-primary-pulse bg-gold text-bg hover:bg-[#d4b478] shadow-[0_10px_30px_rgba(201,169,110,.28)]'
                 : 'bg-white/[.04] text-muted cursor-not-allowed border border-white/[.08]'

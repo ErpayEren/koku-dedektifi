@@ -26,15 +26,6 @@ function toWardrobeItem(result: AnalysisResult): WardrobeItem {
   };
 }
 
-function toDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
-    reader.onerror = () => reject(new Error('Görsel okunamadı.'));
-    reader.readAsDataURL(file);
-  });
-}
-
 function parseMode(value: string | null): InputMode {
   if (value === 'photo' || value === 'text' || value === 'notes') return value;
   return 'photo';
@@ -69,7 +60,7 @@ export function MainExperience() {
       const row = findHistoryById(replayId);
       if (row) {
         setResult(row);
-        setNotice('Geçmiş analiz yüklendi.');
+        setNotice('Gecmis analiz yuklendi.');
         setError('');
       }
     }
@@ -93,7 +84,7 @@ export function MainExperience() {
     try {
       let analysis: AnalysisResult;
       if (mode === 'photo') {
-        if (!imagePreview) throw new Error('Önce bir fotoğraf seçmelisin.');
+        if (!imagePreview) throw new Error('Once bir fotograf secmelisin.');
         analysis = await analyzeImage(imagePreview);
       } else if (mode === 'notes') {
         analysis = await analyzeNotes(notesValue);
@@ -105,10 +96,10 @@ export function MainExperience() {
       saveHistoryRow(analysis);
       pushFeed({
         event: 'analysis',
-        detail: 'Yeni analiz tamamlandı',
+        detail: 'Yeni analiz tamamlandi',
         perfume: analysis.name,
       });
-      setNotice('Analiz tamamlandı.');
+      setNotice('Analiz tamamlandi.');
     } catch (err) {
       setError(readableError(err));
     } finally {
@@ -120,7 +111,7 @@ export function MainExperience() {
     setTextValue(name);
     setMode('text');
     router.replace('/?mode=text');
-    setNotice(`"${name}" için yeniden analiz çalıştırılıyor…`);
+    setNotice(`"${name}" icin yeniden analiz calistiriliyor...`);
     setIsAnalyzing(true);
     setError('');
     try {
@@ -172,14 +163,9 @@ export function MainExperience() {
     setTextValue(current ? `${current}, ${chip}` : chip);
   }
 
-  async function handleImageChange(file: File): Promise<void> {
-    try {
-      const url = await toDataUrl(file);
-      setImagePreview(url);
-      setMode('photo');
-    } catch (err) {
-      setError(readableError(err));
-    }
+  function handleImageChange(dataUrl: string): void {
+    setImagePreview(dataUrl);
+    setMode('photo');
   }
 
   function addToWardrobe(): void {
@@ -193,7 +179,7 @@ export function MainExperience() {
       detail: 'Dolaba eklendi',
       perfume: result.name,
     });
-    setNotice('Sonuç dolaba eklendi.');
+    setNotice('Sonuc dolaba eklendi.');
   }
 
   function compareNow(): void {
@@ -226,7 +212,7 @@ export function MainExperience() {
     anchor.click();
     document.body.removeChild(anchor);
     window.URL.revokeObjectURL(url);
-    setNotice('Sonuç JSON olarak indirildi.');
+    setNotice('Sonuc JSON olarak indirildi.');
   }
 
   return (
@@ -286,7 +272,7 @@ export function MainExperience() {
             type="button"
             onClick={() => {
               clearHistory();
-              setNotice('Geçmiş temizlendi.');
+              setNotice('Gecmis temizlendi.');
             }}
             className="text-[11px] font-mono tracking-[.06em] uppercase text-muted hover:text-cream transition-colors"
           >

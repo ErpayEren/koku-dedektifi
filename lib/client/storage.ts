@@ -4,8 +4,10 @@ const KEYS = {
   history: 'kd:history:v2',
   wardrobe: 'kd:wardrobe:v2',
   feed: 'kd:feed:v2',
-  authToken: 'kd:auth:token',
 } as const;
+
+const AUTH_COOKIE_NAME = 'kd_token';
+const pendingWrites = new Map<string, number>();
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
@@ -21,6 +23,35 @@ function readJson<T>(key: string, fallback: T): T {
 function writeJson<T>(key: string, value: T): void {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(key, JSON.stringify(value));
+}
+
+export function debouncedWrite<T>(key: string, value: T, ms = 400): void {
+  if (typeof window === 'undefined') return;
+  const existing = pendingWrites.get(key);
+  if (existing) {
+    window.clearTimeout(existing);
+  }
+  const timer = window.setTimeout(() => {
+    writeJson(key, value);
+    pendingWrites.delete(key);
+  }, ms);
+  pendingWrites.set(key, timer);
+}
+
+function readCookie(name: string): string {
+  if (typeof document === 'undefined') return '';
+  const prefix = `${name}=`;
+  const row = document.cookie
+    .split(';')
+    .map((item) => item.trim())
+    .find((item) => item.startsWith(prefix));
+  if (!row) return '';
+  return decodeURIComponent(row.slice(prefix.length));
+}
+
+function writeCookie(name: string, value: string, maxAgeSeconds: number): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Strict; Secure`;
 }
 
 export function getHistory(): AnalysisResult[] {
@@ -52,7 +83,7 @@ export function getWardrobe(): WardrobeItem[] {
 export function upsertWardrobe(item: WardrobeItem): void {
   const list = getWardrobe().filter((row) => row.key !== item.key);
   list.unshift(item);
-  writeJson(KEYS.wardrobe, list.slice(0, 300));
+  debouncedWrite(KEYS.wardrobe, list.slice(0, 300));
 }
 
 export function removeWardrobe(key: string): void {
@@ -61,7 +92,7 @@ export function removeWardrobe(key: string): void {
 }
 
 export function setWardrobe(rows: WardrobeItem[]): void {
-  writeJson(KEYS.wardrobe, rows.slice(0, 300));
+  debouncedWrite(KEYS.wardrobe, rows.slice(0, 300));
 }
 
 export function getFeed(): FeedItem[] {
@@ -77,7 +108,7 @@ export function pushFeed(event: Omit<FeedItem, 'id' | 'ts'>): void {
     ...event,
   };
   rows.unshift(item);
-  writeJson(KEYS.feed, rows.slice(0, 120));
+  debouncedWrite(KEYS.feed, rows.slice(0, 120));
 }
 
 export function clearFeed(): void {
@@ -85,15 +116,13 @@ export function clearFeed(): void {
 }
 
 export function getAuthToken(): string {
-  if (typeof window === 'undefined') return '';
-  return window.localStorage.getItem(KEYS.authToken) || '';
+  return readCookie(AUTH_COOKIE_NAME);
 }
 
 export function setAuthToken(token: string): void {
-  if (typeof window === 'undefined') return;
   if (!token) {
-    window.localStorage.removeItem(KEYS.authToken);
+    writeCookie(AUTH_COOKIE_NAME, '', 0);
     return;
   }
-  window.localStorage.setItem(KEYS.authToken, token);
+  writeCookie(AUTH_COOKIE_NAME, token, 30 * 24 * 60 * 60);
 }

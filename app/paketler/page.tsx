@@ -1,68 +1,292 @@
-import Link from 'next/link';
-import { LegalFooter } from '@/components/LegalFooter';
-import { Logo } from '@/components/ui/Logo';
+'use client';
 
-export const metadata = { title: 'Paketler - Koku Dedektifi' };
+import { useEffect, useMemo, useState } from 'react';
+import { AppShell } from '@/components/AppShell';
+import { TopBar } from '@/components/TopBar';
+import { Card } from '@/components/ui/Card';
+import { CardTitle } from '@/components/ui/CardTitle';
 
-export default function PricingPage() {
+interface BillingPlan {
+  id: string;
+  name: string;
+  price: number;
+  currency: string;
+  interval: string;
+  featured: boolean;
+  features: string[];
+}
+
+interface BillingEntitlement {
+  tier: 'free' | 'pro';
+  status: string;
+  source: string;
+  updatedAt: string | null;
+  checkoutPlanId: string;
+  checkoutStartedAt: string | null;
+  cancelAtPeriodEnd: boolean;
+}
+
+interface BillingUser {
+  id: string;
+  email: string;
+  name: string;
+}
+
+interface BillingResponse {
+  provider: string;
+  plans: BillingPlan[];
+  entitlement: BillingEntitlement;
+  user: BillingUser | null;
+  devActivationAllowed: boolean;
+}
+
+interface CheckoutResponse {
+  checkoutId: string;
+  checkoutUrl: string;
+  planId: string;
+  provider: string;
+}
+
+const PLAN_COPY: Record<'free' | 'pro', { name: string; features: string[] }> = {
+  free: {
+    name: 'Ucretsiz',
+    features: ['5 analiz/gun', 'Koku dolabi', 'Karsilastirma'],
+  },
+  pro: {
+    name: 'Pro',
+    features: ['Sinirsiz analiz', 'Layering Lab', 'Barkod Tarayici', 'Cross-device sync', 'Oncelikli AI'],
+  },
+};
+
+const DEFAULT_PLANS: BillingPlan[] = [
+  {
+    id: 'free',
+    name: PLAN_COPY.free.name,
+    price: 0,
+    currency: 'TRY',
+    interval: 'gun',
+    featured: false,
+    features: PLAN_COPY.free.features,
+  },
+  {
+    id: 'pro',
+    name: PLAN_COPY.pro.name,
+    price: 49,
+    currency: 'TRY',
+    interval: 'ay',
+    featured: true,
+    features: PLAN_COPY.pro.features,
+  },
+];
+
+function formatPrice(plan: BillingPlan): string {
+  if (plan.price <= 0) return '0 TL';
+  return new Intl.NumberFormat('tr-TR', {
+    style: 'currency',
+    currency: plan.currency || 'TRY',
+    maximumFractionDigits: 0,
+  }).format(plan.price);
+}
+
+function normalizePlans(plans: BillingPlan[] | undefined): BillingPlan[] {
+  if (!Array.isArray(plans) || plans.length === 0) return DEFAULT_PLANS;
+
+  return plans
+    .filter((plan) => plan?.id === 'free' || plan?.id === 'pro')
+    .map((plan) => ({
+      ...plan,
+      name: PLAN_COPY[plan.id as 'free' | 'pro']?.name || plan.name,
+      features: PLAN_COPY[plan.id as 'free' | 'pro']?.features || plan.features,
+    }));
+}
+
+function PlanCard({
+  activeTier,
+  busyPlanId,
+  onCheckout,
+  plan,
+}: {
+  activeTier: 'free' | 'pro';
+  busyPlanId: string;
+  onCheckout: (planId: string) => Promise<void>;
+  plan: BillingPlan;
+}) {
+  const isActive = activeTier === plan.id;
+  const isBusy = busyPlanId === plan.id;
+
   return (
-    <div className="min-h-screen flex flex-col relative z-10">
-      <header className="border-b border-white/[.06] px-6 md:px-12 py-5 bg-bg/80 backdrop-blur-xl sticky top-0 z-10">
-        <Logo size="sm" />
-      </header>
-
-      <main className="flex-1 px-5 md:px-12 py-16 md:py-24">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-2.5 mb-8">
-            <div className="w-6 h-px bg-[var(--gold-line)]" />
-            <span className="text-[9px] font-mono tracking-[.16em] uppercase text-muted">Paketler ve Fiyatlandırma</span>
-          </div>
-          <h1 className="font-display italic text-cream text-[2.4rem] md:text-[3rem] leading-[1.08] mb-3">
-            İhtiyacın kadar güçlü,
-            <br />
-            <span className="text-gold not-italic">gerektiğinde Pro.</span>
-          </h1>
-          <p className="text-[13px] text-muted mb-10">Tüm fiyatlar TRY cinsindendir. Vergiler ödeme adımında hesaplanır.</p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="rounded-2xl border border-white/[.06] bg-[var(--bg-card)] p-7">
-              <p className="text-[10px] uppercase tracking-[.12em] font-mono text-muted mb-4">Ücretsiz</p>
-              <p className="font-display italic text-cream text-[3rem] leading-none mb-1">0 TL</p>
-              <p className="text-[11px] text-muted mb-6">Günlük 3 analiz</p>
-              <ul className="space-y-2 text-[13px] text-muted mb-7">
-                <li>• Fotoğraf / metin / nota analizi</li>
-                <li>• Temel koku piramidi</li>
-                <li>• Geçmiş ve dolap başlangıç paketi</li>
-              </ul>
-              <Link href="/" className="block text-center py-2.5 rounded-lg border border-white/[.08] text-muted hover:text-cream transition-colors no-underline">
-                Ücretsiz Başla
-              </Link>
-            </div>
-
-            <div className="rounded-2xl border border-[var(--gold-line)] bg-[var(--bg-card)] p-7 relative overflow-hidden">
-              <div className="absolute -top-14 -right-14 w-44 h-44 rounded-full bg-gradient-to-br from-gold/[.12] to-transparent" />
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[10px] uppercase tracking-[.12em] font-mono text-gold">Pro</p>
-                <span className="text-[9px] px-2 py-1 rounded-full border border-[var(--gold-line)] text-gold">En Popüler</span>
-              </div>
-              <p className="font-display italic text-cream text-[3rem] leading-none mb-1">49 TL</p>
-              <p className="text-[11px] text-muted mb-6">Aylık abonelik</p>
-              <ul className="space-y-2 text-[13px] text-cream mb-7">
-                <li>• Sınırsız analiz</li>
-                <li>• Molekül, çark ve teknik katman</li>
-                <li>• Layering Lab ve karşılaştırma</li>
-                <li>• Öncelikli işlem hızı</li>
-              </ul>
-              <Link href="/" className="block text-center py-2.5 rounded-lg bg-gold text-bg hover:bg-[#d7b576] transition-colors no-underline">
-                Pro'ya Geç
-              </Link>
-            </div>
-          </div>
+    <Card
+      className={`relative overflow-hidden p-6 md:p-7 hover-lift ${
+        plan.featured ? 'border-[var(--gold-line)] shadow-[0_24px_52px_rgba(201,169,110,.08)]' : ''
+      }`}
+      glow={plan.featured}
+    >
+      {plan.featured ? (
+        <div className="absolute right-4 top-4 rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)] px-2.5 py-1 text-[9px] font-mono uppercase tracking-[.1em] text-gold">
+          Onerilen
         </div>
-      </main>
+      ) : null}
 
-      <LegalFooter />
-    </div>
+      <CardTitle>{plan.name}</CardTitle>
+      <div className="mt-3">
+        <p className="font-display italic text-[2.6rem] leading-none text-cream">{formatPrice(plan)}</p>
+        <p className="mt-2 text-[12px] text-muted">
+          {plan.id === 'free' ? 'Baslangic seviyesi' : 'Aylik premium erisim'}
+        </p>
+      </div>
+
+      <ul className="mt-6 space-y-2.5">
+        {plan.features.map((feature) => (
+          <li key={`${plan.id}-${feature}`} className="flex items-start gap-2 text-[13px] text-cream/90">
+            <span className="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-[var(--gold)]" />
+            <span>{feature}</span>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        type="button"
+        disabled={plan.id !== 'pro' || isActive || isBusy}
+        onClick={() => void onCheckout(plan.id)}
+        className={`mt-7 w-full rounded-xl py-3 text-[11px] font-mono uppercase tracking-[.1em] transition-colors ${
+          plan.id !== 'pro'
+            ? 'border border-white/[.08] bg-white/[.04] text-muted'
+            : isActive
+              ? 'border border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold'
+              : isBusy
+                ? 'border border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold'
+                : 'bg-gold text-bg hover:bg-[#d8b676]'
+        }`}
+      >
+        {plan.id !== 'pro' ? 'Ucretsiz Basla' : isActive ? 'Pro Aktif' : isBusy ? 'Yonlendiriliyor...' : "Pro'ya Gec"}
+      </button>
+    </Card>
   );
 }
 
+export default function PricingPage() {
+  const [data, setData] = useState<BillingResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [busyPlanId, setBusyPlanId] = useState('');
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const response = await fetch('/api/billing', {
+          method: 'GET',
+          credentials: 'include',
+        });
+        const payload = (await response.json().catch(() => null)) as BillingResponse | null;
+        if (!response.ok || !payload) {
+          throw new Error(
+            payload && 'error' in payload
+              ? String((payload as { error?: string }).error || 'Paketler yuklenemedi.')
+              : 'Paketler yuklenemedi.',
+          );
+        }
+        setData(payload);
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : 'Paketler yuklenemedi.');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const plans = useMemo(() => normalizePlans(data?.plans), [data?.plans]);
+  const activeTier = data?.entitlement?.tier === 'pro' ? 'pro' : 'free';
+
+  async function startCheckout(planId: string): Promise<void> {
+    if (planId !== 'pro') return;
+    setBusyPlanId(planId);
+    setError('');
+
+    try {
+      const response = await fetch('/api/billing', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'start_checkout',
+          planId: 'pro',
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | CheckoutResponse
+        | { error?: string }
+        | null;
+      if (!response.ok || !payload || !('checkoutUrl' in payload) || typeof payload.checkoutUrl !== 'string') {
+        throw new Error(
+          payload && typeof payload === 'object' && 'error' in payload
+            ? String(payload.error || 'Checkout baslatilamadi.')
+            : 'Checkout baslatilamadi.',
+        );
+      }
+
+      window.location.href = payload.checkoutUrl;
+    } catch (checkoutError) {
+      setError(checkoutError instanceof Error ? checkoutError.message : 'Checkout baslatilamadi.');
+      setBusyPlanId('');
+    }
+  }
+
+  return (
+    <AppShell>
+      <TopBar title="Paketler" />
+      <div className="px-5 py-8 md:px-12 md:py-10">
+        <div className="mx-auto max-w-[1040px]">
+          <div className="mb-6 flex items-center gap-2.5">
+            <div className="h-px w-7 bg-[var(--gold-line)]" />
+            <span className="text-[10px] font-mono uppercase tracking-[.16em] text-muted">Paketler</span>
+          </div>
+
+          <h1 className="font-display italic text-[2.3rem] leading-[1.06] text-cream md:text-[3rem]">
+            Koku kesfini ihtiyacina gore
+            <br />
+            <span className="not-italic text-gold">ucretsiz baslat, Pro ile derinlestir.</span>
+          </h1>
+
+          <p className="mt-4 max-w-[620px] text-[13px] leading-relaxed text-muted">
+            Ucretsiz planda gunluk analiz hakkin, dolabin ve karsilastirma akisin hazir. Pro ile Layering Lab,
+            Barkod Tarayici, oncelikli AI ve cihazlar arasi senkronizasyon acilir.
+          </p>
+
+          <div className="mt-6 rounded-2xl border border-white/[.08] bg-black/10 px-4 py-3 text-[12px] text-muted">
+            {loading ? (
+              'Plan bilgisi yukleniyor...'
+            ) : data?.user ? (
+              <>
+                Aktif kullanici: <span className="text-cream">{data.user.name || data.user.email}</span> • Guncel plan:{' '}
+                <span className="text-gold">{activeTier === 'pro' ? 'Pro' : 'Ucretsiz'}</span>
+              </>
+            ) : (
+              'Giris yapmadan da paketleri inceleyebilirsin. Checkout adiminda hesabinla eslestirilir.'
+            )}
+          </div>
+
+          {error ? (
+            <div className="mt-4 rounded-2xl border border-[#6c3438] bg-[#271317] px-4 py-3 text-[12px] text-[#f1a2a2]">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2">
+            {plans.map((plan) => (
+              <PlanCard
+                key={plan.id}
+                activeTier={activeTier}
+                busyPlanId={busyPlanId}
+                onCheckout={startCheckout}
+                plan={plan}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  );
+}

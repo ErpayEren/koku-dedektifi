@@ -3,6 +3,7 @@
 import { UI } from '@/lib/strings';
 
 interface ActionBarProps {
+  hasResult: boolean;
   disabled: boolean;
   onAddWardrobe: () => void;
   onCompare: () => void;
@@ -39,7 +40,9 @@ function ActionBtn({
   );
 }
 
-export function ActionBar({ disabled, onAddWardrobe, onCompare, onLayer, onSave }: ActionBarProps) {
+export function ActionBar({ hasResult, disabled, onAddWardrobe, onCompare, onLayer, onSave }: ActionBarProps) {
+  if (!hasResult) return null;
+
   return (
     <div
       className="sticky bottom-[var(--mobile-nav-h)] md:bottom-0 z-20 px-5 md:px-12 py-3.5 border-t border-white/[.06]

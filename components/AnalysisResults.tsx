@@ -1,7 +1,6 @@
-'use client';
+﻿'use client';
 
-import { toPng } from 'html-to-image';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { UI } from '@/lib/strings';
 import type { AnalysisResult, MoleculeItem, TechnicalItem } from '@/lib/client/types';
 import { Card } from './ui/Card';
@@ -52,16 +51,6 @@ function clampPercent(value: unknown, fallback = 50): number {
   return Math.max(0, Math.min(100, Math.round(num)));
 }
 
-function formatPersonaFocus(age: unknown): string {
-  const raw = typeof age === 'string' ? age.trim() : '';
-  if (!raw) return 'Genis uyum';
-  if (raw.includes('18-25') || raw.includes('20-30')) return 'Canli enerji';
-  if (raw.includes('25-35')) return 'Modern denge';
-  if (raw.includes('35-45')) return 'Olgun zarafet';
-  if (raw.includes('+') || raw.includes('45')) return 'Derin karakter';
-  return raw;
-}
-
 function sanitizeMolecules(value: unknown): MoleculeItem[] {
   if (!Array.isArray(value)) return [];
   return value
@@ -104,7 +93,7 @@ function parseContributionPct(value: string, index: number, total: number): numb
 }
 
 function resolveMoleculeType(family: string): string {
-  return family.trim() || 'Aromatik Bilesik';
+  return family.trim() || 'Aromatik bileşik';
 }
 
 function resolveMoleculeOrigin(origin: string): string[] {
@@ -112,25 +101,27 @@ function resolveMoleculeOrigin(origin: string): string[] {
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean);
-  return list.length > 0 ? list.slice(0, 4) : ['Dogal profil'];
+  return list.length > 0 ? list.slice(0, 4) : ['Nota izi'];
 }
 
 function toMoleculeData(molecules: MoleculeItem[], lookup: Record<string, MoleculeLookupRow>): MoleculeData[] {
   return molecules.map((item, index) => {
     const resolved = lookup[item.name.toLowerCase()] || {};
-    const formula = resolved.formula || item.formula || '';
+    const smiles = resolved.smiles || item.smiles || undefined;
+    const verified = Boolean(smiles);
+    const formula = verified ? resolved.formula || item.formula || '' : '';
     const family = resolved.family || item.family || '';
     const origin = resolved.origin || item.origin || '';
-    const smiles = resolved.smiles || item.smiles || undefined;
 
     return {
       name: item.name,
       formula,
-      type: resolveMoleculeType(family),
+      type: verified ? resolveMoleculeType(family) : 'Doğrulanmamış nota izi',
       note: normalizeMoleculeNote(item.note, index, molecules.length),
       origin: resolveMoleculeOrigin(origin),
       pct: parseContributionPct(item.contribution, index, molecules.length),
       smiles,
+      verified,
     };
   });
 }
@@ -172,14 +163,46 @@ const FAMILY_GLOW: Record<string, string> = {
   Chypre: 'rgba(126,184,164,.08)',
 };
 
-export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: AnalysisResultsProps) {
+const ANALYSIS_STEPS = [
+  'Koku profili çözümleniyor...',
+  'Nota piramidi kuruluyor...',
+  'Moleküler izler eşleştiriliyor...',
+  'Benzer profiller taranıyor...',
+] as const;
+
+const WHEEL_AXES = [
+  { label: 'Tazelik', short: 'F', color: 'var(--sage)' },
+  { label: 'Tatlılık', short: 'T', color: '#d58ebb' },
+  { label: 'Sıcaklık', short: 'S', color: 'var(--gold)' },
+  { label: 'Yoğunluk', short: 'Y', color: '#8ab8c0' },
+] as const;
+
+export const AnalysisResults = memo(function AnalysisResults({
+  result,
+  isAnalyzing,
+  onAnalyzeSimilar,
+}: AnalysisResultsProps) {
   const [moleculeIndex, setMoleculeIndex] = useState(0);
   const [molCardIdx, setMolCardIdx] = useState<number | null>(null);
   const [visible, setVisible] = useState(false);
   const [barsReady, setBarsReady] = useState(false);
   const [shareBusy, setShareBusy] = useState(false);
+  const [analysisStepIndex, setAnalysisStepIndex] = useState(0);
   const [moleculeLookup, setMoleculeLookup] = useState<Record<string, MoleculeLookupRow>>({});
   const shareCardRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isAnalyzing) {
+      setAnalysisStepIndex(0);
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setAnalysisStepIndex((current) => (current + 1) % ANALYSIS_STEPS.length);
+    }, 1800);
+
+    return () => window.clearInterval(timer);
+  }, [isAnalyzing]);
 
   useEffect(() => {
     setMoleculeIndex(0);
@@ -255,17 +278,42 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
   if (isAnalyzing) {
     return (
       <section className="anim-up-1 px-5 pb-8 md:px-12">
-        <SectionDivider label="Analiz Isleniyor" />
-        <Card className="p-8 md:p-10">
-          <div className="mb-6">
-            <p className="mb-1 font-display text-[1.9rem] italic text-cream md:text-[2.1rem]">{UI.analyzing}</p>
-            <p className="text-[12px] text-muted">{UI.analysisSteps}</p>
-          </div>
+        <SectionDivider label="Analiz İşleniyor" />
+        <Card className="overflow-hidden p-7 md:p-9">
+          <div className="flex flex-col gap-7 md:flex-row md:items-center">
+            <div className="relative flex h-28 w-28 items-center justify-center self-center rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)]/30 md:self-start">
+              <div className="absolute inset-3 rounded-full border border-white/[.07] animate-[aura-breathe_6s_ease-in-out_infinite]" />
+              <div className="absolute h-10 w-10 rounded-full bg-[radial-gradient(circle,rgba(167,139,250,.9)_0%,rgba(167,139,250,.15)_68%,transparent_100%)] blur-[1px]" />
+              <div className="relative h-4 w-4 rounded-full bg-gold shadow-[0_0_22px_rgba(201,169,110,.35)]" />
+            </div>
 
-          <div className="space-y-4">
-            <div className="skeleton-track h-[12px] rounded-full" />
-            <div className="skeleton-track h-[12px] rounded-full" />
-            <div className="skeleton-track h-[12px] rounded-full" />
+            <div className="min-w-0 flex-1">
+              <p className="mb-2 font-display text-[1.9rem] italic text-cream md:text-[2.15rem]">{UI.analyzing}</p>
+              <p className="text-[13px] text-muted">{ANALYSIS_STEPS[analysisStepIndex]}</p>
+
+              <div className="mt-6 h-[2px] overflow-hidden rounded-full bg-white/[.08]">
+                <div
+                  className="h-full rounded-full shimmer-line"
+                  style={{ width: `${((analysisStepIndex + 1) / ANALYSIS_STEPS.length) * 100}%` }}
+                />
+              </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-2 md:grid-cols-4">
+                {ANALYSIS_STEPS.map((step, index) => {
+                  const active = index === analysisStepIndex;
+                  return (
+                    <span
+                      key={step}
+                      className={`rounded-full border px-3 py-1.5 text-[10px] font-mono uppercase tracking-[.1em] transition-all ${
+                        active ? 'border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold' : 'border-white/[.07] text-muted'
+                      }`}
+                    >
+                      {step.replace('...', '')}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </Card>
       </section>
@@ -306,6 +354,7 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
     const currentResult = activeResult;
     setShareBusy(true);
     try {
+      const { toPng } = await import('html-to-image');
       const dataUrl = await toPng(shareCardRef.current, {
         cacheBust: true,
         pixelRatio: 2,
@@ -341,9 +390,9 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
     <section className="anim-up-2 px-5 pb-8 md:px-12">
       <SectionDivider label="Analiz Sonucu" />
 
-      <div ref={shareCardRef} className="mb-5 grid grid-cols-1 items-start gap-5 md:grid-cols-[1fr_380px]">
+      <div ref={shareCardRef} className="mb-4 grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card
-          className="relative overflow-hidden p-7 md:p-9"
+          className="relative self-start overflow-hidden p-7 md:p-9"
           glow
           style={{
             ...cardMotion(0),
@@ -357,7 +406,7 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
               disabled={shareBusy}
               className="rounded-full border border-white/[.08] bg-black/20 px-3 py-2 text-[10px] font-mono uppercase tracking-[.08em] text-muted transition-colors hover:border-[var(--gold-line)] hover:text-cream disabled:opacity-50"
             >
-              {shareBusy ? 'Paylasiliyor' : 'Paylas'}
+              {shareBusy ? 'Paylaşılıyor' : 'Paylaş'}
             </button>
           </div>
           <div className="absolute right-5 top-5">
@@ -372,27 +421,27 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
               className="inline-flex items-center justify-center rounded-2xl border border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold"
             />
             <div className="min-w-0 flex-1">
-              <h2 className="font-display text-[2rem] italic leading-[1.05] text-cream md:text-[2.35rem]">{activeResult.name}</h2>
-              <p className="mt-2 text-[11px] font-mono uppercase tracking-[.1em] text-gold">{activeResult.family || 'Aromatik'}</p>
+              <h2 className="font-display text-[2rem] italic leading-[1.02] text-cream md:text-[2.45rem]">{activeResult.name}</h2>
+              <p className="mt-2 text-[11px] font-mono uppercase tracking-[.12em] text-gold">{activeResult.family || 'Aromatik'}</p>
             </div>
           </div>
 
           <div className="mt-7">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-[10px] font-mono uppercase tracking-[.1em] text-muted">Yogunluk</span>
+              <span className="text-[10px] font-mono uppercase tracking-[.1em] text-muted">Yoğunluk</span>
               <span className="text-[12px] text-cream">{activeResult.intensity}%</span>
             </div>
             <div className="h-[6px] overflow-hidden rounded-full bg-white/[.08]">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-[#9f4f64] via-[#d97568] to-[#f08f66] transition-all duration-500 ease-out"
+                className="h-full rounded-full bg-gradient-to-r from-[#9f4f64] via-[#d97568] to-[#f0b267] transition-all duration-500 ease-out"
                 style={{ width: `${activeResult.intensity}%` }}
               />
             </div>
           </div>
 
-          <div className="mt-7 border-t border-white/[.06] pt-6">
+          <div className="mt-6 border-t border-white/[.06] pt-5">
             <CardTitle>{UI.scentDescription}</CardTitle>
-            <p className="text-[15px] leading-relaxed text-cream/95">{activeResult.description || 'Aciklama su an hazir degil.'}</p>
+            <p className="text-[15px] leading-relaxed text-cream/95">{activeResult.description || 'Açıklama şu an hazır değil.'}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               {season.map((tag) => (
                 <span key={tag} className="rounded-full border border-white/[.08] px-2.5 py-1.5 text-[10px] font-mono text-muted">
@@ -405,8 +454,32 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
             </div>
           </div>
 
-          <div className="mt-7 border-t border-white/[.06] pt-6">
-            <CardTitle>Imza Sinyalleri</CardTitle>
+          <div className="mt-4 rounded-[24px] border border-white/[.06] bg-black/10 p-5">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <CardTitle>Koku Sahnesi</CardTitle>
+              <span className="text-[10px] font-mono uppercase tracking-[.12em] text-gold">Canlı iz</span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[108px_minmax(0,1fr)] lg:items-center">
+              <div className="relative mx-auto flex h-[108px] w-[108px] items-center justify-center">
+                <div className="absolute inset-0 rounded-full border border-white/[.08] animate-[aura-breathe_8s_ease-in-out_infinite]" />
+                <div className="absolute inset-[18px] rounded-full bg-[radial-gradient(circle,rgba(167,139,250,.65)_0%,rgba(167,139,250,.12)_52%,transparent_100%)] blur-[2px]" />
+                <div className="relative text-center">
+                  <p className="text-[9px] font-mono uppercase tracking-[.16em] text-muted">İz skoru</p>
+                  <p className="mt-2 font-display text-[1.55rem] italic leading-none text-cream">{confidence}%</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <SceneCell label="Duruş" value={activeResult.persona?.vibe || 'Dengeli'} tone="#a78bfa" />
+                <SceneCell label="An" value={activeResult.occasion || 'Günlük'} tone="var(--gold)" />
+                <SceneCell label="İz" value={season[0] || 'Dört mevsim'} tone="var(--sage)" />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 border-t border-white/[.06] pt-6">
+            <CardTitle>İmza Sinyalleri</CardTitle>
             <SignalTelemetry
               longevity={longevityScore}
               projection={projectionScore}
@@ -417,7 +490,7 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
           </div>
         </Card>
 
-        <Card className="p-6" style={cardMotion(1)}>
+        <Card className="self-start p-6 content-auto-panel" style={cardMotion(1)}>
           <CardTitle>{UI.pyramid}</CardTitle>
           <div className="space-y-4">
             <PyramidRow label={UI.topNote} items={toList(activeResult.pyramid?.top, 6)} />
@@ -426,7 +499,7 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
           </div>
 
           <div className="mt-6 border-t border-white/[.06] pt-6">
-            <CardTitle className="mb-4">Koku Gelisimi</CardTitle>
+            <CardTitle className="mb-4">Koku Gelişimi</CardTitle>
             <ScentTimeline
               topNotes={toList(activeResult.pyramid?.top, 6)}
               heartNotes={toList(heartNotes, 8)}
@@ -435,24 +508,24 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
             />
           </div>
 
-          <div className="mt-7 border-t border-white/[.06] pt-6">
+          <div className="mt-6 border-t border-white/[.06] pt-5">
             <CardTitle>{UI.suitability}</CardTitle>
             {activeResult.persona ? (
               <div className="space-y-2 text-[12px] text-muted">
-                <InfoLine label="Profil tonu" value={activeResult.persona.vibe || 'Dengeli'} />
-                <InfoLine label="Kullanim akisi" value={occasionList.join(', ') || activeResult.occasion || 'Genel'} />
-                <InfoLine label="Stil" value={activeResult.persona.gender || 'Unisex'} />
-                <InfoLine label="Profil odagi" value={formatPersonaFocus(activeResult.persona.age)} />
+                <InfoLine label="Koku duruşu" value={activeResult.persona.vibe || 'Dengeli'} />
+                <InfoLine label="Kullanım sahnesi" value={occasionList.join(', ') || activeResult.occasion || 'Genel kullanım'} />
+                <InfoLine label="Cinsiyet dengesi" value={activeResult.persona.gender || 'Unisex'} />
+                <InfoLine label="Sezon eğilimi" value={season.join(', ') || activeResult.persona.season || 'Dört mevsim'} />
               </div>
             ) : (
-              <p className="text-[12px] text-muted">Bu kokuda persona sinyali sinirli; genel kullanim sahnesine acik.</p>
+              <p className="text-[12px] text-muted">Bu kokuda persona sinyali sınırlı; genel kullanım sahnesine açık.</p>
             )}
           </div>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-5 md:grid-cols-3">
-        <Card className="p-6" style={cardMotion(2)}>
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-3">
+        <Card className="self-start p-6 content-auto-panel" style={cardMotion(2)}>
           <CardTitle className="mb-4">{UI.keyMolecules}</CardTitle>
           {molecule ? (
             <div>
@@ -460,28 +533,28 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
                 type="button"
                 className="w-full rounded-[28px] border border-white/[.08] bg-[#0c0b10] p-4 text-left transition-colors hover:border-[var(--gold-line)]"
                 onClick={() => setMolCardIdx(moleculeSafeIndex)}
-                aria-label={`${molecule.name} molekul kartini ac`}
+                aria-label={`${molecule.name} molekül kartını aç`}
               >
                 <MoleculeVisual name={molecule.name} smiles={molecule.smiles} formula={molecule.formula} compact />
               </button>
 
               <div className="mt-4 flex items-center justify-between gap-3">
-                <button type="button" onClick={() => setMoleculeIndex((prev) => Math.max(0, prev - 1))} className="icon-btn" disabled={moleculeSafeIndex === 0} aria-label="Onceki molekul">
+                <button type="button" onClick={() => setMoleculeIndex((prev) => Math.max(0, prev - 1))} className="icon-btn" disabled={moleculeSafeIndex === 0} aria-label="Önceki molekül">
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8">
                     <path d="M8.8 2.3 4.2 7l4.6 4.7" />
                   </svg>
                 </button>
                 <div className="min-w-0 text-center">
                   <p className="font-display text-[2rem] italic leading-none text-cream">{molecule.name}</p>
-                  <p className="text-[12px] text-muted">{molecule.formula || 'Formul bulunamadi'}</p>
-                  <p className="mt-1 text-[11px] text-sage">{molecule.type || 'Molekul ailesi'}</p>
+                  <p className="text-[12px] text-muted">{molecule.formula || 'Doğrulanmış formül yok'}</p>
+                  <p className="mt-1 text-[11px] text-sage">{molecule.type || 'Molekül ailesi'}</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setMoleculeIndex((prev) => Math.min(moleculeData.length - 1, prev + 1))}
                   className="icon-btn"
                   disabled={moleculeSafeIndex >= moleculeData.length - 1}
-                  aria-label="Sonraki molekul"
+                  aria-label="Sonraki molekül"
                 >
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8">
                     <path d="M5.2 2.3 9.8 7l-4.6 4.7" />
@@ -498,7 +571,7 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
                         type="button"
                         onClick={() => setMoleculeIndex(index)}
                         className={`h-1.5 rounded-full transition-all ${index === moleculeSafeIndex ? 'w-8 bg-gold' : 'w-1.5 bg-white/[.25]'}`}
-                        aria-label={`${index + 1}. molekule git`}
+                        aria-label={`${index + 1}. moleküle git`}
                       />
                     ))}
                   </div>
@@ -516,7 +589,7 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
                             setMolCardIdx(index);
                           }}
                           className={`w-full rounded-lg border px-3 py-2 text-left transition-all duration-150 ${index === moleculeSafeIndex ? 'border-[var(--gold-line)] bg-[var(--gold-dim)]/30' : 'border-white/[.07] hover:border-[var(--gold-line)]'}`}
-                          aria-label={`${item.name} detayini goster`}
+                          aria-label={`${item.name} detayını göster`}
                         >
                           <div className="flex items-center justify-between gap-3">
                             <span className="truncate text-[12px] text-cream">{item.name}</span>
@@ -535,11 +608,11 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
               ) : null}
             </div>
           ) : (
-            <p className="text-[12px] text-muted">Molekul verisi bu analizde bulunamadi.</p>
+            <p className="text-[12px] text-muted">Bu analizde doğrulanmış molekül izi bulunamadı.</p>
           )}
         </Card>
 
-        <Card className="p-6" style={cardMotion(3)}>
+        <Card className="self-start p-6 content-auto-panel" style={cardMotion(3)}>
           <CardTitle>{UI.similarScents}</CardTitle>
           <div className="flex flex-col gap-2">
             {similarItems.length > 0 ? (
@@ -548,14 +621,14 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <span className="block truncate text-[14px] text-cream">{item.name}</span>
-                      <span className="mt-1 block text-[11px] text-muted">Tek dokunusla bu profile yeniden analiz calistir</span>
+                      <span className="mt-1 block text-[11px] text-muted">Bu profile göre yeniden analiz çalıştır.</span>
                     </div>
                     <SimilarityArc pct={item.similarity} />
                   </div>
                 </button>
               ))
             ) : (
-              <p className="text-[12px] text-muted">Bu koku icin benzer profil onerisi cikmadi.</p>
+              <p className="text-[12px] text-muted">Bu koku için benzer profil önerisi çıkmadı.</p>
             )}
           </div>
 
@@ -573,16 +646,24 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
           ) : null}
         </Card>
 
-        <Card className="p-6" style={cardMotion(4)}>
+        <Card className="self-start p-6 content-auto-panel" style={cardMotion(4)}>
           <CardTitle>{UI.wheel}</CardTitle>
-          <div className="flex items-center justify-center py-3">
+          <div className="flex items-center justify-center py-2">
             <RadarWheel values={wheelValues} />
           </div>
-          <div className="mt-2 space-y-3">
-            <ProgressMini label="Tazelik" value={scores.freshness} tone="var(--sage)" />
-            <ProgressMini label="Tatlilik" value={scores.sweetness} tone="#d58ebb" />
-            <ProgressMini label="Sicaklik" value={scores.warmth} tone="#d3a36a" />
-            <ProgressMini label="Yogunluk" value={clampPercent(activeResult.intensity, 65)} tone="#8ab8c0" />
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {WHEEL_AXES.map((axis) => (
+              <div key={axis.label} className="flex items-center gap-2 rounded-full border border-white/[.07] px-3 py-2 text-[10px] font-mono uppercase tracking-[.08em] text-muted">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: axis.color }} />
+                <span>{axis.label}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <MetricPill label="Tazelik" value={scores.freshness} tone="var(--sage)" />
+            <MetricPill label="Tatlılık" value={scores.sweetness} tone="#d58ebb" />
+            <MetricPill label="Sıcaklık" value={scores.warmth} tone="#d3a36a" />
+            <MetricPill label="Yoğunluk" value={clampPercent(activeResult.intensity, 65)} tone="#8ab8c0" />
           </div>
         </Card>
       </div>
@@ -590,13 +671,13 @@ export function AnalysisResults({ result, isAnalyzing, onAnalyzeSimilar }: Analy
       {molCardIdx !== null ? <MoleculeCard molecules={moleculeData} initialIndex={molCardIdx} onClose={() => setMolCardIdx(null)} /> : null}
     </section>
   );
-}
+});
 
 function PyramidRow({ label, items }: { label: string; items: string[] }) {
   return (
     <div className="rounded-xl border border-white/[.06] p-3.5">
       <p className="mb-1.5 text-[10px] font-mono uppercase tracking-[.1em] text-muted">{label}</p>
-      <p className="leading-relaxed text-cream/95">{items.length > 0 ? items.join(' / ') : 'Veri sinirli'}</p>
+      <p className="leading-relaxed text-cream/95">{items.length > 0 ? items.join(' / ') : 'Veri sınırlı'}</p>
     </div>
   );
 }
@@ -610,20 +691,6 @@ function InfoLine({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ProgressMini({ label, value, tone }: { label: string; value: number; tone: string }) {
-  return (
-    <div>
-      <div className="mb-1.5 flex justify-between items-center">
-        <span className="text-[11px] text-muted">{label}</span>
-        <span className="text-[11px] text-cream">{value}</span>
-      </div>
-      <div className="h-[6px] rounded-full bg-white/[.08] overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${value}%`, background: tone }} />
-      </div>
-    </div>
-  );
-}
-
 function ConfidenceRing({ pct }: { pct: number }) {
   const r = 22;
   const circ = 2 * Math.PI * r;
@@ -631,7 +698,7 @@ function ConfidenceRing({ pct }: { pct: number }) {
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <svg width="56" height="56" viewBox="0 0 56 56" fill="none" aria-label={`Guven skoru ${pct}`}>
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none" aria-label={`Güven skoru ${pct}`}>
         <circle cx="28" cy="28" r={r} stroke="var(--border-md)" strokeWidth="2.5" />
         <circle
           cx="28"
@@ -648,7 +715,7 @@ function ConfidenceRing({ pct }: { pct: number }) {
           {pct}%
         </text>
       </svg>
-      <span className="text-[8px] font-mono tracking-[.1em] uppercase text-[var(--muted)]">Guven</span>
+      <span className="text-[8px] font-mono tracking-[.1em] uppercase text-[var(--muted)]">Güven</span>
     </div>
   );
 }
@@ -685,9 +752,9 @@ function SimilarityArc({ pct }: { pct: number }) {
 function RadarWheel({ values }: { values: number[] }) {
   const axes = [
     { label: 'Tazelik', angle: -Math.PI / 2, value: values[0], color: 'var(--sage)' },
-    { label: 'Tatlilik', angle: 0, value: values[1], color: '#d58ebb' },
-    { label: 'Sicaklik', angle: Math.PI / 2, value: values[2], color: 'var(--gold)' },
-    { label: 'Yogunluk', angle: Math.PI, value: values[3], color: '#8ab8c0' },
+    { label: 'Tatlılık', angle: 0, value: values[1], color: '#d58ebb' },
+    { label: 'Sıcaklık', angle: Math.PI / 2, value: values[2], color: 'var(--gold)' },
+    { label: 'Yoğunluk', angle: Math.PI, value: values[3], color: '#8ab8c0' },
   ];
   const center = 92;
   const radius = 68;
@@ -702,7 +769,7 @@ function RadarWheel({ values }: { values: number[] }) {
     .join(' ');
 
   return (
-    <svg viewBox="0 0 184 184" width="176" height="176" aria-label="Koku carki">
+    <svg viewBox="0 0 184 184" width="188" height="188" aria-label="Koku çarkı">
       {[24, 44, 68].map((ring) => (
         <circle key={ring} cx={center} cy={center} r={ring} fill="none" stroke="rgba(255,255,255,.08)" />
       ))}
@@ -710,23 +777,10 @@ function RadarWheel({ values }: { values: number[] }) {
       {axes.map((axis) => {
         const outerX = center + Math.cos(axis.angle) * radius;
         const outerY = center + Math.sin(axis.angle) * radius;
-        const labelX = center + Math.cos(axis.angle) * 86;
-        const labelY = center + Math.sin(axis.angle) * 86;
         return (
           <g key={axis.label}>
             <line x1={center} y1={center} x2={outerX} y2={outerY} stroke="rgba(255,255,255,.08)" />
-            <circle cx={outerX} cy={outerY} r="2.8" fill={axis.color} />
-            <text
-              x={labelX}
-              y={labelY}
-              textAnchor="middle"
-              fontFamily="var(--font-mono)"
-              fontSize="9"
-              fill={axis.color}
-              style={{ letterSpacing: '0.12em', textTransform: 'uppercase' }}
-            >
-              {axis.label}
-            </text>
+            <circle cx={outerX} cy={outerY} r="3.8" fill={axis.color} />
           </g>
         );
       })}
@@ -751,9 +805,9 @@ function SignalTelemetry({
   barsReady: boolean;
 }) {
   const metrics = [
-    { label: 'Kalicilik', value: longevity, tone: 'var(--gold)', note: longevity >= 80 ? 'Cok kalici' : longevity >= 60 ? 'Dengeli' : 'Hafif' },
-    { label: 'Yayilim', value: projection, tone: 'var(--sage)', note: projection >= 80 ? 'Guclu' : projection >= 60 ? 'Orta' : 'Yakin ten' },
-    { label: 'Uyum Skoru', value: fit, tone: 'var(--gold)', note: fit >= 85 ? 'Cok yuksek' : fit >= 70 ? 'Yuksek' : 'Secici' },
+    { label: 'Kalıcılık', value: longevity, tone: 'var(--gold)', note: longevity >= 80 ? 'Çok kalıcı' : longevity >= 60 ? 'Dengeli' : 'Hafif' },
+    { label: 'Yayılım', value: projection, tone: 'var(--sage)', note: projection >= 80 ? 'Güçlü' : projection >= 60 ? 'Orta' : 'Yakın ten' },
+    { label: 'Uyum Skoru', value: fit, tone: 'var(--gold)', note: fit >= 85 ? 'Çok yüksek' : fit >= 70 ? 'Yüksek' : 'Seçici' },
   ];
 
   return (
@@ -794,6 +848,31 @@ function SignalTelemetry({
             {tag}
           </span>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function SceneCell({ label, value, tone }: { label: string; value: string; tone: string }) {
+  return (
+    <div className="rounded-[18px] border border-white/[.07] bg-white/[.02] px-4 py-3">
+      <p className="text-[9px] font-mono uppercase tracking-[.16em]" style={{ color: tone }}>
+        {label}
+      </p>
+      <p className="mt-2 text-[14px] leading-relaxed text-cream/95">{value}</p>
+    </div>
+  );
+}
+
+function MetricPill({ label, value, tone }: { label: string; value: number; tone: string }) {
+  return (
+    <div className="rounded-[16px] border border-white/[.07] bg-white/[.02] px-3 py-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-[10px] font-mono uppercase tracking-[.1em] text-muted">{label}</span>
+        <span className="text-[11px] text-cream">{value}</span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-white/[.08]">
+        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${value}%`, background: tone }} />
       </div>
     </div>
   );

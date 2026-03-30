@@ -14,7 +14,7 @@ function familyBadgeClass(family: string): string {
   const val = family.toLowerCase();
   if (val.includes('odunsu')) return 'border-[#5fb6a0]/40 text-[#8ad7c3]';
   if (val.includes('oryantal')) return 'border-[#d5a579]/40 text-[#e6c39f]';
-  if (val.includes('cicek')) return 'border-[#cf8ac8]/40 text-[#e2ace0]';
+  if (val.includes('çiçek') || val.includes('cicek')) return 'border-[#cf8ac8]/40 text-[#e2ace0]';
   return 'border-white/[.09] text-muted';
 }
 
@@ -51,7 +51,7 @@ export default function GecmisPage() {
         </div>
         {!hasRows ? (
           <Card className="p-4">
-            <EmptyState title="Henuz gecmis yok" subtitle="Ilk analizi yaptiginda sonuclar burada birikir." />
+            <EmptyState title={UI.emptyHistoryTitle} subtitle={UI.emptyHistoryBody} />
           </Card>
         ) : (
           <div className="space-y-6">
@@ -80,4 +80,3 @@ export default function GecmisPage() {
     </AppShell>
   );
 }
-

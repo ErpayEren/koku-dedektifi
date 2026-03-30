@@ -29,11 +29,19 @@ const dmMono = DM_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Koku Dedektifi - AI Parfum Analizi',
-    template: '%s - Koku Dedektifi',
+    default: 'Koku Dedektifi — AI Parfüm Analizi',
+    template: '%s — Koku Dedektifi',
   },
-  description: 'Parfumunu fotografla veya tarif et, yapay zeka koku piramidini, molekullerini ve benzer onerileri analiz etsin.',
+  description: 'Parfümünü fotoğrafla ya da tarif et; yapay zekâ koku piramidini, moleküllerini ve benzer profilleri çözümlesin.',
   metadataBase: new URL('https://koku-dedektifi.vercel.app'),
+  icons: {
+    icon: [
+      { url: '/favicon.svg?v=20260330', type: 'image/svg+xml', sizes: 'any' },
+      { url: '/icon.svg?v=20260330', type: 'image/svg+xml', sizes: 'any' },
+    ],
+    shortcut: [{ url: '/favicon.svg?v=20260330', type: 'image/svg+xml' }],
+    apple: [{ url: '/icon.svg?v=20260330', type: 'image/svg+xml' }],
+  },
   openGraph: {
     type: 'website',
     locale: 'tr_TR',
@@ -59,4 +67,3 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
-

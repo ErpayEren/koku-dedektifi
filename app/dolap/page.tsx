@@ -14,11 +14,11 @@ import { UI } from '@/lib/strings';
 type StatusFilter = 'all' | WardrobeItem['status'];
 
 function statusLabel(value: WardrobeItem['status']): string {
-  if (value === 'owned') return 'Sahip';
-  if (value === 'wishlist') return 'Wishlist';
-  if (value === 'tested') return 'Denendi';
-  if (value === 'rebuy') return 'Tekrar Alirim';
-  return 'Gec';
+  if (value === 'owned') return UI.wardrobeOwned;
+  if (value === 'wishlist') return UI.wardrobeWishlist;
+  if (value === 'tested') return UI.wardrobeTried;
+  if (value === 'rebuy') return UI.wardrobeBuyAgain;
+  return UI.wardrobeSkip;
 }
 
 export default function DolapPage() {
@@ -59,11 +59,11 @@ export default function DolapPage() {
                       : 'border-white/[.08] text-muted hover:text-cream'
                   }`}
                 >
-                  {status === 'all' ? 'Tumu' : statusLabel(status as WardrobeItem['status'])}
+                  {status === 'all' ? UI.wardrobeAll : statusLabel(status as WardrobeItem['status'])}
                 </button>
               ))}
             </div>
-            <span className="text-[11px] text-muted">{rows.length} parfum</span>
+            <span className="text-[11px] text-muted">{rows.length} parfüm</span>
           </div>
 
           {rows.length === 0 ? (
@@ -93,20 +93,20 @@ export default function DolapPage() {
                     <button
                       type="button"
                       onClick={() => toggleFavorite(item.key)}
-                      className={`rounded-lg border px-3 py-2 text-[11px] transition-colors ${
+                    className={`rounded-lg border px-3 py-2 text-[11px] transition-colors ${
                         item.favorite
                           ? 'border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold'
                           : 'border-white/[.08] text-muted hover:text-cream'
                       }`}
                     >
-                      {item.favorite ? 'Favori' : 'Favoriye Al'}
+                      {item.favorite ? 'Favori' : 'Favoriye ekle'}
                     </button>
                     <button
                       type="button"
                       onClick={() => removeItem(item.key)}
                       className="rounded-lg border border-white/[.08] px-3 py-2 text-[11px] text-muted transition-colors hover:text-cream"
                     >
-                      Kaldir
+                      Kaldır
                     </button>
                   </div>
                 </Card>

@@ -56,7 +56,7 @@ export async function middleware(req: NextRequest) {
     throw new Error('OPS_PASSWORD env must be set');
   }
 
-  if (pathname.startsWith('/ops')) {
+  if (pathname === '/ops.html' || pathname.startsWith('/ops')) {
     const auth = req.headers.get('authorization') ?? '';
     const expected =
       'Basic ' +
@@ -116,6 +116,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
+    '/ops.html',
     '/ops/:path*',
     '/api/analyze/:path*',
     '/api/proxy',

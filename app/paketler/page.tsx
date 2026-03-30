@@ -49,12 +49,12 @@ interface CheckoutResponse {
 
 const PLAN_COPY: Record<'free' | 'pro', { name: string; features: string[] }> = {
   free: {
-    name: 'Ucretsiz',
-    features: ['5 analiz/gun', 'Koku dolabi', 'Karsilastirma'],
+    name: 'Ücretsiz',
+    features: ['5 analiz/gün', 'Koku dolabı', 'Karşılaştırma'],
   },
   pro: {
     name: 'Pro',
-    features: ['Sinirsiz analiz', 'Layering Lab', 'Barkod Tarayici', 'Cross-device sync', 'Oncelikli AI'],
+    features: ['Sınırsız analiz', 'Layering Lab', 'Barkod Tarayıcı', 'Cihazlar arası senkronizasyon', 'Öncelikli AI'],
   },
 };
 
@@ -123,7 +123,7 @@ function PlanCard({
     >
       {plan.featured ? (
         <div className="absolute right-4 top-4 rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)] px-2.5 py-1 text-[9px] font-mono uppercase tracking-[.1em] text-gold">
-          Onerilen
+          Önerilen
         </div>
       ) : null}
 
@@ -131,7 +131,7 @@ function PlanCard({
       <div className="mt-3">
         <p className="font-display italic text-[2.6rem] leading-none text-cream">{formatPrice(plan)}</p>
         <p className="mt-2 text-[12px] text-muted">
-          {plan.id === 'free' ? 'Baslangic seviyesi' : 'Aylik premium erisim'}
+          {plan.id === 'free' ? 'Başlangıç seviyesi' : 'Aylık premium erişim'}
         </p>
       </div>
 
@@ -158,7 +158,7 @@ function PlanCard({
                 : 'bg-gold text-bg hover:bg-[#d8b676]'
         }`}
       >
-        {plan.id !== 'pro' ? 'Ucretsiz Basla' : isActive ? 'Pro Aktif' : isBusy ? 'Yonlendiriliyor...' : "Pro'ya Gec"}
+            {plan.id !== 'pro' ? 'Ücretsiz Başla' : isActive ? 'Pro Aktif' : isBusy ? 'Yönlendiriliyor...' : "Pro'ya Geç"}
       </button>
     </Card>
   );
@@ -166,7 +166,6 @@ function PlanCard({
 
 export default function PricingPage() {
   const [data, setData] = useState<BillingResponse | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busyPlanId, setBusyPlanId] = useState('');
 
@@ -188,8 +187,6 @@ export default function PricingPage() {
         setData(payload);
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : 'Paketler yuklenemedi.');
-      } finally {
-        setLoading(false);
       }
     })();
   }, []);
@@ -245,26 +242,24 @@ export default function PricingPage() {
           </div>
 
           <h1 className="font-display italic text-[2.3rem] leading-[1.06] text-cream md:text-[3rem]">
-            Koku kesfini ihtiyacina gore
+            Koku keşfini ihtiyacına göre
             <br />
-            <span className="not-italic text-gold">ucretsiz baslat, Pro ile derinlestir.</span>
+            <span className="not-italic text-gold">ücretsiz başlat, Pro ile derinleştir.</span>
           </h1>
 
           <p className="mt-4 max-w-[620px] text-[13px] leading-relaxed text-muted">
-            Ucretsiz planda gunluk analiz hakkin, dolabin ve karsilastirma akisin hazir. Pro ile Layering Lab,
-            Barkod Tarayici, oncelikli AI ve cihazlar arasi senkronizasyon acilir.
+            Ücretsiz planda günlük analiz hakkın, dolabın ve karşılaştırma akışın hazır. Pro ile Layering Lab,
+            Barkod Tarayıcı, öncelikli AI ve cihazlar arası senkronizasyon açılır.
           </p>
 
           <div className="mt-6 rounded-2xl border border-white/[.08] bg-black/10 px-4 py-3 text-[12px] text-muted">
-            {loading ? (
-              'Plan bilgisi yukleniyor...'
-            ) : data?.user ? (
+            {data?.user ? (
               <>
-                Aktif kullanici: <span className="text-cream">{data.user.name || data.user.email}</span> • Guncel plan:{' '}
-                <span className="text-gold">{activeTier === 'pro' ? 'Pro' : 'Ucretsiz'}</span>
+                Aktif kullanıcı: <span className="text-cream">{data.user.name || data.user.email}</span> • Güncel plan:{' '}
+                <span className="text-gold">{activeTier === 'pro' ? 'Pro' : 'Ücretsiz'}</span>
               </>
             ) : (
-              'Giris yapmadan da paketleri inceleyebilirsin. Checkout adiminda hesabinla eslestirilir.'
+              'Giriş yapmadan da paketleri inceleyebilirsin. Checkout adımında hesabınla eşleştirilir.'
             )}
           </div>
 

@@ -1,16 +1,17 @@
 'use client';
 
+import Image from 'next/image';
 import { useMemo, useRef, useState } from 'react';
 import { UI } from '@/lib/strings';
 import type { InputMode } from '@/lib/client/types';
 
 const QUICK_CHIPS = [
-  'Dior Sauvage',
-  'Creed Aventus',
-  'By the Fireplace',
-  'Oud + Gul',
-  'Temiz Deniz',
-  'Vanilya + Amber',
+  UI.chipSauvage,
+  UI.chipAventus,
+  UI.chipFireplace,
+  UI.chipOudRose,
+  UI.chipCleanSea,
+  UI.chipVanillaAmber,
 ];
 
 interface HeroInputProps {
@@ -31,7 +32,7 @@ function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
-    reader.onerror = () => reject(new Error('Gorsel okunamadi.'));
+    reader.onerror = () => reject(new Error('Görsel okunamadı.'));
     reader.readAsDataURL(file);
   });
 }
@@ -41,7 +42,7 @@ export async function compressImage(
   maxPx = 1024,
   quality = 0.82,
 ): Promise<{ dataUrl: string; sizeKb: number }> {
-  const image = new Image();
+  const image = new window.Image();
   image.decoding = 'async';
   image.src = dataUrl;
   await image.decode();
@@ -75,6 +76,7 @@ function ModeIcon({ mode }: { mode: InputMode }) {
       </svg>
     );
   }
+
   if (mode === 'notes') {
     return (
       <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6">
@@ -83,6 +85,7 @@ function ModeIcon({ mode }: { mode: InputMode }) {
       </svg>
     );
   }
+
   return (
     <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6">
       <path d="M4 14.5l3.4-.8 7.7-7.7a1.8 1.8 0 1 0-2.5-2.5L4.9 11.2z" />
@@ -93,24 +96,14 @@ function ModeIcon({ mode }: { mode: InputMode }) {
 
 function ModeHint({ mode }: { mode: InputMode }) {
   if (mode === 'photo') {
-    return (
-      <p className="text-[11px] text-muted">
-        Sise, kutu veya ortam fotografi yukle. Sistem gorselden profil cikarir.
-      </p>
-    );
+    return <p className="text-[11px] text-muted">Şişe, kutu veya ortam fotoğrafını bırak; sistem görselden profil çıkarır.</p>;
   }
+
   if (mode === 'notes') {
-    return (
-      <p className="text-[11px] text-muted">
-        Notalari virgulle gir. Ornek: tutun, vanilya, bergamot, paculi.
-      </p>
-    );
+    return <p className="text-[11px] text-muted">{UI.notesHelper}</p>;
   }
-  return (
-    <p className="text-[11px] text-muted">
-      Kisa bir metin de yeterli: &quot;odunsu ama cok agir degil&quot; gibi.
-    </p>
-  );
+
+  return <p className="text-[11px] text-muted">Kısa bir tarif de yeterli: “odunsu ama çok ağır değil” gibi.</p>;
 }
 
 function TabButton({
@@ -125,26 +118,27 @@ function TabButton({
   label: string;
 }) {
   const active = tabMode === activeMode;
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`relative flex-1 min-h-[60px] px-2.5 flex items-center justify-center gap-2 transition-colors ${
+      className={`relative flex min-h-[72px] flex-1 flex-col items-center justify-center gap-1.5 px-2 py-2 text-center transition-colors md:min-h-[62px] md:flex-row md:gap-2 ${
         active ? 'text-cream' : 'text-muted hover:text-cream'
       }`}
     >
       <span
-        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors shrink-0 ${
+        className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors md:h-8 md:w-8 ${
           active ? 'border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold' : 'border-white/[.08] text-muted'
         }`}
       >
         <ModeIcon mode={tabMode} />
       </span>
-      <span className="text-center text-[10px] md:text-[12px] font-mono tracking-[.08em] uppercase leading-[1.15] min-w-0">
+      <span className="min-w-0 max-w-[80px] text-center text-[9.5px] font-mono uppercase leading-[1.25] tracking-[.08em] md:max-w-none md:text-[11px]">
         {label}
       </span>
       <span
-        className={`absolute left-3 right-3 bottom-0 h-px transition-opacity ${
+        className={`absolute bottom-0 left-3 right-3 h-px transition-opacity ${
           active ? 'bg-[var(--gold-line)] opacity-100' : 'bg-transparent opacity-0'
         }`}
       />
@@ -166,6 +160,8 @@ export function HeroInput({
   onChipPick,
 }: HeroInputProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
+  const notesAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [compressedKb, setCompressedKb] = useState<number | null>(null);
 
@@ -183,35 +179,33 @@ export function HeroInput({
     onImageChange(compressed.dataUrl);
   }
 
+  const activeCharCount = mode === 'notes' ? notesValue.length : textValue.length;
+
   return (
-    <section id="hero-analysis" className="max-w-[920px] mx-auto w-full px-5 md:px-12 pt-8 md:pt-12 pb-8 anim-up">
-      <div className="flex items-center gap-2.5 mb-5">
-        <div className="w-7 h-px bg-[var(--gold-line)]" />
-        <span className="text-[10px] font-mono tracking-[.16em] uppercase text-muted">Premium analiz modu</span>
+    <section id="hero-analysis" className="anim-up mx-auto w-full max-w-[920px] px-5 pb-8 pt-8 md:px-12 md:pt-12">
+      <div className="mb-5 flex items-center gap-2.5">
+        <div className="h-px w-7 bg-[var(--gold-line)]" />
+        <span className="text-[10px] font-mono uppercase tracking-[.16em] text-muted">{UI.heroEyebrow}</span>
       </div>
 
-      <h1 className="font-display italic text-cream leading-[1.06] tracking-[-0.01em] text-[2rem] md:text-[3rem] mb-3">
-        Kokuyu anlat,
+      <h1 className="mb-3 font-display text-[2rem] italic leading-[1.06] tracking-[-0.01em] text-cream md:text-[3rem]">
+        {UI.heroTitle}
         <br />
-        <span className="text-gold not-italic">detayiyla cozumleyelim.</span>
+        <span className="text-gold">{UI.heroTitleItalic}</span>
       </h1>
-      <p className="text-[13px] text-muted max-w-[620px] mb-8">
-        Fotograf, metin veya nota listesiyle basla. Analiz tamamlaninca karsilastirma, katmanlama ve
-        dolap aksiyonlari otomatik aktif olur.
-      </p>
+      <p className="mb-8 max-w-[620px] text-[13px] text-muted">{UI.heroSubtitle}</p>
 
-      <div className="glass-panel rounded-2xl overflow-hidden shadow-[0_26px_54px_rgba(0,0,0,.44)]">
+      <div className="glass-panel overflow-hidden rounded-2xl shadow-[0_26px_54px_rgba(0,0,0,.44)]">
         <div className="grid grid-cols-3 border-b border-white/[.06] bg-black/10">
           <TabButton tabMode="photo" activeMode={mode} onClick={() => onModeChange('photo')} label={UI.photoTab} />
           <TabButton tabMode="text" activeMode={mode} onClick={() => onModeChange('text')} label={UI.textTab} />
           <TabButton tabMode="notes" activeMode={mode} onClick={() => onModeChange('notes')} label={UI.notesTab} />
         </div>
 
-        <div className="p-5 md:p-6 min-h-[230px]">
+        <div className="min-h-[230px] p-5 md:p-6">
           {mode === 'photo' ? (
             <div
               role="region"
-              aria-dropzone="copy"
               onDragOver={(event) => {
                 event.preventDefault();
                 setIsDragOver(true);
@@ -232,33 +226,38 @@ export function HeroInput({
                 if (!file) return;
                 void processImageFile(file);
               }}
-              className={`h-full flex flex-col items-center justify-center gap-4 rounded-2xl p-4 transition-colors ${
-                isDragOver ? 'border border-dashed border-[var(--gold-line)] bg-[var(--gold-dim)]/30' : ''
+              className={`flex h-full flex-col items-center justify-center gap-4 rounded-2xl border p-4 transition-colors ${
+                isDragOver
+                  ? 'border-dashed border-[var(--gold-line)] bg-[var(--gold-dim)]/30'
+                  : 'border-white/[.04] bg-white/[.01]'
               }`}
             >
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-[98px] h-[98px] rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)] hover:bg-gold/20 transition-colors flex items-center justify-center text-gold"
-                aria-label="Fotograf sec"
+                className="flex h-[98px] w-[98px] items-center justify-center rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold transition-colors hover:bg-gold/20"
+                aria-label="Fotoğraf seç"
               >
                 <svg width="30" height="30" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.45">
                   <path d="M3 6.5h3l1.3-2h5.4l1.3 2h3v9.5H3z" />
                   <circle cx="10" cy="11.2" r="2.8" />
                 </svg>
               </button>
-              <p className="text-[13px] text-muted text-center">{UI.photoPlaceholder}</p>
+              <p className="text-center text-[13px] text-muted">{UI.photoPlaceholder}</p>
 
               {imagePreview ? (
                 <div className="relative w-full max-w-[420px]">
-                  <img
+                  <Image
                     src={imagePreview}
-                    alt="Secilen gorsel"
-                    className="w-full h-[164px] object-cover rounded-xl border border-white/[.08] shadow-[0_16px_30px_rgba(0,0,0,.32)]"
+                    alt="Seçilen görsel"
+                    width={840}
+                    height={328}
+                    unoptimized
+                    className="h-[164px] w-full rounded-xl border border-white/[.08] object-cover shadow-[0_16px_30px_rgba(0,0,0,.32)]"
                   />
                   {compressedKb ? (
                     <span className="absolute left-3 top-3 rounded-full border border-[var(--gold-line)] bg-black/55 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[.06em] text-gold">
-                      Sikistirildi: {compressedKb} KB
+                      Sıkıştırıldı: {compressedKb} KB
                     </span>
                   ) : null}
                 </div>
@@ -278,34 +277,58 @@ export function HeroInput({
           ) : null}
 
           {mode === 'text' ? (
-            <textarea
-              value={textValue}
-              onChange={(event) => onTextChange(event.target.value)}
-              className="w-full bg-transparent border border-white/[.07] rounded-xl p-4 md:p-5 outline-none focus:border-[var(--gold-line)] font-display italic text-[1.1rem] text-cream min-h-[164px] resize-none placeholder:text-hint"
-              placeholder={UI.textPlaceholder}
-            />
+            <div>
+              <textarea
+                ref={textAreaRef}
+                value={textValue}
+                maxLength={500}
+                onChange={(event) => onTextChange(event.target.value)}
+                className="min-h-[164px] w-full resize-none rounded-xl border border-white/[.07] bg-transparent p-4 font-display text-[1.1rem] italic text-cream outline-none placeholder:text-hint focus:border-[var(--gold-line)] md:p-5"
+                placeholder={UI.textPlaceholder}
+              />
+              <div className="mt-2 text-right text-[10px] font-mono text-hint">{activeCharCount} / 500</div>
+            </div>
           ) : null}
 
           {mode === 'notes' ? (
-            <textarea
-              value={notesValue}
-              onChange={(event) => onNotesChange(event.target.value)}
-              className="w-full bg-transparent border border-white/[.07] rounded-xl p-4 md:p-5 outline-none focus:border-[var(--gold-line)] font-display italic text-[1.08rem] text-cream min-h-[164px] resize-none placeholder:text-hint"
-              placeholder={UI.notesPlaceholder}
-            />
+            <div>
+              <textarea
+                ref={notesAreaRef}
+                value={notesValue}
+                maxLength={500}
+                onChange={(event) => onNotesChange(event.target.value)}
+                className="min-h-[164px] w-full resize-none rounded-xl border border-white/[.07] bg-transparent p-4 font-display text-[1.08rem] italic text-cream outline-none placeholder:text-hint focus:border-[var(--gold-line)] md:p-5"
+                placeholder={UI.notesPlaceholder}
+              />
+              <div className="mt-2 text-right text-[10px] font-mono text-hint">{activeCharCount} / 500</div>
+            </div>
           ) : null}
         </div>
 
-        <div className="border-t border-white/[.06] px-5 md:px-6 py-4 space-y-4">
+        <div className="space-y-4 border-t border-white/[.06] px-5 py-4 md:px-6">
           <ModeHint mode={mode} />
+
+          <div className="flex items-center gap-2.5">
+            <div className="h-px w-5 bg-[var(--gold-line)]" />
+            <span className="text-[10px] font-mono uppercase tracking-[.14em] text-muted">{UI.chipSectionLabel}</span>
+          </div>
 
           <div className="flex flex-wrap gap-2">
             {QUICK_CHIPS.map((chip) => (
               <button
                 key={chip}
                 type="button"
-                onClick={() => onChipPick(chip)}
-                className="text-[10px] font-mono tracking-[.06em] px-3 py-1.5 border border-white/[.08] rounded-full text-muted hover:text-cream hover:border-[var(--gold-line)] transition-colors"
+                onClick={() => {
+                  onChipPick(chip);
+                  window.requestAnimationFrame(() => {
+                    if (mode === 'notes') {
+                      notesAreaRef.current?.focus();
+                      return;
+                    }
+                    textAreaRef.current?.focus();
+                  });
+                }}
+                className="rounded-full border border-white/[.08] px-3 py-1.5 text-[10px] font-mono tracking-[.06em] text-muted transition-colors hover:border-[var(--gold-line)] hover:text-cream"
               >
                 {chip}
               </button>
@@ -317,11 +340,11 @@ export function HeroInput({
             onClick={onAnalyze}
             disabled={!canAnalyze}
             aria-busy={isAnalyzing}
-            aria-label={isAnalyzing ? 'Analiz yapiliyor, lutfen bekleyin' : 'Kokuyu analiz et'}
-            className={`w-full md:w-auto md:self-end md:ml-auto flex items-center justify-center gap-2 px-6 py-3 rounded-[10px] text-[11px] font-mono tracking-[.1em] uppercase transition-all ${
+            aria-label={isAnalyzing ? 'Analiz yapılıyor, lütfen bekleyin' : 'Kokuyu analiz et'}
+            className={`flex w-full items-center justify-center gap-2 rounded-[10px] px-6 py-3 text-[11px] font-mono uppercase tracking-[.1em] transition-all md:ml-auto md:w-auto md:self-end ${
               canAnalyze
-                ? 'btn-primary-pulse bg-gold text-bg hover:bg-[#d4b478] shadow-[0_10px_30px_rgba(201,169,110,.28)]'
-                : 'bg-white/[.04] text-muted cursor-not-allowed border border-white/[.08]'
+                ? 'btn-primary-pulse bg-gold text-bg shadow-[0_10px_30px_rgba(201,169,110,.28)] hover:bg-[#d4b478]'
+                : 'cursor-not-allowed border border-white/[.08] bg-white/[.04] text-muted'
             }`}
           >
             {isAnalyzing ? (

@@ -136,6 +136,8 @@ body::after {
 
 .hover-lift {
   transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .hover-lift:hover {
@@ -351,6 +353,8 @@ body::after {
 
 .similar-item {
   transition: transform .15s var(--ease), border-color .15s, background .15s;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .similar-item:hover {
@@ -358,45 +362,19 @@ body::after {
 }
 
 .timeline-stage {
-  min-height: 420px;
+  min-height: 0;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
 
-.timeline-orb {
-  opacity: 0.88;
-  filter: blur(1px);
-  animation: timelineFloat 4.2s ease-in-out infinite;
+.content-auto-panel {
+  content-visibility: auto;
+  contain-intrinsic-size: 520px;
 }
 
-.timeline-note-chip {
-  animation: noteDrift 5.4s ease-in-out infinite;
-}
-
-@keyframes timelineFloat {
-  0%, 100% {
-    transform: translate3d(-50%, -50%, 0) scale(1);
-    opacity: 0.78;
-  }
-  50% {
-    transform: translate3d(-50%, -60%, 0) scale(1.08);
-    opacity: 1;
-  }
-}
-
-@keyframes noteDrift {
-  0%, 100% {
-    transform: translate3d(0, 0, 0);
-    opacity: 0.72;
-  }
-  50% {
-    transform: translate3d(0, -8px, 0);
-    opacity: 0.96;
-  }
-}
-
-@media (max-width: 768px) {
-  .timeline-stage {
-    min-height: 360px;
-  }
+.interactive-surface {
+  will-change: transform, opacity;
+  transform: translateZ(0);
 }
 
 @media (prefers-reduced-motion: reduce) {

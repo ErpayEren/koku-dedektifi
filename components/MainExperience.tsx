@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ActionBar } from './ActionBar';
 import { AnalysisResults } from './AnalysisResults';
 import { HeroInput } from './HeroInput';
-import { TopBar } from './TopBar';
 import { LegalFooter } from './LegalFooter';
+import { TopBar } from './TopBar';
 import { analyzeImage, analyzeNotes, analyzeText, readableError } from '@/lib/client/api';
-import { clearHistory, findHistoryById, pushFeed, saveHistoryRow, upsertWardrobe } from '@/lib/client/storage';
+import { findHistoryById, pushFeed, saveHistoryRow, upsertWardrobe } from '@/lib/client/storage';
 import type { AnalysisResult, InputMode, WardrobeItem } from '@/lib/client/types';
 import { UI } from '@/lib/strings';
 
@@ -31,8 +31,16 @@ function parseMode(value: string | null): InputMode {
   return 'photo';
 }
 
+function replaceModeInUrl(nextMode: InputMode): void {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  url.searchParams.set('mode', nextMode);
+  window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+}
+
 export function MainExperience() {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const [mode, setMode] = useState<InputMode>('photo');
   const [textValue, setTextValue] = useState('');
   const [notesValue, setNotesValue] = useState('');
@@ -44,11 +52,10 @@ export function MainExperience() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
     const query = new URLSearchParams(window.location.search);
     const requestedMode = parseMode(query.get('mode'));
-    if (requestedMode !== mode) {
-      setMode(requestedMode);
-    }
+    setMode((current) => (current === requestedMode ? current : requestedMode));
 
     const quickQuery = (query.get('q') || '').trim();
     if (quickQuery && requestedMode === 'text') {
@@ -60,11 +67,11 @@ export function MainExperience() {
       const row = findHistoryById(replayId);
       if (row) {
         setResult(row);
-        setNotice('Gecmis analiz yuklendi.');
+        setNotice('Geçmiş analiz yüklendi.');
         setError('');
       }
     }
-  }, [mode]);
+  }, []);
 
   useEffect(() => {
     if (!notice) return;
@@ -72,19 +79,16 @@ export function MainExperience() {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
-  const canReset = useMemo(
-    () => Boolean(result || textValue || notesValue || imagePreview),
-    [imagePreview, notesValue, result, textValue],
-  );
-
-  async function runAnalyze(): Promise<void> {
+  const runAnalyze = useCallback(async (): Promise<void> => {
     setError('');
     setNotice('');
     setIsAnalyzing(true);
+
     try {
       let analysis: AnalysisResult;
+
       if (mode === 'photo') {
-        if (!imagePreview) throw new Error('Once bir fotograf secmelisin.');
+        if (!imagePreview) throw new Error('Önce bir fotoğraf seçmelisin.');
         analysis = await analyzeImage(imagePreview);
       } else if (mode === 'notes') {
         analysis = await analyzeNotes(notesValue);
@@ -96,24 +100,27 @@ export function MainExperience() {
       saveHistoryRow(analysis);
       pushFeed({
         event: 'analysis',
-        detail: 'Yeni analiz tamamlandi',
+        detail: 'Yeni analiz tamamlandı',
         perfume: analysis.name,
       });
-      setNotice('Analiz tamamlandi.');
+      setNotice('Analiz tamamlandı.');
     } catch (err) {
       setError(readableError(err));
     } finally {
       setIsAnalyzing(false);
     }
-  }
+  }, [imagePreview, mode, notesValue, textValue]);
 
-  async function onAnalyzeSimilar(name: string): Promise<void> {
-    setTextValue(name);
-    setMode('text');
-    router.replace('/?mode=text');
-    setNotice(`"${name}" icin yeniden analiz calistiriliyor...`);
+  const onAnalyzeSimilar = useCallback(async (name: string): Promise<void> => {
+    startTransition(() => {
+      setTextValue(name);
+      setMode('text');
+      replaceModeInUrl('text');
+      setNotice(`“${name}” için yeniden analiz çalıştırılıyor...`);
+    });
     setIsAnalyzing(true);
     setError('');
+
     try {
       const analysis = await analyzeText(name);
       setResult(analysis);
@@ -128,81 +135,87 @@ export function MainExperience() {
     } finally {
       setIsAnalyzing(false);
     }
-  }
+  }, [startTransition]);
 
-  function resetAll(): void {
-    setTextValue('');
-    setNotesValue('');
-    setImagePreview('');
-    setResult(null);
-    setError('');
-    setNotice('');
-  }
+  const handleModeChange = useCallback((next: InputMode): void => {
+    startTransition(() => {
+      setMode(next);
+      replaceModeInUrl(next);
+    });
+  }, [startTransition]);
 
-  function handleModeChange(next: InputMode): void {
-    setMode(next);
-    router.replace(`/?mode=${next}`);
-  }
-
-  function handleChipPick(chip: string): void {
+  const handleChipPick = useCallback((chip: string): void => {
     if (mode === 'photo') {
-      setMode('text');
-      router.replace('/?mode=text');
-      const current = textValue.trim();
-      setTextValue(current ? `${current}, ${chip}` : chip);
+      startTransition(() => {
+        setMode('text');
+        replaceModeInUrl('text');
+        const current = textValue.trim();
+        setTextValue(current ? `${current}, ${chip}` : chip);
+      });
       return;
     }
 
     if (mode === 'notes') {
-      const current = notesValue.trim();
-      setNotesValue(current ? `${current}, ${chip}` : chip);
+      startTransition(() => {
+        const current = notesValue.trim();
+        setNotesValue(current ? `${current}, ${chip}` : chip);
+      });
       return;
     }
 
-    const current = textValue.trim();
-    setTextValue(current ? `${current}, ${chip}` : chip);
-  }
+    startTransition(() => {
+      const current = textValue.trim();
+      setTextValue(current ? `${current}, ${chip}` : chip);
+    });
+  }, [mode, notesValue, startTransition, textValue]);
 
-  function handleImageChange(dataUrl: string): void {
-    setImagePreview(dataUrl);
-    setMode('photo');
-  }
+  const handleImageChange = useCallback((dataUrl: string): void => {
+    startTransition(() => {
+      setImagePreview(dataUrl);
+      setMode('photo');
+      replaceModeInUrl('photo');
+    });
+  }, [startTransition]);
 
-  function addToWardrobe(): void {
+  const addToWardrobe = useCallback((): void => {
     if (!result) {
       router.push('/dolap');
       return;
     }
+
     upsertWardrobe(toWardrobeItem(result));
     pushFeed({
       event: 'wardrobe',
       detail: 'Dolaba eklendi',
       perfume: result.name,
     });
-    setNotice('Sonuc dolaba eklendi.');
-  }
+    setNotice('Sonuç dolaba eklendi.');
+  }, [result, router]);
 
-  function compareNow(): void {
+  const compareNow = useCallback((): void => {
     if (!result) {
       router.push('/karsilastir');
       return;
     }
-    router.push(`/karsilastir?left=${encodeURIComponent(result.name)}`);
-  }
 
-  function openLayering(): void {
+    router.push(`/karsilastir?left=${encodeURIComponent(result.name)}`);
+  }, [result, router]);
+
+  const openLayering = useCallback((): void => {
     if (!result) {
       router.push('/layering');
       return;
     }
-    router.push(`/layering?left=${encodeURIComponent(result.name)}`);
-  }
 
-  async function saveResultFile(): Promise<void> {
+    router.push(`/layering?left=${encodeURIComponent(result.name)}`);
+  }, [result, router]);
+
+  const saveResultFile = useCallback(async (): Promise<void> => {
     if (!result) {
       router.push('/gecmis');
       return;
     }
+
     const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json;charset=utf-8' });
     const url = window.URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -212,12 +225,12 @@ export function MainExperience() {
     anchor.click();
     document.body.removeChild(anchor);
     window.URL.revokeObjectURL(url);
-    setNotice('Sonuc JSON olarak indirildi.');
-  }
+    setNotice('Sonuç JSON olarak indirildi.');
+  }, [result, router]);
 
   return (
     <>
-      <TopBar title="Yeni Analiz" />
+      <TopBar title={UI.navNewAnalysis} />
       <HeroInput
         mode={mode}
         textValue={textValue}
@@ -233,16 +246,16 @@ export function MainExperience() {
       />
 
       {error ? (
-        <div className="px-5 md:px-12 pb-3">
-          <div className="max-w-[920px] mx-auto text-[12px] text-[#f1a2a2] border border-[#623535] bg-[#2b1214] rounded-xl px-4 py-3">
+        <div className="px-5 pb-3 md:px-12">
+          <div className="mx-auto max-w-[920px] rounded-xl border border-[#623535] bg-[#2b1214] px-4 py-3 text-[12px] text-[#f1a2a2]">
             {error}
           </div>
         </div>
       ) : null}
 
       {notice ? (
-        <div className="px-5 md:px-12 pb-3">
-          <div className="max-w-[920px] mx-auto text-[12px] text-[#a6dfcf] border border-[#2e6f5e] bg-[#112520] rounded-xl px-4 py-3">
+        <div className="px-5 pb-3 md:px-12">
+          <div className="mx-auto max-w-[920px] rounded-xl border border-[#2e6f5e] bg-[#112520] px-4 py-3 text-[12px] text-[#a6dfcf]">
             {notice}
           </div>
         </div>
@@ -251,35 +264,13 @@ export function MainExperience() {
       <AnalysisResults result={result} isAnalyzing={isAnalyzing} onAnalyzeSimilar={onAnalyzeSimilar} />
 
       <ActionBar
+        hasResult={Boolean(result)}
         disabled={isAnalyzing}
         onAddWardrobe={addToWardrobe}
         onCompare={compareNow}
         onLayer={openLayering}
         onSave={saveResultFile}
       />
-
-      <div className="px-5 md:px-12 pb-4">
-        <div className="max-w-[920px] mx-auto flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={resetAll}
-            disabled={!canReset}
-            className="text-[11px] font-mono tracking-[.06em] uppercase text-muted hover:text-cream disabled:opacity-40 transition-colors"
-          >
-            {UI.newAnalysisBtn}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              clearHistory();
-              setNotice('Gecmis temizlendi.');
-            }}
-            className="text-[11px] font-mono tracking-[.06em] uppercase text-muted hover:text-cream transition-colors"
-          >
-            {UI.clearHistory}
-          </button>
-        </div>
-      </div>
 
       <LegalFooter />
     </>

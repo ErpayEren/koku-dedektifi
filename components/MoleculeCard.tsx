@@ -11,6 +11,7 @@ export interface MoleculeData {
   origin: string[];
   pct: number;
   smiles?: string;
+  verified?: boolean;
 }
 
 interface MoleculeCardProps {
@@ -26,9 +27,9 @@ const NOTE_COLORS: Record<MoleculeData['note'], string> = {
 };
 
 const NOTE_LABELS: Record<MoleculeData['note'], string> = {
-  top: 'Ust Nota Izi',
-  heart: 'Kalp Nota Izi',
-  base: 'Alt Nota Izi',
+  top: 'Üst Nota İzi',
+  heart: 'Kalp Nota İzi',
+  base: 'Alt Nota İzi',
 };
 
 export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeCardProps) {
@@ -71,7 +72,7 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
         }}
         role="dialog"
         aria-modal="true"
-        aria-label={`${mol.name} molekul detayi`}
+        aria-label={`${mol.name} molekül detayı`}
       >
         <div className="px-5 pt-5 pb-3">
           <MoleculeVisual name={mol.name} smiles={mol.smiles} formula={mol.formula} compact />
@@ -85,22 +86,20 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
             >
               {NOTE_LABELS[mol.note]}
             </span>
-            {mol.smiles ? (
-              <span className="rounded-full border border-white/[.08] px-3 py-1 text-[10px] font-mono uppercase tracking-[.12em] text-muted">
-                Gercek yapi baglandi
-              </span>
-            ) : null}
+            <span className="rounded-full border border-white/[.08] px-3 py-1 text-[10px] font-mono uppercase tracking-[.12em] text-muted">
+              {mol.verified ? 'Doğrulanmış yapı' : 'Nota izi'}
+            </span>
           </div>
 
           <div className="mb-4">
             <h3 className="font-display text-[2rem] italic leading-none text-cream">{mol.name}</h3>
-            <p className="mt-2 text-[13px] font-mono text-gold/85">{mol.formula || 'Formul sinirli'}</p>
+            <p className="mt-2 text-[13px] font-mono text-gold/85">{mol.formula || 'Formül doğrulanmadı'}</p>
             <p className="mt-3 text-[12px] uppercase tracking-[.12em] text-muted">{mol.type}</p>
           </div>
 
           <div className="mb-4">
             <div className="mb-2 flex items-center justify-between gap-3">
-              <span className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">Katki yogunlugu</span>
+              <span className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">Katkı yoğunluğu</span>
               <span className="text-[12px] font-mono" style={{ color }}>
                 {mol.pct}%
               </span>
@@ -127,7 +126,7 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
             <button
               onClick={prev}
               className="absolute left-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/[.08] bg-[var(--bg-raise)] text-muted transition-all hover:border-[var(--gold-line)] hover:text-cream"
-              aria-label="Onceki molekul"
+              aria-label="Önceki molekül"
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M7.5 2 4 6l3.5 4" />
@@ -136,7 +135,7 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
             <button
               onClick={next}
               className="absolute right-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/[.08] bg-[var(--bg-raise)] text-muted transition-all hover:border-[var(--gold-line)] hover:text-cream"
-              aria-label="Sonraki molekul"
+              aria-label="Sonraki molekül"
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M4.5 2 8 6l-3.5 4" />
@@ -152,7 +151,7 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
               type="button"
               onClick={() => setIdx(dotIndex)}
               className={`h-2 rounded-full transition-all ${dotIndex === idx ? 'w-8 bg-gold' : 'w-2 bg-white/[.2]'}`}
-              aria-label={`${item.name} molekulune gec`}
+              aria-label={`${item.name} molekülüne geç`}
             />
           ))}
         </div>

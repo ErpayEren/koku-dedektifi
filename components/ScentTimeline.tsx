@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { AnalysisTimeline } from '@/lib/client/types';
 
-type TimelineStageId = 'top' | 'dry' | 'heart' | 'base';
+type TimelineStageId = 't0' | 't1' | 't2' | 't3';
 
 interface TimelineStage {
   id: TimelineStageId;
@@ -11,56 +12,21 @@ interface TimelineStage {
   notes: string[];
   description: string;
   color: string;
-  pct: number;
 }
 
 interface ScentTimelineProps {
   topNotes: string[];
   heartNotes: string[];
   baseNotes: string[];
+  timeline?: AnalysisTimeline | null;
 }
 
-const STAGES: Omit<TimelineStage, 'notes'>[] = [
-  {
-    id: 'top',
-    label: 'Ilk Bugu',
-    timeLabel: '0-15 dk',
-    description: 'Ust notalar one cikiyor, ilk izlenim olusuyor.',
-    color: 'var(--gold)',
-    pct: 0,
-  },
-  {
-    id: 'dry',
-    label: 'Acilim',
-    timeLabel: '15-60 dk',
-    description: 'Koku aciliyor, kalp notalar beliriyor.',
-    color: '#a78bfa',
-    pct: 33,
-  },
-  {
-    id: 'heart',
-    label: 'Kalp',
-    timeLabel: '1-3 saat',
-    description: 'Kalp notalar hakim, koku karakteri netlesiyor.',
-    color: 'var(--sage)',
-    pct: 66,
-  },
-  {
-    id: 'base',
-    label: 'Derin Iz',
-    timeLabel: '3 saat+',
-    description: 'Baz notalar kalarak derin ve isinmis iz birakiyor.',
-    color: 'var(--muted)',
-    pct: 90,
-  },
+const STAGE_META: Array<Omit<TimelineStage, 'notes' | 'description'>> = [
+  { id: 't0', label: 'Ilk Bugu', timeLabel: '0-15 dk', color: 'var(--gold)' },
+  { id: 't1', label: 'Acilim', timeLabel: '15-60 dk', color: '#a78bfa' },
+  { id: 't2', label: 'Kalp', timeLabel: '1-3 saat', color: 'var(--sage)' },
+  { id: 't3', label: 'Derin Iz', timeLabel: '3 saat+', color: 'var(--muted)' },
 ];
-
-const GRADIENT_MAP: Record<TimelineStageId, string> = {
-  top: 'from-[#C9A96E] to-[#a78bfa]',
-  dry: 'from-[#a78bfa] to-[#7EB8A4]',
-  heart: 'from-[#7EB8A4] to-[#5a6a7a]',
-  base: 'from-[#5a6a7a] to-[#3F3B45]',
-};
 
 function uniqueNotes(values: string[], max = 6): string[] {
   const out: string[] = [];
@@ -77,149 +43,183 @@ function uniqueNotes(values: string[], max = 6): string[] {
   return out;
 }
 
-export function ScentTimeline({ topNotes, heartNotes, baseNotes }: ScentTimelineProps) {
-  const [value, setValue] = useState(0);
-  const [isDragging, setDrag] = useState(false);
-  const trackRef = useRef<HTMLDivElement>(null);
+function buildTimelineDescriptions(
+  timeline: AnalysisTimeline | null | undefined,
+  topNotes: string[],
+  heartNotes: string[],
+  baseNotes: string[],
+): Record<TimelineStageId, string> {
+  return {
+    t0: timeline?.t0 || `${topNotes[0] || 'Ust notalar'} parliyor, ilk imza kuruluyor.`,
+    t1: timeline?.t1 || `${heartNotes[0] || 'Kalp notalar'} gorunmeye basliyor, profil aciliyor.`,
+    t2: timeline?.t2 || `${heartNotes.slice(0, 2).join(', ') || 'Kalp akis'} karakteri merkeze aliyor.`,
+    t3: timeline?.t3 || `${baseNotes.slice(0, 2).join(', ') || 'Baz iz'} tende uzun sure kaliyor.`,
+  };
+}
 
-  const stagesWithNotes = useMemo<TimelineStage[]>(
-    () =>
-      STAGES.map((stage) => ({
-        ...stage,
-        notes:
-          stage.id === 'top'
-            ? uniqueNotes(topNotes)
-            : stage.id === 'dry'
-              ? uniqueNotes([...topNotes.slice(0, 1), ...heartNotes.slice(0, 2)])
-              : stage.id === 'heart'
-                ? uniqueNotes(heartNotes)
-                : uniqueNotes(baseNotes),
-      })),
-    [topNotes, heartNotes, baseNotes],
-  );
+export function ScentTimeline({ topNotes, heartNotes, baseNotes, timeline }: ScentTimelineProps) {
+  const [activeIndex, setActiveIndex] = useState(1);
+  const [autoPlay, setAutoPlay] = useState(true);
 
-  const activeStage = useMemo(
-    () => [...STAGES].reverse().find((stage) => value >= stage.pct) ?? STAGES[0],
-    [value],
-  );
-  const activeWithNotes = stagesWithNotes.find((stage) => stage.id === activeStage.id) ?? stagesWithNotes[0];
+  const stages = useMemo<TimelineStage[]>(() => {
+    const descriptions = buildTimelineDescriptions(timeline, topNotes, heartNotes, baseNotes);
+    return [
+      {
+        ...STAGE_META[0],
+        notes: uniqueNotes(topNotes),
+        description: descriptions.t0,
+      },
+      {
+        ...STAGE_META[1],
+        notes: uniqueNotes([...topNotes.slice(0, 2), ...heartNotes.slice(0, 2)]),
+        description: descriptions.t1,
+      },
+      {
+        ...STAGE_META[2],
+        notes: uniqueNotes(heartNotes),
+        description: descriptions.t2,
+      },
+      {
+        ...STAGE_META[3],
+        notes: uniqueNotes(baseNotes),
+        description: descriptions.t3,
+      },
+    ];
+  }, [baseNotes, heartNotes, timeline, topNotes]);
 
-  const handlePointer = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (!trackRef.current) return;
-    const rect = trackRef.current.getBoundingClientRect();
-    const raw = ((event.clientX - rect.left) / rect.width) * 100;
-    setValue(Math.min(100, Math.max(0, raw)));
-  }, []);
+  useEffect(() => {
+    setActiveIndex(1);
+    setAutoPlay(true);
+  }, [timeline, topNotes, heartNotes, baseNotes]);
+
+  useEffect(() => {
+    if (!autoPlay) return undefined;
+    const timer = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % stages.length);
+    }, 3200);
+    return () => window.clearInterval(timer);
+  }, [autoPlay, stages.length]);
+
+  const activeStage = stages[activeIndex] ?? stages[0];
+  const progressPct = (activeIndex / Math.max(1, stages.length - 1)) * 100;
+  const activeNotes = activeStage.notes.length > 0 ? activeStage.notes : ['Karakter akisinda notalar toplanıyor'];
 
   return (
     <div className="flex flex-col gap-6 py-2">
       <div className="grid grid-cols-3 gap-3 text-xs font-mono">
-        {(['top', 'heart', 'base'] as const).map((tier, index) => {
-          const notes = tier === 'top' ? uniqueNotes(topNotes) : tier === 'heart' ? uniqueNotes(heartNotes) : uniqueNotes(baseNotes);
-          const label = ['UST', 'KALP', 'ALT'][index];
-          const color =
-            tier === activeStage.id
-              ? activeStage.color
-              : tier === 'heart' && activeStage.id === 'dry'
-                ? '#a78bfa'
-                : 'var(--hint)';
-
-          return (
-            <div key={tier} className="flex flex-col gap-1 transition-all duration-300">
-              <span className="text-[9px] tracking-[.12em] uppercase" style={{ color }}>
-                {label}
-              </span>
-              <span className="text-[var(--cream)] leading-snug min-h-[2.1em]">
-                {notes.length > 0 ? notes.join(' • ') : 'Nota verisi sinirli'}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="relative h-6 flex items-end">
-        <div className="absolute bottom-0 transition-all duration-500 ease-out" style={{ left: `calc(${value}% - 6px)` }}>
-          <div className="w-3 h-3 rounded-full blur-[2px] opacity-80" style={{ background: activeStage.color }} />
-          <div className="absolute inset-0 w-3 h-3 rounded-full opacity-30 scale-[2.5]" style={{ background: activeStage.color }} />
-        </div>
-      </div>
-
-      <div className="flex justify-between text-[9px] font-mono tracking-[.1em] uppercase text-[var(--hint)] -mb-2">
-        {STAGES.map((stage) => (
-          <span key={stage.id} className="transition-colors duration-200" style={{ color: stage.id === activeStage.id ? activeStage.color : undefined }}>
-            {stage.label}
-          </span>
-        ))}
-      </div>
-
-      <div
-        ref={trackRef}
-        className="relative h-2 rounded-full cursor-pointer select-none"
-        style={{ background: 'var(--border-md)' }}
-        onPointerDown={(event) => {
-          setDrag(true);
-          if ('setPointerCapture' in event.currentTarget) {
-            event.currentTarget.setPointerCapture(event.pointerId);
-          }
-          handlePointer(event);
-        }}
-        onPointerMove={(event) => {
-          if (isDragging) handlePointer(event);
-        }}
-        onPointerUp={() => setDrag(false)}
-        onPointerCancel={() => setDrag(false)}
-        role="slider"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round(value)}
-        aria-label="Koku gelisim asamasi"
-        tabIndex={0}
-        onKeyDown={(event) => {
-          if (event.key === 'ArrowRight') setValue((prev) => Math.min(100, prev + 5));
-          if (event.key === 'ArrowLeft') setValue((prev) => Math.max(0, prev - 5));
-        }}
-      >
-        <div
-          className={`absolute left-0 top-0 h-full rounded-full bg-gradient-to-r ${GRADIENT_MAP[activeStage.id]} transition-all duration-150`}
-          style={{ width: `${value}%` }}
-        />
-        <div
-          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full border-2 shadow-lg transition-transform duration-100"
-          style={{
-            left: `${value}%`,
-            background: activeStage.color,
-            borderColor: 'var(--bg)',
-            boxShadow: `0 0 12px ${activeStage.color}60`,
-            transform: `translateX(-50%) translateY(-50%) scale(${isDragging ? 1.25 : 1})`,
-          }}
-        />
-      </div>
-
-      <div className="flex flex-col gap-3">
-        {stagesWithNotes.map((stage) => (
-          <div key={stage.id} className="flex items-start gap-3 transition-all duration-300" style={{ opacity: stage.id === activeStage.id ? 1 : 0.35 }}>
-            <div
-              className="mt-1 w-2 h-2 rounded-full flex-shrink-0 transition-all duration-300"
-              style={{ background: stage.color, boxShadow: stage.id === activeStage.id ? `0 0 8px ${stage.color}` : 'none' }}
-            />
-            <div>
-              <span className="text-[10px] font-mono tracking-[.1em] uppercase mr-2" style={{ color: stage.color }}>
-                {stage.label}
-              </span>
-              {stage.id === activeStage.id ? (
-                <span className="text-sm text-[var(--cream)] font-medium">{stage.description}</span>
-              ) : (
-                <span className="text-xs text-[var(--muted)]">{stage.notes.join(', ') || 'Nota gecisi bekleniyor'}</span>
-              )}
-            </div>
+        {[
+          { label: 'UST', values: uniqueNotes(topNotes), color: 'var(--gold)' },
+          { label: 'KALP', values: uniqueNotes(heartNotes), color: '#a78bfa' },
+          { label: 'ALT', values: uniqueNotes(baseNotes), color: 'var(--sage)' },
+        ].map((tier) => (
+          <div key={tier.label} className="flex flex-col gap-1">
+            <span className="text-[9px] tracking-[.12em] uppercase" style={{ color: tier.color }}>
+              {tier.label}
+            </span>
+            <span className="min-h-[2.2em] leading-snug text-cream">
+              {tier.values.length > 0 ? tier.values.join(' / ') : 'Nota verisi sinirli'}
+            </span>
           </div>
         ))}
       </div>
 
-      <div className="text-center font-mono text-[10px] tracking-[.16em] uppercase" style={{ color: activeWithNotes.color }}>
-        {activeWithNotes.label} - {activeWithNotes.timeLabel}
+      <div className="timeline-stage relative overflow-hidden rounded-[26px] border border-white/[.07] bg-[var(--bg-raise)] px-5 py-6">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(167,139,250,.16),transparent_42%)] opacity-70" />
+        <div className="pointer-events-none absolute left-1/2 top-[38%] z-[1] h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full timeline-orb" style={{ background: activeStage.color }} />
+
+        {activeNotes.slice(0, 4).map((note, index) => (
+          <div
+            key={`${activeStage.id}-${note}`}
+            className="timeline-note-chip absolute z-[2] hidden rounded-full border border-white/[.08] bg-black/25 px-3 py-1 text-[10px] font-mono uppercase tracking-[.12em] text-cream/80 md:block"
+            style={{
+              top: `${18 + index * 14}%`,
+              left: `${8 + (index % 2) * 54}%`,
+              animationDelay: `${index * 160}ms`,
+            }}
+          >
+            {note}
+          </div>
+        ))}
+
+        <div className="relative z-[2] mb-5 flex flex-wrap gap-2">
+          {stages.map((stage, index) => {
+            const isActive = index === activeIndex;
+            return (
+              <button
+                key={stage.id}
+                type="button"
+                onClick={() => {
+                  setActiveIndex(index);
+                  setAutoPlay(false);
+                }}
+                className={`rounded-full border px-3.5 py-2 text-[10px] font-mono uppercase tracking-[.14em] transition-all ${
+                  isActive ? 'shadow-[0_0_0_1px_rgba(255,255,255,.02)]' : 'text-muted'
+                }`}
+                style={{
+                  color: isActive ? stage.color : 'var(--muted)',
+                  borderColor: isActive ? stage.color : 'rgba(255,255,255,.08)',
+                  background: isActive ? `${stage.color}12` : 'rgba(255,255,255,.02)',
+                }}
+              >
+                {stage.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="relative z-[2] mb-7 grid grid-cols-2 gap-4 md:grid-cols-4">
+          {stages.map((stage, index) => {
+            const isActive = index === activeIndex;
+            return (
+              <div key={`${stage.id}-descriptor`} className={`transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-35'}`}>
+                <p className="text-[10px] font-mono uppercase tracking-[.16em]" style={{ color: isActive ? stage.color : 'var(--hint)' }}>
+                  {stage.label}
+                </p>
+                <p className="mt-2 text-[12px] leading-relaxed text-cream/90">{stage.notes.join(' / ') || 'Nota gecisi hazirlaniyor'}</p>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="relative z-[2] mb-4">
+          <div className="mb-3 flex items-center justify-between text-[10px] font-mono uppercase tracking-[.16em] text-muted">
+            <span>Koku yolu</span>
+            <span style={{ color: activeStage.color }}>{activeStage.timeLabel}</span>
+          </div>
+          <div className="relative h-2 overflow-hidden rounded-full bg-white/[.08]">
+            <div
+              className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[#a78bfa] via-[#8ab8c0] to-[#c9a96e] transition-all duration-700"
+              style={{ width: `${progressPct}%` }}
+            />
+            <div
+              className="absolute top-1/2 h-6 w-6 -translate-y-1/2 -translate-x-1/2 rounded-full border-2 border-[var(--bg)] transition-all duration-700"
+              style={{ left: `${progressPct}%`, background: activeStage.color, boxShadow: `0 0 16px ${activeStage.color}` }}
+            />
+          </div>
+        </div>
+
+        <div className="relative z-[2] space-y-3">
+          {stages.map((stage, index) => {
+            const isActive = index === activeIndex;
+            return (
+              <div key={`${stage.id}-row`} className={`flex items-start gap-3 transition-all duration-300 ${isActive ? 'opacity-100' : 'opacity-35'}`}>
+                <div
+                  className="mt-1.5 h-2.5 w-2.5 flex-shrink-0 rounded-full transition-all duration-300"
+                  style={{ background: stage.color, boxShadow: isActive ? `0 0 12px ${stage.color}` : 'none' }}
+                />
+                <div className="min-w-0">
+                  <span className="mr-2 text-[10px] font-mono uppercase tracking-[.16em]" style={{ color: stage.color }}>
+                    {stage.label}
+                  </span>
+                  <span className={`text-sm ${isActive ? 'font-medium text-cream' : 'text-muted'}`}>
+                    {isActive ? stage.description : stage.notes.join(', ') || 'Gecis bekleniyor'}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 }
-

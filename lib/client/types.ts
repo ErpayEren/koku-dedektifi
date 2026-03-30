@@ -29,6 +29,13 @@ export interface LayeringInfo {
   result: string;
 }
 
+export interface AnalysisTimeline {
+  t0: string;
+  t1: string;
+  t2: string;
+  t3: string;
+}
+
 export interface AnalysisResult {
   id: string;
   iconToken: string;
@@ -52,8 +59,10 @@ export interface AnalysisResult {
   persona: PersonaInfo | null;
   dupes: string[];
   layering: LayeringInfo | null;
+  timeline: AnalysisTimeline | null;
   technical: TechnicalItem[];
   molecules: MoleculeItem[];
+  confidence?: number;
   createdAt: string;
 }
 

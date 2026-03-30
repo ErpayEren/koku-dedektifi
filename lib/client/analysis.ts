@@ -1,4 +1,4 @@
-import type { AnalysisResult, MoleculeItem, TechnicalItem } from './types';
+import type { AnalysisResult, AnalysisTimeline, MoleculeItem, TechnicalItem } from './types';
 
 function cleanText(value: unknown, fallback = ''): string {
   if (typeof value !== 'string') return fallback;
@@ -67,23 +67,34 @@ function normalizeTechnical(value: unknown): TechnicalItem[] {
     .filter((item): item is TechnicalItem => Boolean(item));
 }
 
+function normalizeTimeline(value: unknown): AnalysisTimeline | null {
+  if (!value || typeof value !== "object") return null;
+  const entry = value as Record<string, unknown>;
+  const t0 = cleanText(entry.t0);
+  const t1 = cleanText(entry.t1);
+  const t2 = cleanText(entry.t2);
+  const t3 = cleanText(entry.t3);
+  if (!t0 && !t1 && !t2 && !t3) return null;
+  return { t0, t1, t2, t3 };
+}
+
 function parseProxyBlocks(data: unknown): Record<string, unknown> {
   if (!data || typeof data !== 'object') {
-    throw new Error('Analiz cevabı boş döndü.');
+    throw new Error('Analiz cevabi bos dondu.');
   }
   const payload = data as Record<string, unknown>;
   const raw = Array.isArray(payload.content)
     ? payload.content
-      .map((block) => ((block && typeof block === 'object') ? cleanText((block as Record<string, unknown>).text) : ''))
-      .join('')
+        .map((block) => (block && typeof block === 'object' ? cleanText((block as Record<string, unknown>).text) : ''))
+        .join('')
     : '';
 
   if (!raw) {
-    throw new Error('Analiz içeriği okunamadı.');
+    throw new Error('Analiz icerigi okunamadi.');
   }
   const start = raw.indexOf('{');
   if (start < 0) {
-    throw new Error('Analiz JSON formatında gelmedi.');
+    throw new Error('Analiz JSON formatinda gelmedi.');
   }
 
   let depth = 0;
@@ -133,6 +144,8 @@ export function normalizeAnalysisPayload(data: unknown): AnalysisResult {
 
   const molecules = normalizeMolecules(raw.molecules);
   const technical = normalizeTechnical(raw.technical);
+  const timeline = normalizeTimeline(raw.timeline);
+  const confidence = Number(raw.confidence);
 
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
@@ -141,14 +154,14 @@ export function normalizeAnalysisPayload(data: unknown): AnalysisResult {
     family: cleanText(raw.family, 'Aromatik'),
     intensity: clampScore(raw.intensity, 68),
     season: asList(raw.season, 4),
-    occasion: cleanText(raw.occasion, 'Günlük'),
-    description: cleanText(raw.description, `${name} için detaylı açıklama üretildi.`),
+    occasion: cleanText(raw.occasion, 'Gunluk'),
+    description: cleanText(raw.description, `${name} icin detayli aciklama uretildi.`),
     pyramid: hasPyramid
       ? {
-        top: pyramidTop,
-        middle: pyramidMiddle,
-        base: pyramidBase,
-      }
+          top: pyramidTop,
+          middle: pyramidMiddle,
+          base: pyramidBase,
+        }
       : null,
     similar: asList(raw.similar, 8),
     scores: {
@@ -156,24 +169,28 @@ export function normalizeAnalysisPayload(data: unknown): AnalysisResult {
       sweetness: clampScore((raw.scores as Record<string, unknown> | null | undefined)?.sweetness, 45),
       warmth: clampScore((raw.scores as Record<string, unknown> | null | undefined)?.warmth, 60),
     },
-    persona: raw.persona && typeof raw.persona === 'object'
-      ? {
-        gender: cleanText((raw.persona as Record<string, unknown>).gender, 'Unisex'),
-        age: cleanText((raw.persona as Record<string, unknown>).age, 'Yetişkin profili'),
-        vibe: cleanText((raw.persona as Record<string, unknown>).vibe, 'Dengeli'),
-        occasions: asList((raw.persona as Record<string, unknown>).occasions, 4),
-        season: cleanText((raw.persona as Record<string, unknown>).season, ''),
-      }
-      : null,
+    persona:
+      raw.persona && typeof raw.persona === 'object'
+        ? {
+            gender: cleanText((raw.persona as Record<string, unknown>).gender, 'Unisex'),
+            age: cleanText((raw.persona as Record<string, unknown>).age, 'Yetiskin profili'),
+            vibe: cleanText((raw.persona as Record<string, unknown>).vibe, 'Dengeli'),
+            occasions: asList((raw.persona as Record<string, unknown>).occasions, 4),
+            season: cleanText((raw.persona as Record<string, unknown>).season, ''),
+          }
+        : null,
     dupes: asList(raw.dupes, 4),
-    layering: raw.layering && typeof raw.layering === 'object'
-      ? {
-        pair: cleanText((raw.layering as Record<string, unknown>).pair),
-        result: cleanText((raw.layering as Record<string, unknown>).result),
-      }
-      : null,
+    layering:
+      raw.layering && typeof raw.layering === 'object'
+        ? {
+            pair: cleanText((raw.layering as Record<string, unknown>).pair),
+            result: cleanText((raw.layering as Record<string, unknown>).result),
+          }
+        : null,
+    timeline,
     technical,
     molecules,
+    confidence: Number.isFinite(confidence) ? clampScore(confidence, 85) : undefined,
     createdAt: now,
   };
 }

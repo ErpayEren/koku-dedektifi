@@ -32,15 +32,13 @@ export const metadata: Metadata = {
     default: 'Koku Dedektifi — AI Parfüm Analizi',
     template: '%s — Koku Dedektifi',
   },
-  description: 'Parfümünü fotoğrafla ya da tarif et; yapay zekâ koku piramidini, moleküllerini ve benzer profilleri çözümlesin.',
+  description:
+    'Parfümünü fotoğrafla ya da tarif et; yapay zekâ koku piramidini, moleküllerini ve benzer profilleri çözümlesin.',
   metadataBase: new URL('https://koku-dedektifi.vercel.app'),
   icons: {
-    icon: [
-      { url: '/favicon.svg?v=20260330', type: 'image/svg+xml', sizes: 'any' },
-      { url: '/icon.svg?v=20260330', type: 'image/svg+xml', sizes: 'any' },
-    ],
-    shortcut: [{ url: '/favicon.svg?v=20260330', type: 'image/svg+xml' }],
-    apple: [{ url: '/icon.svg?v=20260330', type: 'image/svg+xml' }],
+    icon: [{ url: '/favicon.svg?v=20260331', type: 'image/svg+xml', sizes: 'any' }],
+    shortcut: [{ url: '/favicon.svg?v=20260331', type: 'image/svg+xml' }],
+    apple: [{ url: '/icon.svg?v=20260331', type: 'image/svg+xml' }],
   },
   openGraph: {
     type: 'website',
@@ -63,6 +61,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="tr" className={`${cormorant.variable} ${dmSans.variable} ${dmMono.variable}`}>
+      <head>
+        <link rel="icon" href="/favicon.svg?v=20260331" type="image/svg+xml" sizes="any" />
+        <link rel="shortcut icon" href="/favicon.svg?v=20260331" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/icon.svg?v=20260331" type="image/svg+xml" />
+      </head>
       <body>{children}</body>
     </html>
   );

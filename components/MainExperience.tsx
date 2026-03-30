@@ -111,71 +111,83 @@ export function MainExperience() {
     }
   }, [imagePreview, mode, notesValue, textValue]);
 
-  const onAnalyzeSimilar = useCallback(async (name: string): Promise<void> => {
-    startTransition(() => {
-      setTextValue(name);
-      setMode('text');
-      replaceModeInUrl('text');
-      setNotice(`“${name}” için yeniden analiz çalıştırılıyor...`);
-    });
-    setIsAnalyzing(true);
-    setError('');
-
-    try {
-      const analysis = await analyzeText(name);
-      setResult(analysis);
-      saveHistoryRow(analysis);
-      pushFeed({
-        event: 'analysis',
-        detail: 'Benzer profil analizi',
-        perfume: analysis.name,
-      });
-    } catch (err) {
-      setError(readableError(err));
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }, [startTransition]);
-
-  const handleModeChange = useCallback((next: InputMode): void => {
-    startTransition(() => {
-      setMode(next);
-      replaceModeInUrl(next);
-    });
-  }, [startTransition]);
-
-  const handleChipPick = useCallback((chip: string): void => {
-    if (mode === 'photo') {
+  const onAnalyzeSimilar = useCallback(
+    async (name: string): Promise<void> => {
       startTransition(() => {
+        setTextValue(name);
         setMode('text');
         replaceModeInUrl('text');
+        setNotice(`“${name}” için yeniden analiz çalıştırılıyor...`);
+      });
+      setIsAnalyzing(true);
+      setError('');
+
+      try {
+        const analysis = await analyzeText(name);
+        setResult(analysis);
+        saveHistoryRow(analysis);
+        pushFeed({
+          event: 'analysis',
+          detail: 'Benzer profil analizi',
+          perfume: analysis.name,
+        });
+      } catch (err) {
+        setError(readableError(err));
+      } finally {
+        setIsAnalyzing(false);
+      }
+    },
+    [startTransition],
+  );
+
+  const handleModeChange = useCallback(
+    (next: InputMode): void => {
+      startTransition(() => {
+        setMode(next);
+        replaceModeInUrl(next);
+      });
+    },
+    [startTransition],
+  );
+
+  const handleChipPick = useCallback(
+    (chip: string): void => {
+      if (mode === 'photo') {
+        startTransition(() => {
+          setMode('text');
+          replaceModeInUrl('text');
+          const current = textValue.trim();
+          setTextValue(current ? `${current}, ${chip}` : chip);
+        });
+        return;
+      }
+
+      if (mode === 'notes') {
+        startTransition(() => {
+          const current = notesValue.trim();
+          setNotesValue(current ? `${current}, ${chip}` : chip);
+        });
+        return;
+      }
+
+      startTransition(() => {
         const current = textValue.trim();
         setTextValue(current ? `${current}, ${chip}` : chip);
       });
-      return;
-    }
+    },
+    [mode, notesValue, startTransition, textValue],
+  );
 
-    if (mode === 'notes') {
+  const handleImageChange = useCallback(
+    (dataUrl: string): void => {
       startTransition(() => {
-        const current = notesValue.trim();
-        setNotesValue(current ? `${current}, ${chip}` : chip);
+        setImagePreview(dataUrl);
+        setMode('photo');
+        replaceModeInUrl('photo');
       });
-      return;
-    }
-
-    startTransition(() => {
-      const current = textValue.trim();
-      setTextValue(current ? `${current}, ${chip}` : chip);
-    });
-  }, [mode, notesValue, startTransition, textValue]);
-
-  const handleImageChange = useCallback((dataUrl: string): void => {
-    startTransition(() => {
-      setImagePreview(dataUrl);
-      setMode('photo');
-      replaceModeInUrl('photo');
-    });
-  }, [startTransition]);
+    },
+    [startTransition],
+  );
 
   const addToWardrobe = useCallback((): void => {
     if (!result) {

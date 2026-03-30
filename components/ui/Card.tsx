@@ -4,11 +4,12 @@ interface CardProps {
   children: React.ReactNode;
   className?: string;
   glow?: boolean;
+  style?: React.CSSProperties;
 }
 
-export function Card({ children, className, glow }: CardProps) {
+export function Card({ children, className, glow, style }: CardProps) {
   return (
-    <div className={cn('bg-[var(--bg-card)] border border-white/[.06] rounded-2xl relative overflow-hidden', className)}>
+    <div className={cn('bg-[var(--bg-card)] border border-white/[.06] rounded-2xl relative overflow-hidden', className)} style={style}>
       {glow && (
         <div
           className="absolute -top-16 -right-16 w-64 h-64 rounded-full

@@ -337,3 +337,22 @@ body::after {
   cursor: pointer;
   font-family: var(--font-sans);
 }
+
+.mol-bar {
+  animation: barGrow .8s var(--ease) both;
+  transform-origin: left;
+}
+
+@keyframes barGrow {
+  from {
+    width: 0 !important;
+  }
+}
+
+.similar-item {
+  transition: transform .15s var(--ease), border-color .15s, background .15s;
+}
+
+.similar-item:hover {
+  transform: translateX(4px);
+}

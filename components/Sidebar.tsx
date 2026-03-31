@@ -58,7 +58,7 @@ export function Sidebar() {
   return (
     <aside className="sticky top-0 z-20 hidden h-screen w-[272px] flex-shrink-0 border-r border-white/[.06] py-8 md:flex">
       <div className="flex h-full w-full flex-col">
-        <div className="border-b border-white/[.06] px-6 pb-8">
+        <div className="border-b border-white/[.06] px-6 pb-6">
           <Logo size="sidebar" />
         </div>
 

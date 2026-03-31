@@ -195,7 +195,7 @@ export function HeroInput({
       </h1>
       <p className="mb-8 max-w-[620px] text-[13px] text-muted">{UI.heroSubtitle}</p>
 
-      <div className="glass-panel overflow-hidden rounded-2xl shadow-[0_26px_54px_rgba(0,0,0,.44)]">
+      <div className="glass-panel input-card overflow-hidden rounded-2xl shadow-[0_26px_54px_rgba(0,0,0,.44)]">
         <div className="grid grid-cols-3 border-b border-white/[.06] bg-black/10">
           <TabButton tabMode="photo" activeMode={mode} onClick={() => onModeChange('photo')} label={UI.photoTab} />
           <TabButton tabMode="text" activeMode={mode} onClick={() => onModeChange('text')} label={UI.textTab} />
@@ -328,7 +328,7 @@ export function HeroInput({
                     textAreaRef.current?.focus();
                   });
                 }}
-                className="rounded-full border border-white/[.08] px-3 py-1.5 text-[10px] font-mono tracking-[.06em] text-muted transition-colors hover:border-[var(--gold-line)] hover:text-cream"
+                className="suggestion-chip rounded-full border border-white/[.08] px-3 py-1.5 text-[10px] font-mono tracking-[.06em] text-muted transition-colors hover:border-[var(--gold-line)] hover:text-cream"
               >
                 {chip}
               </button>
@@ -341,7 +341,7 @@ export function HeroInput({
             disabled={!canAnalyze}
             aria-busy={isAnalyzing}
             aria-label={isAnalyzing ? 'Analiz yapılıyor, lütfen bekleyin' : 'Kokuyu analiz et'}
-            className={`flex w-full items-center justify-center gap-2 rounded-[10px] px-6 py-3 text-[11px] font-mono uppercase tracking-[.1em] transition-all md:ml-auto md:w-auto md:self-end ${
+            className={`analyze-btn ${isAnalyzing ? 'loading' : ''} flex w-full items-center justify-center gap-2 rounded-[10px] px-6 py-3 text-[11px] font-mono uppercase tracking-[.1em] transition-all md:ml-auto md:w-auto md:self-end ${
               canAnalyze
                 ? 'btn-primary-pulse bg-gold text-bg shadow-[0_10px_30px_rgba(201,169,110,.28)] hover:bg-[#d4b478]'
                 : 'cursor-not-allowed border border-white/[.08] bg-white/[.04] text-muted'

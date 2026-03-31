@@ -74,7 +74,7 @@ export function Sidebar() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-2.5 border-l-2 px-7 py-2.5 text-[13px] no-underline transition-all ${
+                    className={`nav-item ${active ? 'active' : ''} flex items-center gap-2.5 border-l-2 px-7 py-2.5 text-[13px] no-underline transition-all ${
                       active
                         ? 'border-gold bg-gradient-to-r from-[var(--gold-dim)] to-transparent text-cream'
                         : 'border-transparent text-muted hover:bg-[var(--bg-raise)] hover:text-cream'

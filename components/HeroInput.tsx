@@ -96,7 +96,7 @@ function ModeIcon({ mode }: { mode: InputMode }) {
 
 function ModeHint({ mode }: { mode: InputMode }) {
   if (mode === 'photo') {
-    return <p className="text-[11px] text-muted">Şişe, kutu veya ortam fotoğrafını bırak; sistem görselden profil çıkarır.</p>;
+    return <p className="text-[11px] text-muted">{UI.photoHelper}</p>;
   }
 
   if (mode === 'notes') {

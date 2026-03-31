@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 
 const STORAGE_KEY = 'kd:onboarding:v1';
 
-const FAMILY_OPTIONS = ['Ciceksi', 'Odunsu', 'Oryantal', 'Taze', 'Gourmand'] as const;
-const BUDGET_OPTIONS = ['300TL alti', '300-800TL', '800-2000TL', '2000TL+'] as const;
+const FAMILY_OPTIONS = ['Çiçeksi', 'Odunsu', 'Oryantal', 'Taze', 'Gourmand'] as const;
+const BUDGET_OPTIONS = ['300TL altı', '300-800TL', '800-2000TL', '2000TL+'] as const;
 
 type FamilyOption = (typeof FAMILY_OPTIONS)[number];
 type BudgetOption = (typeof BUDGET_OPTIONS)[number];
@@ -28,10 +28,10 @@ function StepChip({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-4 py-2 text-[11px] font-mono uppercase tracking-[.08em] transition-colors border ${
+      className={`rounded-full border px-4 py-2 text-[11px] font-mono uppercase tracking-[.08em] transition-colors ${
         active
           ? 'border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold'
-          : 'border-white/[.08] text-muted hover:text-cream hover:border-[var(--gold-line)]'
+          : 'border-white/[.08] text-muted hover:border-[var(--gold-line)] hover:text-cream'
       }`}
     >
       {label}
@@ -73,12 +73,12 @@ export function OnboardingWizard() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-md px-5 py-8">
-      <div className="mx-auto max-w-[620px] rounded-[28px] border border-white/[.08] bg-[var(--bg-card)] p-6 md:p-8 shadow-[0_30px_80px_rgba(0,0,0,.45)]">
-        <div className="flex items-center justify-between gap-4 mb-6">
+    <div className="fixed inset-0 z-50 bg-black/65 px-5 py-8 backdrop-blur-md">
+      <div className="mx-auto max-w-[620px] rounded-[28px] border border-white/[.08] bg-[var(--bg-card)] p-6 shadow-[0_30px_80px_rgba(0,0,0,.45)] md:p-8">
+        <div className="mb-6 flex items-center justify-between gap-4">
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-[.16em] text-gold mb-2">Ilk Kurulum</p>
-            <h2 className="font-display italic text-[2rem] text-cream">Koku profilini hizla ayarlayalim.</h2>
+            <p className="mb-2 text-[10px] font-mono uppercase tracking-[.16em] text-gold">İlk Kurulum</p>
+            <h2 className="font-display text-[2rem] italic text-cream">Koku profilini hızlı ayarlayalım.</h2>
           </div>
           <span className="rounded-full border border-white/[.08] px-3 py-1 text-[10px] font-mono uppercase tracking-[.08em] text-muted">
             {step}/3
@@ -88,9 +88,7 @@ export function OnboardingWizard() {
         {step === 1 ? (
           <div className="space-y-5">
             <div>
-              <p className="text-[12px] font-mono uppercase tracking-[.12em] text-muted mb-3">
-                Favori koku ailen?
-              </p>
+              <p className="mb-3 text-[12px] font-mono uppercase tracking-[.12em] text-muted">Favori koku ailen?</p>
               <div className="flex flex-wrap gap-2">
                 {FAMILY_OPTIONS.map((item) => (
                   <StepChip
@@ -102,16 +100,14 @@ export function OnboardingWizard() {
                 ))}
               </div>
             </div>
-            <p className="text-[13px] text-muted">
-              Bu secim, ilk onerileri daha hizli dogru yone cekmek icin kullanilir.
-            </p>
+            <p className="text-[13px] text-muted">Bu seçim, ilk önerileri daha hızlı doğru yöne çekmek için kullanılır.</p>
           </div>
         ) : null}
 
         {step === 2 ? (
           <div className="space-y-5">
             <div>
-              <p className="text-[12px] font-mono uppercase tracking-[.12em] text-muted mb-3">Butce bandin?</p>
+              <p className="mb-3 text-[12px] font-mono uppercase tracking-[.12em] text-muted">Bütçe bandın?</p>
               <div className="flex flex-wrap gap-2">
                 {BUDGET_OPTIONS.map((item) => (
                   <StepChip
@@ -123,28 +119,24 @@ export function OnboardingWizard() {
                 ))}
               </div>
             </div>
-            <p className="text-[13px] text-muted">
-              Onerilerde gereksiz gurultuyu azaltmak icin bu bandi referans alacagiz.
-            </p>
+            <p className="text-[13px] text-muted">Önerilerde gereksiz gürültüyü azaltmak için bu bandı referans alacağız.</p>
           </div>
         ) : null}
 
         {step === 3 ? (
           <div className="space-y-5">
-            <p className="text-[12px] font-mono uppercase tracking-[.12em] text-muted">Ilk analizini yapalim!</p>
-            <div className="rounded-2xl border border-white/[.08] bg-black/10 p-5 space-y-3">
+            <p className="text-[12px] font-mono uppercase tracking-[.12em] text-muted">İlk analizini yapalım!</p>
+            <div className="space-y-3 rounded-2xl border border-white/[.08] bg-black/10 p-5">
               <p className="text-[13px] text-muted">
-                Secilen profil:
+                Seçilen profil:
                 <span className="text-cream"> {state.family || 'Genel'}</span>
               </p>
               <p className="text-[13px] text-muted">
-                Butce odagi:
-                <span className="text-cream"> {state.budget || 'Acik'}</span>
+                Bütçe odağı:
+                <span className="text-cream"> {state.budget || 'Açık'}</span>
               </p>
             </div>
-            <p className="text-[13px] text-muted">
-              Simdi fotograf, metin veya nota listesiyle ilk analizini baslatabilirsin.
-            </p>
+            <p className="text-[13px] text-muted">Şimdi fotoğraf, metin veya nota listesiyle ilk analizini başlatabilirsin.</p>
           </div>
         ) : null}
 
@@ -152,9 +144,9 @@ export function OnboardingWizard() {
           <button
             type="button"
             onClick={() => (step === 1 ? persistAndClose() : setStep((prev) => Math.max(1, prev - 1)))}
-            className="rounded-xl border border-white/[.08] px-4 py-3 text-[11px] font-mono uppercase tracking-[.08em] text-muted hover:text-cream transition-colors"
+            className="rounded-xl border border-white/[.08] px-4 py-3 text-[11px] font-mono uppercase tracking-[.08em] text-muted transition-colors hover:text-cream"
           >
-            {step === 1 ? 'Simdilik Gec' : 'Geri'}
+            {step === 1 ? 'Şimdilik Geç' : 'Geri'}
           </button>
 
           {step < 3 ? (
@@ -172,9 +164,9 @@ export function OnboardingWizard() {
             <button
               type="button"
               onClick={persistAndClose}
-              className="rounded-xl bg-gold px-5 py-3 text-[11px] font-mono uppercase tracking-[.1em] text-bg hover:bg-[#d8b676] transition-colors"
+              className="rounded-xl bg-gold px-5 py-3 text-[11px] font-mono uppercase tracking-[.1em] text-bg transition-colors hover:bg-[#d8b676]"
             >
-              Ilk Analizini Baslat
+              İlk Analizini Başlat
             </button>
           )}
         </div>

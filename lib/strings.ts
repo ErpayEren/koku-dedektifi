@@ -22,14 +22,14 @@ export const UI = {
 
   heroEyebrow: 'AI parfüm analizi',
   heroTitle: 'Bir koku anlat,',
-  heroTitleItalic: 'izini çözelim.',
-  heroSubtitle:
-    'Fotoğraf, metin veya nota listesiyle başla. Analiz tamamlanınca karşılaştırma, katmanlama ve dolap aksiyonları otomatik açılır.',
+  heroTitleItalic: 'sırrını çözelim.',
+  heroSubtitle: 'Fotoğraf, parfüm adı veya koku notalarıyla başla.',
 
   tabPhoto: 'Fotoğraf',
   tabText: 'Metin',
   tabNotes: 'Nota Listesi',
-  photoPlaceholder: 'Şişe, kutu veya ortam fotoğrafı yükle',
+  photoPlaceholder: 'Fotoğraf çek veya seç',
+  photoHelper: 'Şişe, kutu veya ortam fotoğrafı yükle.',
   textPlaceholder: "Dior Sauvage, Creed Aventus ya da 'odunsu ama çok ağır değil' gibi yaz...",
   notesPlaceholder: 'Notaları virgülle ayırarak gir',
   notesHelper: 'Örnek: bergamot, sedir, vanilya, paçuli',

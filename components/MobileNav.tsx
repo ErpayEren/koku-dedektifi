@@ -5,10 +5,10 @@ import { usePathname, useRouter } from 'next/navigation';
 type IconProps = { size: number; strokeWidth: number };
 
 const ITEMS = [
-  { key: 'analiz', href: '/', label: 'Analiz', aria: 'Analiz sayfasina git', Icon: AnalysisIcon },
-  { key: 'dolap', href: '/dolap', label: 'Dolap', aria: 'Koku dolabim', Icon: WardrobeIcon },
-  { key: 'kesfet', href: '/akis', label: 'Kesfet', aria: 'Kesfet', Icon: ExploreIcon },
-  { key: 'profil', href: '/hesap', label: 'Profil', aria: 'Profil sayfasina', Icon: ProfileIcon },
+  { key: 'analiz', href: '/', label: 'Analiz', aria: 'Analiz sayfasına git', Icon: AnalysisIcon },
+  { key: 'dolap', href: '/dolap', label: 'Dolap', aria: 'Koku dolabım', Icon: WardrobeIcon },
+  { key: 'kesfet', href: '/akis', label: 'Keşfet', aria: 'Keşfet', Icon: ExploreIcon },
+  { key: 'profil', href: '/hesap', label: 'Profil', aria: 'Profil sayfasına git', Icon: ProfileIcon },
 ] as const;
 
 export function MobileNav() {
@@ -17,10 +17,10 @@ export function MobileNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-white/[.06] bg-[var(--bg-card)]/95 backdrop-blur-xl"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[.06] bg-[var(--bg-card)]/95 backdrop-blur-xl md:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       role="navigation"
-      aria-label="Mobil menu"
+      aria-label="Mobil menü"
     >
       <div className="grid grid-cols-4">
         {ITEMS.map(({ key, href, label, aria, Icon }) => {
@@ -28,8 +28,9 @@ export function MobileNav() {
           return (
             <button
               key={key}
-              className={`mnav-item relative flex flex-col items-center gap-1 py-3 transition-colors text-[9px] font-mono tracking-[.06em] uppercase
-              ${active ? 'text-gold' : 'text-muted hover:text-cream'}`}
+              className={`mnav-item relative flex flex-col items-center gap-1 py-3 text-[9px] font-mono uppercase tracking-[.06em] transition-colors ${
+                active ? 'text-gold' : 'text-muted hover:text-cream'
+              }`}
               onClick={() => router.push(href)}
               aria-label={aria}
               aria-current={active ? 'page' : undefined}
@@ -81,4 +82,3 @@ function ProfileIcon({ size, strokeWidth }: IconProps) {
     </svg>
   );
 }
-

@@ -27,7 +27,7 @@ function ActionBtn({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`px-3.5 py-2.5 rounded-lg text-[11px] font-mono tracking-[.06em] transition-all inline-flex items-center gap-2
+      className={`inline-flex items-center gap-2 rounded-md px-4 py-[9px] text-[12px] font-mono tracking-[.06em] whitespace-nowrap transition-all
       ${
         disabled
           ? 'text-muted border border-white/[.08] bg-white/[.02] cursor-not-allowed'
@@ -45,8 +45,7 @@ export function ActionBar({ hasResult, disabled, onAddWardrobe, onCompare, onLay
 
   return (
     <div
-      className="sticky bottom-[var(--mobile-nav-h)] md:bottom-0 z-20 px-5 md:px-12 py-3.5 border-t border-white/[.06]
-      bg-bg/90 backdrop-blur-xl flex flex-wrap items-center gap-2.5 anim-up-2"
+      className="sticky bottom-[var(--mobile-nav-h)] z-20 flex flex-wrap items-center gap-2 border-t border-white/[.06] bg-bg/90 px-5 py-3.5 backdrop-blur-xl md:bottom-0 md:px-12 anim-up-2"
     >
       <ActionBtn
         label={UI.addToWardrobe}
@@ -83,7 +82,7 @@ export function ActionBar({ hasResult, disabled, onAddWardrobe, onCompare, onLay
         type="button"
         disabled={disabled}
         onClick={onSave}
-        className={`ml-auto px-4 py-2.5 rounded-lg text-[11px] font-mono tracking-[.08em] uppercase transition-all inline-flex items-center gap-2
+        className={`inline-flex items-center gap-2 rounded-md px-4 py-[9px] text-[12px] font-mono uppercase tracking-[.08em] whitespace-nowrap transition-all
         ${
           disabled
             ? 'text-muted border border-white/[.08] bg-white/[.02] cursor-not-allowed'

@@ -53,7 +53,7 @@ export function Sidebar() {
   const usagePct = useMemo(() => Math.max(0, Math.min(100, Math.round((todayUsage / DAILY_LIMIT) * 100))), [todayUsage]);
 
   return (
-    <aside className="hidden h-screen w-[272px] flex-shrink-0 sticky top-0 z-20 border-r border-white/[.06] py-8 md:flex">
+    <aside className="sticky top-0 z-20 hidden h-screen w-[272px] flex-shrink-0 border-r border-white/[.06] py-8 md:flex">
       <div className="flex h-full w-full flex-col">
         <div className="border-b border-white/[.06] px-7 pb-8">
           <Logo />
@@ -105,7 +105,7 @@ export function Sidebar() {
 
           <Link
             href="/paketler"
-            className="mt-3 block w-full rounded text-center text-[11px] font-mono uppercase tracking-[.08em] text-gold transition-colors border border-[var(--gold-line)] bg-[var(--gold-dim)] py-2.5 hover:bg-gold/20"
+            className="mt-3 block w-full rounded border border-[var(--gold-line)] bg-[var(--gold-dim)] py-2.5 text-center text-[11px] font-mono uppercase tracking-[.08em] text-gold transition-colors hover:bg-gold/20"
           >
             {UI.navUpgrade}
           </Link>

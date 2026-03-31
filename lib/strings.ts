@@ -60,7 +60,7 @@ export const UI = {
   wardrobeSkip: 'Geç',
 
   emptyWardrobeTitle: 'Dolabın henüz boş',
-  emptyWardrobeBody: 'İlk analizini yaptıktan sonra favori kokularını burada düzenleyebilirsin.',
+  emptyWardrobeBody: 'Analiz yaptıkça parfümlerini buraya ekleyebilirsin.',
   emptyWardrobeBtn: 'İlk Analizi Yap',
   emptyHistoryTitle: 'Henüz geçmiş yok',
   emptyHistoryBody: 'İlk analizini yaptığında sonuçların burada birikir.',
@@ -147,7 +147,7 @@ export const UI = {
   saveAndContinue: 'Kaydet ve Devam',
   prepareFirstAnalysis: 'İlk Analizi Hazırla',
   emptyWardrobe: 'Dolabın henüz boş',
-  emptyWardrobeSub: 'Analiz yaptıkça parfümlerini dolaba ekleyebilirsin.',
+  emptyWardrobeSub: 'Analiz yaptıkça parfümlerini buraya ekleyebilirsin.',
   emptyCommunity: 'Henüz topluluk sinyali yok',
   emptyCommunitySub: 'Bu koku için ilk geri bildirimi sen bırak.',
   wearTrackerSub: 'Yeterli veri oluştukça burada kişisel ritim özetin görünür.',

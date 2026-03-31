@@ -134,8 +134,8 @@ export default function LayeringPage() {
             <Card className="h-fit p-5 md:p-6 hover-lift">
               <CardTitle>{UI.layeringLab}</CardTitle>
               <p className="mb-5 text-[13px] text-muted">
-                Dolabindan iki parfum sec. Sistem ortak notalari ve karakter uyumunu hesaplayip tek bir blend
-                profili cikarir.
+                Dolabından iki parfüm seç. Sistem ortak notaları ve karakter uyumunu hesaplayıp tek bir blend
+                profili çıkarır.
               </p>
 
               <div className="space-y-4">
@@ -162,7 +162,7 @@ export default function LayeringPage() {
               <CardTitle>Katmanlama Sonucu</CardTitle>
               {!result ? (
                 <p className="text-[13px] text-muted">
-                  Sol ve sag parfum secip analizi calistirdiginda sonuc burada gorunur.
+                  Sol ve sağ parfümü seçip analizi çalıştırdığında sonuç burada görünür.
                 </p>
               ) : (
                 <div className="anim-up">

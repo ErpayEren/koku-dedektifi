@@ -213,7 +213,7 @@ export default function BarkodPage() {
               <CardTitle>Barkod Sonucu</CardTitle>
               {!result ? (
                 <p className="text-[13px] text-muted">
-                  Barkod aramasi tamamlandiginda eslesen parfum, aile ve kullanim cercevesi burada gorunur.
+                  Barkod araması tamamlandığında eşleşen parfüm, aile ve kullanım çerçevesi burada görünür.
                 </p>
               ) : result.found ? (
                 <div className="anim-up">

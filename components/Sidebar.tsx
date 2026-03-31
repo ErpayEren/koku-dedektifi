@@ -50,19 +50,24 @@ export function Sidebar() {
     setTodayUsage(getTodayCount());
   }, [path]);
 
-  const usagePct = useMemo(() => Math.max(0, Math.min(100, Math.round((todayUsage / DAILY_LIMIT) * 100))), [todayUsage]);
+  const usagePct = useMemo(
+    () => Math.max(0, Math.min(100, Math.round((todayUsage / DAILY_LIMIT) * 100))),
+    [todayUsage],
+  );
 
   return (
     <aside className="sticky top-0 z-20 hidden h-screen w-[272px] flex-shrink-0 border-r border-white/[.06] py-8 md:flex">
       <div className="flex h-full w-full flex-col">
-        <div className="border-b border-white/[.06] px-7 pb-8">
-          <Logo />
+        <div className="border-b border-white/[.06] px-6 pb-8">
+          <Logo size="sidebar" />
         </div>
 
         <nav className="flex-1 overflow-y-auto py-6" role="navigation" aria-label="Ana menü">
           {NAV.map((group) => (
             <div key={group.section} className="mb-6">
-              <p className="mb-2 px-7 text-[9px] font-mono uppercase tracking-[.14em] text-hint">{group.section}</p>
+              <p className="mb-2 px-7 text-[9px] font-mono uppercase tracking-[.14em] text-hint">
+                {group.section}
+              </p>
               {group.items.map((item) => {
                 const active = path === item.href;
                 return (
@@ -75,7 +80,11 @@ export function Sidebar() {
                         : 'border-transparent text-muted hover:bg-[var(--bg-raise)] hover:text-cream'
                     }`}
                   >
-                    <div className={`h-[5px] w-[5px] flex-shrink-0 rounded-full ${active ? 'bg-gold' : 'bg-current opacity-40'}`} />
+                    <div
+                      className={`h-[5px] w-[5px] flex-shrink-0 rounded-full ${
+                        active ? 'bg-gold' : 'bg-current opacity-40'
+                      }`}
+                    />
                     <span className="flex-1">{item.label}</span>
                   </Link>
                 );

@@ -14,6 +14,7 @@ const MAX_MESSAGE_BLOCKS = 8;
 const MAX_IMAGES_PER_REQUEST = 4;
 const MAX_INLINE_IMAGE_BYTES = 3 * 1024 * 1024;
 const MAX_IMAGE_URL_LENGTH = 4096;
+const DAILY_ANALYSIS_QUOTA_ENABLED = false;
 const ALLOWED_PROMPT_TYPES = new Set(['analysis', 'advisor']);
 const ALLOWED_MESSAGE_ROLES = new Set(['user', 'assistant']);
 const ALLOWED_CONTENT_TYPES = new Set(['text', 'image', 'image_url']);
@@ -444,16 +445,18 @@ async function handler(req, res) {
   res.setHeader('X-RateLimit-Remaining', rateCheck.remaining);
 
   let quotaInfo = null;
-  try {
-    quotaInfo = await enforceDailyAnalysisQuota(req);
-  } catch (error) {
-    return res.status(error?.statusCode || 429).json(
-      error?.body || {
-        error: 'Gunluk analiz limitine ulastiniz.',
-        limit: 5,
-        retryAfter: 'yarin',
-      },
-    );
+  if (DAILY_ANALYSIS_QUOTA_ENABLED) {
+    try {
+      quotaInfo = await enforceDailyAnalysisQuota(req);
+    } catch (error) {
+      return res.status(error?.statusCode || 429).json(
+        error?.body || {
+          error: 'Gunluk analiz limitine ulastiniz.',
+          limit: 5,
+          retryAfter: 'yarin',
+        },
+      );
+    }
   }
 
   if (quotaInfo) {

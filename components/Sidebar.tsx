@@ -34,7 +34,7 @@ const NAV = [
   },
 ] as const;
 
-const DAILY_LIMIT = 5;
+const DAILY_LIMIT = Number.POSITIVE_INFINITY;
 
 function getTodayCount(): number {
   const today = new Date().toISOString().slice(0, 10);
@@ -50,10 +50,7 @@ export function Sidebar() {
     setTodayUsage(getTodayCount());
   }, [path]);
 
-  const usagePct = useMemo(
-    () => Math.max(0, Math.min(100, Math.round((todayUsage / DAILY_LIMIT) * 100))),
-    [todayUsage],
-  );
+  const usagePct = useMemo(() => 0, []);
 
   return (
     <aside className="sticky top-0 z-20 hidden h-screen w-[272px] flex-shrink-0 border-r border-white/[.06] py-8 md:flex">
@@ -98,7 +95,7 @@ export function Sidebar() {
             <div className="mb-1.5 flex justify-between">
               <span className="text-[10px] font-mono text-muted">{UI.navDailyLimit}</span>
               <span className="text-[10px] font-mono text-gold">
-                {todayUsage}/{DAILY_LIMIT}
+                {todayUsage}/∞
               </span>
             </div>
             <div className="h-[2px] overflow-hidden rounded-full bg-white/[.08]">

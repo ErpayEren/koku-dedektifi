@@ -289,7 +289,7 @@ export const AnalysisResults = memo(function AnalysisResults({
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="mb-2 font-display text-[1.9rem] italic text-cream md:text-[2.15rem]">{UI.analyzing}</p>
+              <p className="mb-2 text-[1.9rem] font-semibold text-cream md:text-[2.15rem]">{UI.analyzing}</p>
               <p className="text-[13px] text-muted">{ANALYSIS_STEPS[analysisStepIndex]}</p>
 
               <div className="mt-6 h-[2px] overflow-hidden rounded-full bg-white/[.08]">
@@ -422,7 +422,7 @@ export const AnalysisResults = memo(function AnalysisResults({
               className="inline-flex items-center justify-center rounded-2xl border border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold"
             />
             <div className="min-w-0 flex-1">
-              <h2 className="font-display text-[2rem] italic leading-[1.02] text-cream md:text-[2.45rem]">{activeResult.name}</h2>
+              <h2 className="text-[2rem] font-semibold leading-[1.02] text-cream md:text-[2.45rem]">{activeResult.name}</h2>
               <p className="mt-2 text-[11px] font-mono uppercase tracking-[.12em] text-gold">{activeResult.family || 'Aromatik'}</p>
             </div>
           </div>
@@ -548,7 +548,7 @@ export const AnalysisResults = memo(function AnalysisResults({
                   </svg>
                 </button>
                 <div className="min-w-0 text-center">
-                  <p className="font-display text-[2rem] italic leading-none text-cream">{molecule.name}</p>
+                  <p className="text-[2rem] font-semibold leading-none text-cream">{molecule.name}</p>
                   <p className="text-[12px] text-muted">{molecule.formula || 'Doğrulanmış formül yok'}</p>
                   <p className="mt-1 text-[11px] text-sage">{molecule.type || 'Molekül ailesi'}</p>
                 </div>

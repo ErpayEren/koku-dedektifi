@@ -12,7 +12,7 @@ export function FeaturePlaceholder({ title, description, chips = [] }: FeaturePl
     <div className="px-5 md:px-12 py-8 anim-up">
       <Card className="p-6 md:p-8" glow>
         <CardTitle>{title}</CardTitle>
-        <p className="text-[16px] md:text-[20px] font-display italic text-cream mb-4">{title}</p>
+        <p className="mb-4 text-[16px] font-semibold text-cream md:text-[20px]">{title}</p>
         <p className="text-[13px] text-muted leading-relaxed max-w-[720px]">{description}</p>
         {chips.length > 0 && (
           <div className="flex gap-2 flex-wrap mt-6">

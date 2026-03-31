@@ -23,7 +23,7 @@ export function EmptyState({ icon, title, subtitle, action, className }: EmptySt
           {icon}
         </div>
       )}
-      <p className="font-display italic text-xl text-[var(--cream)]">{title}</p>
+      <p className="text-xl font-semibold text-[var(--cream)]">{title}</p>
       {subtitle && (
         <p className="text-sm text-[var(--muted)] max-w-xs">{subtitle}</p>
       )}

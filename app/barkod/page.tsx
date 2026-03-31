@@ -217,7 +217,7 @@ export default function BarkodPage() {
                 </p>
               ) : result.found ? (
                 <div className="anim-up">
-                  <p className="font-display italic text-[2rem] leading-[1.05] text-cream">{result.perfume}</p>
+                  <p className="text-[2rem] font-semibold leading-[1.05] text-cream">{result.perfume}</p>
                   <p className="mt-2 text-[12px] text-muted">
                     {result.family || 'Aromatik'} • {result.occasion || 'Genel kullanim'}
                   </p>

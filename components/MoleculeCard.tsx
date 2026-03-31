@@ -92,7 +92,7 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
           </div>
 
           <div className="mb-4">
-            <h3 className="font-display text-[2rem] italic leading-none text-cream">{mol.name}</h3>
+            <h3 className="text-[2rem] font-semibold leading-none text-cream">{mol.name}</h3>
             <p className="mt-2 text-[13px] font-mono text-gold/85">{mol.formula || 'Formül doğrulanmadı'}</p>
             <p className="mt-3 text-[12px] uppercase tracking-[.12em] text-muted">{mol.type}</p>
           </div>

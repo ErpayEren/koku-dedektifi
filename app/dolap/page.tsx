@@ -75,7 +75,7 @@ export default function DolapPage() {
               {rows.map((item) => (
                 <Card key={item.key} className="hover-lift p-4">
                   <CardTitle>{item.family || 'Koku Profili'}</CardTitle>
-                  <p className="font-display text-[1.6rem] italic leading-[1.08] text-cream">{item.name}</p>
+                  <p className="text-[1.6rem] font-semibold leading-[1.08] text-cream">{item.name}</p>
                   <p className="mt-1 text-[11px] text-muted">
                     {statusLabel(item.status)} • {new Date(item.updatedAt).toLocaleDateString('tr-TR')}
                   </p>

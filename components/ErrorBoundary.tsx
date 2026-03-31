@@ -30,7 +30,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         <div className="px-5 md:px-12 py-10">
           <div className="max-w-[920px] mx-auto rounded-3xl border border-white/[.08] bg-[var(--bg-card)] p-8 md:p-10 text-center">
             <p className="text-[10px] font-mono uppercase tracking-[.14em] text-gold mb-4">Guvenli Mod</p>
-            <h2 className="font-display italic text-[2rem] text-cream mb-3">Bir sey yolunda gitmedi.</h2>
+            <h2 className="mb-3 text-[2rem] font-semibold text-cream">Bir sey yolunda gitmedi.</h2>
             <p className="text-[13px] text-muted max-w-[520px] mx-auto mb-6">
               Sayfa beklenmedik bir hata yasadi. Tek dokunusla yeniden yukleyip kaldigin yerden devam
               edebilirsin.

@@ -135,7 +135,7 @@ export default function NotalarPage() {
                 {rows.map((item) => (
                   <div key={item.name} className="rounded-xl border border-white/[.08] p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-[18px] font-display italic text-cream leading-[1.08]">{item.name}</p>
+                      <p className="text-[18px] font-semibold leading-[1.08] text-cream">{item.name}</p>
                       <span className="text-[11px] px-2.5 py-1 rounded-full border border-sage/40 text-sage">
                         {item.score}/100
                       </span>

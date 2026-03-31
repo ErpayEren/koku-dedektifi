@@ -166,7 +166,7 @@ export default function LayeringPage() {
                 </p>
               ) : (
                 <div className="anim-up">
-                  <p className="font-display text-[2rem] italic leading-[1.05] text-cream">{result.name}</p>
+                  <p className="text-[2rem] font-semibold leading-[1.05] text-cream">{result.name}</p>
                   <p className="mt-2 text-[12px] text-muted">{result.description}</p>
                   <div className="mt-4 rounded-xl border border-white/[.08] p-3.5">
                     <div className="mb-1.5 flex justify-between text-[11px] text-muted">

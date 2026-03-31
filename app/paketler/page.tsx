@@ -129,7 +129,7 @@ function PlanCard({
 
       <CardTitle>{plan.name}</CardTitle>
       <div className="mt-3">
-        <p className="font-display italic text-[2.6rem] leading-none text-cream">{formatPrice(plan)}</p>
+        <p className="text-[2.6rem] font-bold leading-none text-cream">{formatPrice(plan)}</p>
         <p className="mt-2 text-[12px] text-muted">
           {plan.id === 'free' ? 'Başlangıç seviyesi' : 'Aylık premium erişim'}
         </p>
@@ -241,10 +241,10 @@ export default function PricingPage() {
             <span className="text-[10px] font-mono uppercase tracking-[.16em] text-muted">Paketler</span>
           </div>
 
-          <h1 className="font-display italic text-[2.3rem] leading-[1.06] text-cream md:text-[3rem]">
+          <h1 className="text-[2.3rem] font-semibold leading-[1.06] text-cream md:text-[3rem]">
             Koku keşfini ihtiyacına göre
             <br />
-            <span className="not-italic text-gold">ücretsiz başlat, Pro ile derinleştir.</span>
+            <span className="text-gold">ücretsiz başlat, Pro ile derinleştir.</span>
           </h1>
 
           <p className="mt-4 max-w-[620px] text-[13px] leading-relaxed text-muted">

@@ -17,7 +17,7 @@ export function TopBar({ title }: { title?: string }) {
       <div className="md:hidden">
         <Logo size="sm" />
       </div>
-      <span className="hidden md:block font-display italic text-[15px] text-muted">
+      <span className="hidden md:block text-[15px] font-semibold text-muted">
         {title ?? 'Koku Dedektifi'}
       </span>
 

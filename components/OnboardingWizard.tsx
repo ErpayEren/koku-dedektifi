@@ -78,7 +78,7 @@ export function OnboardingWizard() {
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
             <p className="mb-2 text-[10px] font-mono uppercase tracking-[.16em] text-gold">İlk Kurulum</p>
-            <h2 className="font-display text-[2rem] italic text-cream">Koku profilini hızlı ayarlayalım.</h2>
+            <h2 className="text-[2rem] font-semibold text-cream">Koku profilini hızlı ayarlayalım.</h2>
           </div>
           <span className="rounded-full border border-white/[.08] px-3 py-1 text-[10px] font-mono uppercase tracking-[.08em] text-muted">
             {step}/3

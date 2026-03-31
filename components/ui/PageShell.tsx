@@ -19,7 +19,7 @@ export function PageShell({ children, title, date }: PageShellProps) {
           <div className="w-5 h-px bg-[var(--gold-line)]" />
           <span className="text-[9px] font-mono tracking-[.16em] uppercase text-muted">Koku Dedektifi</span>
         </div>
-        <h1 className="font-display italic text-cream text-[2.4rem] leading-[1.1] mb-2">{title}</h1>
+        <h1 className="mb-2 text-[2.2rem] font-semibold leading-[1.1] text-cream">{title}</h1>
         {date ? <p className="text-[11px] font-mono text-muted mb-12">Son güncelleme: {date}</p> : null}
         <div className="prose-kd">{children}</div>
       </main>

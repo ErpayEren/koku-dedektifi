@@ -62,7 +62,7 @@ export default function GecmisPage() {
                   {list.map((item) => (
                     <Link key={item.id} href={`/?replay=${encodeURIComponent(item.id)}&mode=text`} className="no-underline">
                       <Card className="p-4 h-full hover-lift hover:border-[var(--gold-line)] transition-colors">
-                        <p className="font-display italic text-[1.5rem] leading-[1.08] text-cream">{item.name}</p>
+                        <p className="text-[1.5rem] font-semibold leading-[1.08] text-cream">{item.name}</p>
                         <p className="text-[11px] text-muted mt-1">{item.description.slice(0, 92)}...</p>
                         <div className="mt-4 flex items-center justify-between gap-3">
                           <span className={`text-[10px] px-2 py-1 rounded-full border ${familyBadgeClass(item.family)}`}>{item.family}</span>

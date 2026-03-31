@@ -30,7 +30,7 @@ function ResultSide({ title, row }: { title: string; row: AnalysisResult | null 
         <p className="text-[12px] text-muted">Analiz bekleniyor.</p>
       ) : (
         <div className="anim-up">
-          <p className="font-display text-[1.8rem] italic leading-[1.06] text-cream">{row.name}</p>
+          <p className="text-[1.8rem] font-semibold leading-[1.06] text-cream">{row.name}</p>
           <p className="mt-1 text-[11px] text-muted">{row.family}</p>
           <p className="mt-3 text-[12px] text-muted">{row.description.slice(0, 130)}...</p>
         </div>

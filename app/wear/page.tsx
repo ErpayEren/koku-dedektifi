@@ -57,7 +57,7 @@ export default function WearPage() {
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <Card className="p-5 md:p-6 hover-lift">
             <CardTitle>{UI.wearSummaryTitle}</CardTitle>
-            <p className="font-display text-[2rem] italic leading-[1.06] text-cream">{summary.total}</p>
+            <p className="text-[2rem] font-bold leading-[1.06] text-cream">{summary.total}</p>
             <p className="mt-1 text-[12px] text-muted">{UI.wearAnalysisCount}</p>
             <p className="mt-3 text-[12px] text-muted">{UI.wearNoDataNote}</p>
           </Card>

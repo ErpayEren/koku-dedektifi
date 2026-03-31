@@ -189,7 +189,7 @@ export function HeroInput({
         <span className="text-[10px] font-mono uppercase tracking-[.16em] text-muted">{UI.heroEyebrow}</span>
       </div>
 
-      <h1 className="mb-3 font-display text-[2rem] italic leading-[1.06] tracking-[-0.01em] text-cream md:text-[3rem]">
+      <h1 className="mb-3 text-[2rem] font-semibold leading-[1.06] tracking-[-0.01em] text-cream md:text-[3rem]">
         {UI.heroTitle}
         <br />
         <span className="text-gold">{UI.heroTitleItalic}</span>
@@ -284,7 +284,7 @@ export function HeroInput({
                 value={textValue}
                 maxLength={500}
                 onChange={(event) => onTextChange(event.target.value)}
-                className="min-h-[164px] w-full resize-none rounded-xl border border-white/[.07] bg-transparent p-4 font-display text-[1.1rem] italic text-cream outline-none placeholder:text-hint focus:border-[var(--gold-line)] md:p-5"
+                className="min-h-[164px] w-full resize-none rounded-xl border border-white/[.07] bg-transparent p-4 text-[1rem] text-cream outline-none placeholder:text-hint focus:border-[var(--gold-line)] md:p-5"
                 placeholder={UI.textPlaceholder}
               />
               <div className="mt-2 text-right text-[10px] font-mono text-hint">{activeCharCount} / 500</div>
@@ -298,7 +298,7 @@ export function HeroInput({
                 value={notesValue}
                 maxLength={500}
                 onChange={(event) => onNotesChange(event.target.value)}
-                className="min-h-[164px] w-full resize-none rounded-xl border border-white/[.07] bg-transparent p-4 font-display text-[1.08rem] italic text-cream outline-none placeholder:text-hint focus:border-[var(--gold-line)] md:p-5"
+                className="min-h-[164px] w-full resize-none rounded-xl border border-white/[.07] bg-transparent p-4 text-[1rem] text-cream outline-none placeholder:text-hint focus:border-[var(--gold-line)] md:p-5"
                 placeholder={UI.notesPlaceholder}
               />
               <div className="mt-2 text-right text-[10px] font-mono text-hint">{activeCharCount} / 500</div>

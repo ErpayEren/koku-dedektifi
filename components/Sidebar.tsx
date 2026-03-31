@@ -34,8 +34,6 @@ const NAV = [
   },
 ] as const;
 
-const DAILY_LIMIT = Number.POSITIVE_INFINITY;
-
 function getTodayCount(): number {
   const today = new Date().toISOString().slice(0, 10);
   return getHistory().filter((row) => String(row.createdAt || '').slice(0, 10) === today).length;

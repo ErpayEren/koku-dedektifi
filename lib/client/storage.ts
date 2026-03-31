@@ -6,7 +6,6 @@ const KEYS = {
   feed: 'kd:feed:v2',
 } as const;
 
-const AUTH_COOKIE_NAME = 'kd_token';
 const pendingWrites = new Map<string, number>();
 
 function readJson<T>(key: string, fallback: T): T {
@@ -36,22 +35,6 @@ export function debouncedWrite<T>(key: string, value: T, ms = 400): void {
     pendingWrites.delete(key);
   }, ms);
   pendingWrites.set(key, timer);
-}
-
-function readCookie(name: string): string {
-  if (typeof document === 'undefined') return '';
-  const prefix = `${name}=`;
-  const row = document.cookie
-    .split(';')
-    .map((item) => item.trim())
-    .find((item) => item.startsWith(prefix));
-  if (!row) return '';
-  return decodeURIComponent(row.slice(prefix.length));
-}
-
-function writeCookie(name: string, value: string, maxAgeSeconds: number): void {
-  if (typeof document === 'undefined') return;
-  document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Strict; Secure`;
 }
 
 export function getHistory(): AnalysisResult[] {
@@ -116,13 +99,12 @@ export function clearFeed(): void {
 }
 
 export function getAuthToken(): string {
-  return readCookie(AUTH_COOKIE_NAME);
+  // HTTP-only cookie tabanlı session kullanılıyor.
+  // Token client tarafında okunmuyor.
+  return '';
 }
 
 export function setAuthToken(token: string): void {
-  if (!token) {
-    writeCookie(AUTH_COOKIE_NAME, '', 0);
-    return;
-  }
-  writeCookie(AUTH_COOKIE_NAME, token, 30 * 24 * 60 * 60);
+  // Artık kullanılmıyor; session cookie'leri server tarafında ayarlanıyor.
+  void token;
 }

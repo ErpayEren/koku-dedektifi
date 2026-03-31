@@ -1,28 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-export function middleware(req: NextRequest) {
-  const path = req.nextUrl.pathname;
-
-  if (path === '/ops.html' || path.startsWith('/ops')) {
-    const auth = req.headers.get('authorization') ?? '';
-    const user = process.env.OPS_USER ?? 'admin';
-    const password = process.env.OPS_PASSWORD ?? 'kd2026';
-    const creds = Buffer.from(`${user}:${password}`).toString('base64');
-
-    if (auth !== `Basic ${creds}`) {
-      return new NextResponse('Yetkisiz erişim.', {
-        status: 401,
-        headers: { 'WWW-Authenticate': 'Basic realm="Ops"' },
-      });
-    }
-  }
-
-  return NextResponse.next();
-}
-
-export const config = { matcher: ['/ops', '/ops/:path*', '/ops.html'] };
-
-import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis/cloudflare';
 
 let redisClient: Redis | null = null;

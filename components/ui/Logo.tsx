@@ -5,21 +5,21 @@ type LogoSize = 'sm' | 'md' | 'sidebar';
 
 const SIZE_MAP: Record<LogoSize, { icon: number; text: string; gap: string; max: string }> = {
   sm: {
-    icon: 34,
-    text: 'text-[14px]',
+    icon: 36,
+    text: 'text-[15px]',
     gap: 'gap-[9px]',
-    max: 'max-w-[146px]',
+    max: 'max-w-[154px]',
   },
   md: {
-    icon: 40,
-    text: 'text-[18px]',
+    icon: 44,
+    text: 'text-[20px]',
     gap: 'gap-[11px]',
-    max: 'max-w-[192px]',
+    max: 'max-w-[212px]',
   },
   sidebar: {
-    icon: 46,
-    text: 'text-[16px]',
-    gap: 'gap-[10px]',
+    icon: 52,
+    text: 'text-[18px]',
+    gap: 'gap-[12px]',
     max: 'max-w-[156px]',
   },
 };

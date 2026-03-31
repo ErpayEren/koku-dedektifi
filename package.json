@@ -12,7 +12,8 @@
     "lint": "next lint",
     "format": "prettier --write .",
     "smoke:web": "node scripts/smoke-web.js",
-    "guardrail": "node scripts/launch-guardrail.js"
+    "guardrail": "node scripts/launch-guardrail.js",
+    "check:readiness": "node scripts/check-readiness.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.100.1",

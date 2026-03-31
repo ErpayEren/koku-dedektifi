@@ -64,3 +64,13 @@ Asagidaki Stripe eventleri ic billing event tiplerine map edilir:
 5. Test odeme ile `start_checkout` akisini dogrula.
 6. Test webhook ile entitlement degisiminin `GET /api/billing` cevabina yansidigini kontrol et.
 7. `BILLING_ALLOW_DEV_ACTIVATION=false` oldugundan emin ol.
+
+## 5) Otomatik Readiness Kontrolu
+
+Production oncesi su komutu calistir:
+
+```bash
+npm run check:readiness
+```
+
+Bu komut billing envleriyle birlikte Supabase/Flutter/RevenueCat baglamini da raporlar.

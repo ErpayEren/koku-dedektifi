@@ -54,7 +54,7 @@ const PLAN_COPY: Record<'free' | 'pro', { name: string; features: string[] }> = 
   },
   pro: {
     name: 'Pro',
-    features: ['Sınırsız analiz', 'Layering Lab', 'Barkod Tarayıcı', 'Cihazlar arası senkronizasyon', 'Öncelikli AI'],
+    features: ['Sınırsız analiz', 'Katmanlama Lab', 'Barkod Tarayıcı', 'Cihazlar arası senkronizasyon', 'Öncelikli AI'],
   },
 };
 
@@ -232,7 +232,7 @@ export default function PricingPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell hideSidebar>
       <TopBar title="Paketler" />
       <div className="px-5 py-8 md:px-12 md:py-10">
         <div className="mx-auto max-w-[1040px]">
@@ -248,7 +248,7 @@ export default function PricingPage() {
           </h1>
 
           <p className="mt-4 max-w-[620px] text-[13px] leading-relaxed text-muted">
-            Ücretsiz planda günlük analiz hakkın, dolabın ve karşılaştırma akışın hazır. Pro ile Layering Lab,
+            Ücretsiz planda günlük analiz hakkın, dolabın ve karşılaştırma akışın hazır. Pro ile Katmanlama Lab,
             Barkod Tarayıcı, öncelikli AI ve cihazlar arası senkronizasyon açılır.
           </p>
 

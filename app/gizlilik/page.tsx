@@ -1,6 +1,6 @@
 import { PageShell } from '@/components/ui/PageShell';
 
-export const metadata = { title: 'Gizlilik Politikası - Koku Dedektifi' };
+export const metadata = { title: 'Gizlilik Politikası — Koku Dedektifi' };
 
 export default function GizlilikPage() {
   return (
@@ -35,4 +35,3 @@ export default function GizlilikPage() {
     </PageShell>
   );
 }
-

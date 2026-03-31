@@ -1,6 +1,6 @@
 import { PageShell } from '@/components/ui/PageShell';
 
-export const metadata = { title: 'İade Politikası - Koku Dedektifi' };
+export const metadata = { title: 'İade Politikası — Koku Dedektifi' };
 
 export default function IadePolitikasiPage() {
   return (
@@ -27,4 +27,3 @@ export default function IadePolitikasiPage() {
     </PageShell>
   );
 }
-

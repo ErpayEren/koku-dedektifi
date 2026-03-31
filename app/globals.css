@@ -241,7 +241,6 @@ body::after {
 
 ::-webkit-scrollbar {
   width: 4px;
-  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -249,8 +248,12 @@ body::after {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--hint);
-  border-radius: 8px;
+  background: rgba(139, 92, 246, 0.35);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.6);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -295,13 +298,40 @@ body::after {
 }
 
 :focus-visible {
-  outline: 2px solid var(--gold);
-  outline-offset: 3px;
-  border-radius: 4px;
+  outline: none;
 }
 
 :focus:not(:focus-visible) {
   outline: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  box-shadow: 0 0 0 2px rgb(168 85 247), 0 0 0 4px #0d0d12;
+  border-radius: 10px;
+}
+
+.section-kicker {
+  margin-top: 2.5rem;
+  margin-bottom: 1.5rem;
+  letter-spacing: .2em;
+  font-size: 11px;
+  color: rgb(245 158 11 / .8);
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+
+.section-kicker::before {
+  content: '';
+  display: inline-block;
+  width: 1.5rem;
+  height: 1px;
+  margin-right: .75rem;
+  vertical-align: middle;
+  background: rgb(245 158 11 / .6);
 }
 
 .skeleton {

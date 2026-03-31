@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import type { AnalysisTimeline } from '@/lib/client/types';
 
 type TimelineStageId = 't0' | 't1' | 't2' | 't3';
@@ -161,7 +162,7 @@ export function ScentTimeline({ topNotes, heartNotes, baseNotes, timeline }: Sce
 
             <div className="relative mt-4 overflow-hidden rounded-[24px] border border-white/[.06] bg-[#0c0b10] px-4 py-5 md:px-5 md:py-6">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(167,139,250,.12),transparent_40%)]" />
-              <div className="pointer-events-none absolute inset-x-8 top-[46%] h-px bg-gradient-to-r from-transparent via-white/[.12] to-transparent" />
+              <div className="pointer-events-none absolute inset-x-8 top-[46%] h-px bg-gradient-to-r from-amber-800/40 via-purple-800/40 to-teal-800/40" />
               <div className="pointer-events-none absolute inset-x-8 top-[46%] h-[4px] -translate-y-1/2 rounded-full bg-white/[.06]" />
               <div
                 className="pointer-events-none absolute top-[46%] h-[4px] -translate-y-1/2 rounded-full bg-gradient-to-r from-[#d7bc82] via-[#a78bfa] to-[#7eb8a4]"
@@ -191,12 +192,15 @@ export function ScentTimeline({ topNotes, heartNotes, baseNotes, timeline }: Sce
                     {stages.map((stage, index) => {
                       const active = index === activeIndex;
                       return (
-                        <button
+                        <motion.button
                           key={`${stage.id}-row`}
                           type="button"
                           onClick={() => setActiveIndex(index)}
                           className="flex w-full items-start gap-3 text-left transition-opacity"
                           style={{ opacity: active ? 1 : 0.42 }}
+                          initial={{ opacity: 0, y: 16 }}
+                          animate={{ opacity: active ? 1 : 0.42, y: 0 }}
+                          transition={{ duration: 0.4, delay: index * 0.07 }}
                         >
                           <span
                             className="mt-[6px] h-2.5 w-2.5 shrink-0 rounded-full"
@@ -206,27 +210,31 @@ export function ScentTimeline({ topNotes, heartNotes, baseNotes, timeline }: Sce
                             }}
                           />
                           <div>
-                            <p className="text-[10px] font-mono uppercase tracking-[.18em]" style={{ color: stage.tone }}>
+                            <p
+                              className={`text-[10px] font-mono uppercase tracking-widest ${
+                                active ? 'text-teal-400 font-semibold' : 'text-gray-500'
+                              }`}
+                            >
                               {stage.label}
                             </p>
                             <p className="mt-1 text-[13px] leading-relaxed text-cream/82">
                               {stage.notes.length > 0 ? stage.notes.join(', ') : 'Veri sınırlı'}
                             </p>
                           </div>
-                        </button>
+                        </motion.button>
                       );
                     })}
                   </div>
                 </div>
 
-                <div className="rounded-[20px] border border-white/[.06] bg-white/[.02] px-4 py-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-5 backdrop-blur-md">
                   <p className="text-[9px] font-mono uppercase tracking-[.16em] text-muted">Aktif pencere</p>
-                  <p className="mt-3 font-display text-[1.8rem] italic leading-none text-cream">{activeStage.timeLabel}</p>
+                  <p className="mt-3 text-3xl font-bold leading-none text-cream">{activeStage.timeLabel}</p>
                   <div className="mt-5 flex flex-wrap gap-2">
                     {activeStage.notes.slice(0, 4).map((note) => (
                       <span
                         key={`${activeStage.id}-${note}`}
-                        className="rounded-full border border-white/[.08] px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-[.08em] text-cream/88"
+                        className="min-w-[96px] rounded-full border border-white/15 bg-white/6 px-3 py-1 text-center text-xs font-semibold tracking-wide text-cream/88 transition-colors hover:bg-white/12"
                       >
                         {note}
                       </span>

@@ -1,6 +1,7 @@
-﻿'use client';
+'use client';
 
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { animate, useMotionValue, useSpring } from 'framer-motion';
 import { UI } from '@/lib/strings';
 import type { AnalysisResult, MoleculeItem, TechnicalItem } from '@/lib/client/types';
 import { Card } from './ui/Card';
@@ -390,7 +391,7 @@ export const AnalysisResults = memo(function AnalysisResults({
     <section className="anim-up-2 px-5 pb-8 md:px-12">
       <SectionDivider label="Analiz Sonucu" />
 
-      <div ref={shareCardRef} className="mb-4 grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div ref={shareCardRef} className="mb-4 grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
         <Card
           className="relative self-start overflow-hidden p-7 md:p-9"
           glow
@@ -461,12 +462,14 @@ export const AnalysisResults = memo(function AnalysisResults({
             </div>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-[108px_minmax(0,1fr)] lg:items-center">
-              <div className="relative mx-auto flex h-[108px] w-[108px] items-center justify-center">
+              <div className="relative z-10 mx-auto flex h-[108px] w-[108px] items-center justify-center">
                 <div className="absolute inset-0 rounded-full border border-white/[.08] animate-[aura-breathe_8s_ease-in-out_infinite]" />
                 <div className="absolute inset-[18px] rounded-full bg-[radial-gradient(circle,rgba(167,139,250,.65)_0%,rgba(167,139,250,.12)_52%,transparent_100%)] blur-[2px]" />
                 <div className="relative text-center">
                   <p className="text-[9px] font-mono uppercase tracking-[.16em] text-muted">İz skoru</p>
-                  <p className="mt-2 font-display text-[1.55rem] italic leading-none text-cream">{confidence}%</p>
+                  <p className="mt-2 text-[1.85rem] font-bold leading-none text-cream">
+                    <AnimatedPercent value={confidence} />
+                  </p>
                 </div>
               </div>
 
@@ -524,7 +527,7 @@ export const AnalysisResults = memo(function AnalysisResults({
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-3">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
         <Card className="self-start p-6 content-auto-panel" style={cardMotion(2)}>
           <CardTitle className="mb-4">{UI.keyMolecules}</CardTitle>
           {molecule ? (
@@ -876,4 +879,22 @@ function MetricPill({ label, value, tone }: { label: string; value: number; tone
       </div>
     </div>
   );
+}
+
+function AnimatedPercent({ value }: { value: number }) {
+  const motionValue = useMotionValue(0);
+  const spring = useSpring(motionValue, { stiffness: 120, damping: 20 });
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    const controls = animate(motionValue, value, { duration: 0.6 });
+    return () => controls.stop();
+  }, [motionValue, value]);
+
+  useEffect(() => {
+    const unsubscribe = spring.on('change', (latest) => setDisplay(Math.round(latest)));
+    return unsubscribe;
+  }, [spring]);
+
+  return <>{display}%</>;
 }

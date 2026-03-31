@@ -51,13 +51,13 @@ export function Sidebar() {
   const usagePct = useMemo(() => 0, []);
 
   return (
-    <aside className="sticky top-0 z-20 hidden h-screen w-[272px] flex-shrink-0 border-r border-white/[.06] py-8 md:flex">
-      <div className="flex h-full w-full flex-col">
-        <div className="border-b border-white/[.06] px-6 pb-6">
+    <aside className="order-2 z-20 w-full min-w-0 border-t border-white/[.06] py-6 md:order-1 md:sticky md:top-0 md:h-screen md:w-64 md:min-w-[280px] md:border-r md:border-t-0 lg:w-80">
+      <div className="flex h-full w-full flex-col rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5 backdrop-blur-sm md:rounded-none md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-0">
+        <div className="border-b border-white/[.06] px-4 pb-5 md:px-6 md:pb-6">
           <Logo size="sidebar" />
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-6" role="navigation" aria-label="Ana menü">
+        <nav className="flex-1 overflow-y-auto py-5 md:py-6" role="navigation" aria-label="Ana menü">
           {NAV.map((group) => (
             <div key={group.section} className="mb-6">
               <p className="mb-2 px-7 text-[9px] font-mono uppercase tracking-[.14em] text-hint">
@@ -88,7 +88,7 @@ export function Sidebar() {
           ))}
         </nav>
 
-        <div className="border-t border-white/[.06] px-7 pt-5">
+        <div className="border-t border-white/[.06] px-4 pt-5 md:px-7">
           <div>
             <div className="mb-1.5 flex justify-between">
               <span className="text-[10px] font-mono text-muted">{UI.navDailyLimit}</span>

@@ -9,7 +9,13 @@ interface CardProps {
 
 export function Card({ children, className, glow, style }: CardProps) {
   return (
-    <div className={cn('bg-[var(--bg-card)] border border-white/[.06] rounded-2xl relative overflow-hidden', className)} style={style}>
+    <div
+      className={cn(
+        'relative overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.03] backdrop-blur-sm transition-all duration-200',
+        className,
+      )}
+      style={style}
+    >
       {glow && (
         <div
           className="absolute -top-16 -right-16 w-64 h-64 rounded-full

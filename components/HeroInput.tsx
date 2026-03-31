@@ -182,7 +182,8 @@ export function HeroInput({
   const activeCharCount = mode === 'notes' ? notesValue.length : textValue.length;
 
   return (
-    <section id="hero-analysis" className="anim-up mx-auto w-full max-w-[920px] px-5 pb-8 pt-8 md:px-12 md:pt-12">
+    <section id="hero-analysis" className="anim-up relative mx-auto w-full max-w-[920px] px-5 pb-8 pt-8 md:px-12 md:pt-12">
+      <div className="pointer-events-none absolute left-1/2 top-[12rem] h-64 w-[36rem] -translate-x-1/2 bg-[radial-gradient(ellipse_at_center,_rgba(139,92,246,0.15)_0%,_transparent_70%)]" />
       <div className="mb-5 flex items-center gap-2.5">
         <div className="h-px w-7 bg-[var(--gold-line)]" />
         <span className="text-[10px] font-mono uppercase tracking-[.16em] text-muted">{UI.heroEyebrow}</span>

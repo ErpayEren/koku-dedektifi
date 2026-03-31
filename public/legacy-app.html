@@ -30,48 +30,16 @@
 <body>
 <div class="aura-layer" id="aura-layer"></div>
 <header>
-  <div class="logo-mark" onclick="reset()" title="Yeni analiz yap">
-    <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- Pyrazine ring center 28,30 r=16 flat-top hex -->
-      <!-- Vertices: top(28,14) top-r(42,22) bot-r(42,38) bot(28,46) bot-l(14,38) top-l(14,22) -->
-      <!-- top-l to top single -->
-      <line x1="14" y1="22" x2="28" y2="14" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round"/>
-      <!-- top to top-r double -->
-      <line x1="28" y1="14" x2="42" y2="22" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round"/>
-      <line x1="29" y1="16.5" x2="43" y2="24.5" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round" opacity="0.4"/>
-      <!-- top-r to bot-r single -->
-      <line x1="42" y1="22" x2="42" y2="38" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round"/>
-      <!-- bot-r to bot double -->
-      <line x1="42" y1="38" x2="28" y2="46" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round"/>
-      <line x1="41" y1="40.5" x2="27" y2="48.5" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round" opacity="0.4"/>
-      <!-- bot to bot-l single -->
-      <line x1="28" y1="46" x2="14" y2="38" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round"/>
-      <!-- bot-l to top-l double -->
-      <line x1="14" y1="38" x2="14" y2="22" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round"/>
-      <line x1="11.5" y1="38" x2="11.5" y2="22" stroke="#c8a97e" stroke-width="1.4" stroke-linecap="round" opacity="0.4"/>
-      <!-- Aromatic dashed circle -->
-      <circle cx="28" cy="30" r="8" fill="none" stroke="#c8a97e" stroke-width="0.7" stroke-dasharray="3 2.5" opacity="0.3"/>
-      <!-- N atoms -->
-      <circle cx="28" cy="14" r="4" fill="#0d0b0f" stroke="#c8a97e" stroke-width="1"/>
-      <text font-size="5.5" font-weight="600" fill="#c8a97e" x="28" y="14" text-anchor="middle" dominant-baseline="central">N</text>
-      <circle cx="28" cy="46" r="4" fill="#0d0b0f" stroke="#c8a97e" stroke-width="1"/>
-      <text font-size="5.5" font-weight="600" fill="#c8a97e" x="28" y="46" text-anchor="middle" dominant-baseline="central">N</text>
-      <!-- C atoms -->
-      <circle cx="42" cy="22" r="3.2" fill="#0d0b0f" stroke="#c8a97e" stroke-width="0.8" opacity="0.7"/>
-      <text font-size="4.5" fill="#c8a97e" opacity="0.65" x="42" y="22" text-anchor="middle" dominant-baseline="central">C</text>
-      <circle cx="42" cy="38" r="3.2" fill="#0d0b0f" stroke="#c8a97e" stroke-width="0.8" opacity="0.7"/>
-      <text font-size="4.5" fill="#c8a97e" opacity="0.65" x="42" y="38" text-anchor="middle" dominant-baseline="central">C</text>
-      <circle cx="14" cy="22" r="3.2" fill="#0d0b0f" stroke="#c8a97e" stroke-width="0.8" opacity="0.7"/>
-      <text font-size="4.5" fill="#c8a97e" opacity="0.65" x="14" y="22" text-anchor="middle" dominant-baseline="central">C</text>
-      <circle cx="14" cy="38" r="3.2" fill="#0d0b0f" stroke="#c8a97e" stroke-width="0.8" opacity="0.7"/>
-      <text font-size="4.5" fill="#c8a97e" opacity="0.65" x="14" y="38" text-anchor="middle" dominant-baseline="central">C</text>
-      <!-- Floating particles -->
-      <circle cx="28" cy="7" r="1.2" fill="#c8a97e" opacity="0.5"/>
-      <circle cx="33" cy="4" r="0.9" fill="#9b6fa0" opacity="0.45"/>
-      <circle cx="23" cy="3" r="0.7" fill="#6fb3a0" opacity="0.35"/>
+  <a href="/" class="logo-link" onclick="reset(); return false;" title="Yeni analiz yap">
+    <svg width="30" height="30" viewBox="0 0 30 30" fill="none" style="flex-shrink:0;">
+      <circle cx="15" cy="15" r="13" stroke="rgba(201,169,110,0.45)" stroke-width="1"/>
+      <circle cx="15" cy="15" r="5" fill="rgba(201,169,110,0.7)"/>
+      <line x1="15" y1="4" x2="15" y2="8" stroke="rgba(201,169,110,0.5)" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
-  </div>
-  <h1>Koku <em>Dedektifi</em></h1>
+    <span style="font-family:'Cormorant Garamond', Georgia, serif;font-style:italic;font-size:17px;color:#EBE4D8;line-height:1;">
+      Koku <span style="color:#C9A96E;">Dedektifi</span>
+    </span>
+  </a>
   <div class="header-actions">
     <button class="billing-entry-btn" id="billing-entry-btn" type="button" onclick="toggleBillingPanel()">Pro</button>
     <button class="auth-entry-btn" id="auth-entry-btn" type="button" onclick="toggleAuthPanel()">Giriş Yap</button>

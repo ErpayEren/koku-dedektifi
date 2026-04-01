@@ -1,7 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { animate, useMotionValue, useSpring } from 'framer-motion';
+import { getPublicMoleculeByName } from '@/lib/catalog-public';
 import { UI } from '@/lib/strings';
 import type { AnalysisResult, MoleculeItem, TechnicalItem } from '@/lib/client/types';
 import { Card } from './ui/Card';
@@ -30,6 +32,12 @@ interface MoleculeLookupRow {
   formula?: string;
   family?: string;
   origin?: string;
+}
+
+const MOLECULE_ACCENTS = ['#d8b06d', '#a78bfa', '#2dd4bf', '#d58ebb', '#7ecfe5'] as const;
+
+function moleculeAccent(index: number): string {
+  return MOLECULE_ACCENTS[index % MOLECULE_ACCENTS.length];
 }
 
 function toList(value: unknown, max = 12): string[] {
@@ -107,24 +115,53 @@ function resolveMoleculeOrigin(origin: string): string[] {
   return list.length > 0 ? list.slice(0, 4) : ['Nota izi'];
 }
 
+function buildMoleculeExplanation(
+  item: MoleculeItem,
+  note: MoleculeData['note'],
+  profileTags: string[],
+  families: string,
+): string {
+  const roleLabel = note === 'top' ? 'ilk açılışı' : note === 'heart' ? 'kalp notalarını' : 'kalan izi';
+  const profileText = profileTags.length > 0 ? profileTags.slice(0, 2).join(' · ').toLowerCase() : '';
+  const familyText = families.trim();
+
+  if (profileText && familyText) {
+    return `${item.name}, ${familyText.toLowerCase()} çizgiyi ${profileText} karakteriyle güçlendirip bu parfümün ${roleLabel} belirginleştiriyor.`;
+  }
+
+  if (familyText) {
+    return `${item.name}, ${familyText.toLowerCase()} etkisiyle bu parfümün ${roleLabel} karakteristik hale getiriyor.`;
+  }
+
+  return `${item.name}, kompozisyonun ${roleLabel} öne çıkaran karakter moleküllerden biri olarak çalışıyor.`;
+}
+
 function toMoleculeData(molecules: MoleculeItem[], lookup: Record<string, MoleculeLookupRow>): MoleculeData[] {
   return molecules.map((item, index) => {
     const resolved = lookup[item.name.toLowerCase()] || {};
-    const smiles = resolved.smiles || item.smiles || undefined;
+    const catalog = getPublicMoleculeByName(item.name);
+    const note = normalizeMoleculeNote(item.note, index, molecules.length);
+    const smiles = resolved.smiles || item.smiles || catalog?.smiles || undefined;
     const verified = Boolean(smiles);
-    const formula = verified ? resolved.formula || item.formula || '' : '';
-    const family = resolved.family || item.family || '';
-    const origin = resolved.origin || item.origin || '';
+    const formula = verified ? resolved.formula || item.formula || catalog?.iupac_name || '' : '';
+    const family = resolved.family || item.family || catalog?.families.join(' · ') || '';
+    const origin = resolved.origin || item.origin || catalog?.natural_source || '';
+    const profileTags = catalog?.profile_tags ?? [];
 
     return {
       name: item.name,
       formula,
       type: verified ? resolveMoleculeType(family) : 'Doğrulanmamış nota izi',
-      note: normalizeMoleculeNote(item.note, index, molecules.length),
+      note,
       origin: resolveMoleculeOrigin(origin),
       pct: parseContributionPct(item.contribution, index, molecules.length),
       smiles,
       verified,
+      slug: catalog?.slug,
+      casNumber: catalog?.cas_number,
+      profileTags,
+      funFact: catalog?.fun_fact,
+      explanation: buildMoleculeExplanation(item, note, profileTags, family),
     };
   });
 }
@@ -178,12 +215,6 @@ function resolveConfidence(result: AnalysisResult): number {
   }
 
   return derivedScore;
-}
-
-function noteColor(note: MoleculeData['note']): string {
-  if (note === 'top') return 'var(--gold)';
-  if (note === 'heart') return '#a78bfa';
-  return 'var(--sage)';
 }
 
 function resolveMetricScore(items: TechnicalItem[], matcher: RegExp, fallback: number): number {
@@ -275,6 +306,8 @@ export const AnalysisResults = memo(function AnalysisResults({
   const [moleculeLookup, setMoleculeLookup] = useState<Record<string, MoleculeLookupRow>>({});
   const [onboardingPreferences, setOnboardingPreferences] = useState<OnboardingPreferences | null>(null);
   const shareCardRef = useRef<HTMLDivElement | null>(null);
+  const moleculeShareRef = useRef<HTMLDivElement | null>(null);
+  const [moleculeShareBusy, setMoleculeShareBusy] = useState(false);
 
   useEffect(() => {
     if (!isAnalyzing) {
@@ -477,6 +510,48 @@ export const AnalysisResults = memo(function AnalysisResults({
     }
   }
 
+  async function shareMoleculesCard(): Promise<void> {
+    if (!moleculeShareRef.current || moleculeShareBusy || !molecule || !activeResult) return;
+    const currentResult = activeResult;
+    setMoleculeShareBusy(true);
+    try {
+      const { toPng } = await import('html-to-image');
+      const dataUrl = await toPng(moleculeShareRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: '#09080a',
+      });
+      const blob = await fetch(dataUrl).then((response) => response.blob());
+      const file = new File([blob], `${molecule.name.toLowerCase().replace(/\s+/g, '-')}-molekuller.png`, {
+        type: 'image/png',
+      });
+      const supportsFiles =
+        typeof navigator !== 'undefined' &&
+        typeof navigator.share === 'function' &&
+        (typeof navigator.canShare !== 'function' || navigator.canShare({ files: [file] }));
+
+      if (supportsFiles) {
+        await navigator.share({
+          title: `${currentResult.name} · Molekül Katmanı`,
+          files: [file],
+        });
+      } else {
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = downloadUrl;
+        anchor.download = file.name;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        window.URL.revokeObjectURL(downloadUrl);
+      }
+    } catch (error) {
+      console.error('[analysis-results] molecule share failed.', error);
+    } finally {
+      setMoleculeShareBusy(false);
+    }
+  }
+
   return (
     <section className="anim-up-2 px-5 pb-8 md:px-12">
       <SectionDivider label="Analiz Sonucu" />
@@ -642,8 +717,20 @@ export const AnalysisResults = memo(function AnalysisResults({
                   </svg>
                 </button>
                 <div className="min-w-0 text-center">
-                  <p className="text-[2rem] font-semibold leading-none text-cream">{molecule.name}</p>
-                  <p className="text-[12px] text-muted">{molecule.formula || 'Doğrulanmış formül yok'}</p>
+                  {molecule.slug ? (
+                    <Link
+                      href={`/molekuller/${molecule.slug}`}
+                      className="inline-block text-[2rem] font-semibold leading-none text-cream transition-colors hover:text-gold"
+                    >
+                      {molecule.name}
+                    </Link>
+                  ) : (
+                    <p className="text-[2rem] font-semibold leading-none text-cream">{molecule.name}</p>
+                  )}
+                  <p className="text-[12px] text-muted">
+                    {molecule.formula || 'Doğrulanmış formül yok'}
+                    {molecule.casNumber ? ` · CAS ${molecule.casNumber}` : ''}
+                  </p>
                   <p className="mt-1 text-[11px] text-sage">{molecule.type || 'Molekül ailesi'}</p>
                 </div>
                 <button
@@ -676,7 +763,7 @@ export const AnalysisResults = memo(function AnalysisResults({
                   <div className="mt-4 max-h-[180px] space-y-2 overflow-auto pr-1">
                     {moleculeData.map((item, index) => {
                       const pct = clampPercent(item.pct, 50);
-                      const color = noteColor(item.note);
+                      const accent = moleculeAccent(index);
                       return (
                         <button
                           key={`${item.name}-${index}-row`}
@@ -690,12 +777,19 @@ export const AnalysisResults = memo(function AnalysisResults({
                         >
                           <div className="flex items-center justify-between gap-3">
                             <span className="truncate text-[12px] text-cream">{item.name}</span>
-                            <span className="text-[11px] font-mono" style={{ color }}>
+                            <span className="text-[11px] font-mono" style={{ color: accent }}>
                               {pct}%
                             </span>
                           </div>
                           <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[.08]">
-                            <div className="mol-bar h-full rounded-full" style={{ width: barsReady ? `${pct}%` : '0%', background: color, transition: 'width .8s var(--ease)' }} />
+                            <div
+                              className="mol-bar h-full rounded-full"
+                              style={{
+                                width: barsReady ? `${pct}%` : '0%',
+                                background: accent,
+                                transition: 'width .8s var(--ease)',
+                              }}
+                            />
                           </div>
                         </button>
                       );
@@ -703,6 +797,43 @@ export const AnalysisResults = memo(function AnalysisResults({
                   </div>
                 </>
               ) : null}
+
+              {molecule.explanation ? (
+                <div className="mt-4 rounded-2xl border border-white/[.08] bg-white/[.03] px-4 py-3">
+                  <p className="text-[10px] font-mono uppercase tracking-[.12em] text-gold">Molekül Yorumu</p>
+                  <p className="mt-2 text-[13px] leading-relaxed text-cream/92">{molecule.explanation}</p>
+                </div>
+              ) : null}
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {molecule.profileTags?.slice(0, 3).map((tag) => (
+                  <span
+                    key={`${molecule.name}-${tag}`}
+                    className="rounded-full border border-white/[.08] px-2.5 py-1.5 text-[10px] font-mono text-muted"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                {molecule.slug ? (
+                  <Link
+                    href={`/molekuller/${molecule.slug}`}
+                    className="rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)]/20 px-3.5 py-2 text-[10px] font-mono uppercase tracking-[.08em] text-gold transition-colors hover:bg-[var(--gold-dim)]/35"
+                  >
+                    Detay sayfasına git
+                  </Link>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => void shareMoleculesCard()}
+                  disabled={moleculeShareBusy}
+                  className="rounded-full border border-white/[.08] bg-black/20 px-3.5 py-2 text-[10px] font-mono uppercase tracking-[.08em] text-muted transition-colors hover:border-[var(--gold-line)] hover:text-cream disabled:opacity-50"
+                >
+                  {moleculeShareBusy ? 'Hazırlanıyor' : 'Bu Molekülleri Paylaş'}
+                </button>
+              </div>
             </div>
           ) : (
             <p className="text-[12px] text-muted">Bu analizde doğrulanmış molekül izi bulunamadı.</p>
@@ -764,6 +895,45 @@ export const AnalysisResults = memo(function AnalysisResults({
           </div>
         </Card>
       </div>
+
+      {molecule ? (
+        <div
+          ref={moleculeShareRef}
+          className="fixed -left-[9999px] top-0 w-[720px] overflow-hidden rounded-[32px] border border-white/[.08] bg-[#09080a] p-8 text-cream"
+        >
+          <p className="text-[11px] font-mono uppercase tracking-[.16em] text-gold">Molekül Katmanı</p>
+          <div className="mt-4 flex items-start justify-between gap-6">
+            <div className="min-w-0 flex-1">
+              <p className="text-[12px] font-mono uppercase tracking-[.12em] text-muted">{activeResult.family || 'Koku Profili'}</p>
+              <h3 className="mt-3 font-display text-[2.4rem] leading-[1.02] text-cream">{activeResult.name}</h3>
+              <p className="mt-4 text-[14px] leading-relaxed text-cream/88">
+                {molecule.explanation || `${molecule.name}, bu kompozisyonun belirgin izini taşıyan karakter moleküllerden biri.`}
+              </p>
+            </div>
+            <div className="w-[240px] shrink-0 rounded-[28px] border border-white/[.08] bg-[#0c0b10] p-4">
+              <MoleculeVisual name={molecule.name} smiles={molecule.smiles} formula={molecule.formula} compact />
+            </div>
+          </div>
+          <div className="mt-6 grid grid-cols-3 gap-3">
+            {moleculeData.slice(0, 3).map((item, index) => (
+              <div key={`${item.name}-share-${index}`} className="rounded-2xl border border-white/[.08] bg-white/[.03] p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-mono uppercase tracking-[.12em]" style={{ color: moleculeAccent(index) }}>
+                    {item.note === 'top' ? 'Üst Nota' : item.note === 'heart' ? 'Kalp Nota' : 'Alt Nota'}
+                  </span>
+                  <span className="text-[12px] font-mono text-cream/70">{clampPercent(item.pct, 50)}%</span>
+                </div>
+                <p className="mt-3 text-[17px] font-semibold text-cream">{item.name}</p>
+                <p className="mt-1 text-[12px] text-muted">{item.type}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 flex items-center justify-between">
+            <p className="text-[12px] text-muted">Koku Dedektifi ile moleküler düzeyde analiz edildi.</p>
+            <p className="text-[12px] font-mono uppercase tracking-[.14em] text-gold">kokudedektifi.com</p>
+          </div>
+        </div>
+      ) : null}
 
       {molCardIdx !== null ? <MoleculeCard molecules={moleculeData} initialIndex={molCardIdx} onClose={() => setMolCardIdx(null)} /> : null}
     </section>

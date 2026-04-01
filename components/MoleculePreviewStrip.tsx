@@ -1,91 +1,50 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { getFeaturedMolecules } from '@/lib/catalog-public';
 import { MoleculeCard, type MoleculeData } from './MoleculeCard';
 import { MoleculeVisual } from './MoleculeVisual';
 
-const MOLECULE_POOL: MoleculeData[] = [
-  {
-    name: 'Ambroxide',
-    formula: 'C16H28O',
-    type: 'Amber • mineral • sıcak iz',
-    note: 'base',
-    origin: ['Amber akoru', 'Modern kalıcılık'],
-    pct: 74,
-    smiles: 'CC1(C)CCC2(C(C1)CCC3C2CC=C4C3(CCCC4(C)C)O)C',
-    verified: true,
-  },
-  {
-    name: 'Iso E Super',
-    formula: 'C16H26O',
-    type: 'Kadifemsi sedir • ten sıcaklığı',
-    note: 'heart',
-    origin: ['Odunsu iskelet', 'Difüzyon artışı'],
-    pct: 68,
-    smiles: 'CC1=CC[C@H](C(C)(C)O)CC1=O',
-    verified: true,
-  },
-  {
-    name: 'Hedione',
-    formula: 'C13H22O3',
-    type: 'Havadar yasemin • parlaklık',
-    note: 'heart',
-    origin: ['Beyaz çiçek izi', 'Açılım desteği'],
-    pct: 62,
-    smiles: 'CC(=O)CCC[C@H](C)C(=O)OCC',
-    verified: true,
-  },
-  {
-    name: 'Cashmeran',
-    formula: 'C14H22O',
-    type: 'Miskimsi odun • sıcak gövde',
-    note: 'base',
-    origin: ['Kaşmir akoru', 'Derin iz'],
-    pct: 57,
-    smiles: 'CC1(C)CC[C@@H](CC1)C(C)(C)O',
-    verified: true,
-  },
-  {
-    name: 'Galaxolide',
-    formula: 'C18H26O',
-    type: 'Temiz misk • yumuşak aura',
-    note: 'base',
-    origin: ['Misk dokusu', 'Ten etkisi'],
-    pct: 54,
-    smiles: 'CC1=CC(C)(C)CCC1(C)C2=CC(C)(C)CCO2',
-    verified: true,
-  },
-  {
-    name: 'Vanillin',
-    formula: 'C8H8O3',
-    type: 'Kremamsı vanilya • imza tatlılık',
-    note: 'base',
-    origin: ['Vanilya izi', 'Gourmand sıcaklık'],
-    pct: 49,
-    smiles: 'COC1=C(C=CC(=C1)C=O)O',
-    verified: true,
-  },
-];
-
-function pickFeaturedMolecules(): MoleculeData[] {
-  const copy = [...MOLECULE_POOL];
-  for (let index = copy.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+function buildPreviewExplanation(type: string, profileTags: string[]): string {
+  const tags = profileTags.slice(0, 2).join(' · ');
+  if (tags) {
+    return `${type} çizgisini ${tags.toLowerCase()} karakteriyle görünür kılar.`;
   }
-  return copy.slice(0, 3);
+  return `${type} etkisini parfüm iskeletinde daha net hissettirir.`;
 }
 
 export function MoleculePreviewStrip() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [molecules, setMolecules] = useState<MoleculeData[]>(() => MOLECULE_POOL.slice(0, 3));
+
+  const molecules = useMemo<MoleculeData[]>(
+    () =>
+      getFeaturedMolecules().map((item) => ({
+        name: item.name,
+        formula: item.iupac_name,
+        type: item.families.join(' · '),
+        note:
+          item.longevity_contribution === 'top'
+            ? 'top'
+            : item.longevity_contribution === 'heart'
+              ? 'heart'
+              : 'base',
+        origin: [item.natural_source, `${item.found_in_fragrances.length} parfümde görülüyor`],
+        pct: Math.min(92, Math.max(24, Math.round(item.usage_percentage_typical * 6))),
+        smiles: item.smiles,
+        verified: true,
+        slug: item.slug,
+        casNumber: item.cas_number,
+        profileTags: item.profile_tags,
+        funFact: item.fun_fact,
+        explanation: buildPreviewExplanation(item.odor_description, item.profile_tags),
+      })),
+    [],
+  );
 
   useEffect(() => {
-    setMolecules(pickFeaturedMolecules());
-  }, []);
+    if (molecules.length <= 1) return;
 
-  useEffect(() => {
     const timer = window.setInterval(() => {
       setActiveIndex((current) => (current + 1) % molecules.length);
     }, 2600);
@@ -99,7 +58,7 @@ export function MoleculePreviewStrip() {
         <div className="mb-3 flex items-center gap-3">
           <div className="h-px w-10 bg-[var(--gold-line)]" />
           <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-gold/80">
-            Moleküler Önizleme
+            Moleküler önizleme
           </p>
         </div>
 
@@ -120,7 +79,7 @@ export function MoleculePreviewStrip() {
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[11px] font-mono uppercase tracking-[0.12em] text-gold/75">
-                      {active ? 'Öne çıkan molekül' : 'İmza yapı'}
+                      {active ? 'İkonik molekül' : 'Molekül kartı'}
                     </p>
                     <h3 className="mt-2 text-[1.35rem] font-semibold leading-none text-cream">
                       {molecule.name}

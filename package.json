@@ -7,6 +7,7 @@
     "build": "next build",
     "build:vercel": "next build",
     "start": "next start",
+    "seed:catalog": "node scripts/seed-fragrance-catalog.mjs",
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "lint": "next lint",

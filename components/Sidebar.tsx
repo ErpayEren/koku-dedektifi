@@ -1,35 +1,59 @@
 'use client';
 
 import Link from 'next/link';
+import type { Route } from 'next';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import {
+  Archive,
+  CalendarDays,
+  GitCompare,
+  History,
+  Layers,
+  ScanLine,
+  Search,
+  Sparkles,
+  Wind,
+  type LucideIcon,
+} from 'lucide-react';
 import { getHistory } from '@/lib/client/storage';
 import { UI } from '@/lib/strings';
 import { Logo } from './ui/Logo';
 
-const NAV = [
+interface NavItem {
+  label: string;
+  href: Route;
+  Icon: LucideIcon;
+}
+
+interface NavGroup {
+  section: string;
+  items: NavItem[];
+}
+
+const NAV: NavGroup[] = [
   {
-    section: 'Analiz',
+    section: 'ANALİZ',
     items: [
-      { label: UI.navNewAnalysis, href: '/' },
-      { label: UI.navHistory, href: '/gecmis' },
-      { label: UI.navCompare, href: '/karsilastir' },
+      { label: 'Yeni Analiz', href: '/', Icon: Sparkles },
+      { label: 'Koku Geçmişi', href: '/gecmis', Icon: History },
+      { label: 'Karşılaştır', href: '/karsilastir', Icon: GitCompare },
     ],
   },
   {
-    section: 'Koleksiyon',
+    section: 'KOLEKSİYON',
     items: [
-      { label: UI.navWardrobe, href: '/dolap' },
-      { label: UI.navWearRoutine, href: '/wear' },
-      { label: UI.navLayeringLab, href: '/layering' },
+      { label: 'Koku Dolabım', href: '/dolap', Icon: Archive },
+      { label: 'Koku Rutinim', href: '/wear', Icon: CalendarDays },
+      { label: 'Katmanlama Lab', href: '/layering', Icon: Layers },
     ],
   },
   {
-    section: 'Keşfet',
+    section: 'KEŞFET',
     items: [
-      { label: UI.navNoteFinder, href: '/notalar' },
-      { label: UI.navBarcode, href: '/barkod' },
-      { label: UI.navFeed, href: '/akis' },
+      { label: 'Nota Avcısı', href: '/notalar', Icon: Search },
+      { label: 'Barkod Tara', href: '/barkod', Icon: ScanLine },
+      { label: 'Koku Akışı', href: '/akis', Icon: Wind },
     ],
   },
 ] as const;
@@ -48,39 +72,47 @@ export function Sidebar() {
     setTodayUsage(getTodayCount());
   }, [path]);
 
-  const usagePct = useMemo(() => 0, []);
+  const usagePct = useMemo(() => Math.min(100, todayUsage * 18), [todayUsage]);
 
   return (
-    <aside className="order-2 z-20 w-full min-w-0 border-t border-white/[.06] py-6 md:order-1 md:sticky md:top-0 md:h-screen md:w-64 md:min-w-[280px] md:border-r md:border-t-0 lg:w-80">
-      <div className="flex h-full w-full flex-col rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5 backdrop-blur-sm md:rounded-none md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-0">
-        <div className="border-b border-white/[.06] px-4 pb-5 md:px-6 md:pb-6">
+    <aside className="order-2 z-20 w-full min-w-0 border-t border-white/[.06] py-4 md:order-1 md:sticky md:top-0 md:h-screen md:w-64 md:min-w-[280px] md:border-r md:border-t-0 md:py-0 lg:w-80">
+      <div className="flex h-full min-h-0 w-full flex-col rounded-2xl border border-white/[0.07] bg-white/[0.03] backdrop-blur-sm md:rounded-none md:border-0 md:bg-transparent md:backdrop-blur-0">
+        <div className="flex h-[92px] shrink-0 items-center gap-3 px-5 md:px-6">
           <Logo size="sidebar" />
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-5 md:py-6" role="navigation" aria-label="Ana menü">
-          {NAV.map((group) => (
-            <div key={group.section} className="mb-6">
-              <p className="mb-2 px-7 text-[9px] font-mono uppercase tracking-[.14em] text-hint">
-                {group.section}
+        <div className="mx-0 h-px w-full shrink-0 bg-white/[.08]" />
+
+        <nav className="scrollbar-none flex-1 overflow-y-auto py-4" role="navigation" aria-label="Ana menü">
+          {NAV.map((category, groupIndex) => (
+            <div key={category.section}>
+              <p
+                className={`px-4 text-[10px] font-medium tracking-[0.2em] text-white/30 ${
+                  groupIndex === 0 ? 'mb-1 mt-0' : 'mb-1 mt-6'
+                }`}
+              >
+                {category.section}
               </p>
-              {group.items.map((item) => {
-                const active = path === item.href;
+
+              {category.items.map((item) => {
+                const isActive = path === item.href;
+                const Icon = item.Icon;
+
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`nav-item ${active ? 'active' : ''} flex items-center gap-2.5 border-l-2 px-7 py-2.5 text-[13px] no-underline transition-all ${
-                      active
-                        ? 'border-gold bg-gradient-to-r from-[var(--gold-dim)] to-transparent text-cream'
-                        : 'border-transparent text-muted hover:bg-[var(--bg-raise)] hover:text-cream'
+                    className={`mx-2 flex min-h-[48px] items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 ${
+                      isActive
+                        ? 'bg-amber-500/10 text-amber-400'
+                        : 'text-white/60 hover:bg-white/5 hover:text-white/90 active:bg-white/8'
                     }`}
                   >
-                    <div
-                      className={`h-[5px] w-[5px] flex-shrink-0 rounded-full ${
-                        active ? 'bg-gold' : 'bg-current opacity-40'
-                      }`}
-                    />
-                    <span className="flex-1">{item.label}</span>
+                    <span className={`h-4 w-4 shrink-0 ${isActive ? 'text-amber-400' : 'text-white/40'}`}>
+                      <Icon className="h-4 w-4" strokeWidth={1.85} />
+                    </span>
+                    <span className="text-sm font-medium">{item.label}</span>
+                    {isActive ? <div className="ml-auto h-4 w-1 rounded-full bg-amber-400" /> : null}
                   </Link>
                 );
               })}
@@ -88,30 +120,29 @@ export function Sidebar() {
           ))}
         </nav>
 
-        <div className="border-t border-white/[.06] px-4 pt-5 md:px-7">
-          <div>
-            <div className="mb-1.5 flex justify-between">
-              <span className="text-[10px] font-mono text-muted">{UI.navDailyLimit}</span>
-              <span className="text-[10px] font-mono text-gold">
-                {todayUsage}/∞
-              </span>
-            </div>
-            <div className="h-[2px] overflow-hidden rounded-full bg-white/[.08]">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${usagePct}%`,
-                  background: usagePct >= 80 ? 'var(--danger)' : 'var(--gold)',
-                }}
-              />
-            </div>
+        <div className="shrink-0 border-t border-white/[.08] px-4 pb-8 pt-4">
+          <div className="mb-3 flex items-center justify-between px-1">
+            <span className="text-[11px] tracking-wide text-white/40">{UI.navDailyLimit}</span>
+            <span className="text-[11px] font-medium text-amber-400">{todayUsage}/∞</span>
+          </div>
+
+          <div className="mb-4 h-px bg-white/[.08]" />
+
+          <div className="mb-4 h-[3px] overflow-hidden rounded-full bg-white/[.08]">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${usagePct}%`,
+                background: usagePct >= 80 ? 'var(--danger)' : 'linear-gradient(90deg, #d97706 0%, #f59e0b 100%)',
+              }}
+            />
           </div>
 
           <Link
             href="/paketler"
-            className="mt-3 block w-full rounded border border-[var(--gold-line)] bg-[var(--gold-dim)] py-2.5 text-center text-[11px] font-mono uppercase tracking-[.08em] text-gold transition-colors hover:bg-gold/20"
+            className="block w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 py-3.5 text-center text-sm font-bold tracking-widest text-black shadow-[0_4px_20px_rgba(217,119,6,0.35)] transition-transform active:scale-[0.98]"
           >
-            {UI.navUpgrade}
+            {"PRO'YA GEÇ"}
           </Link>
         </div>
       </div>

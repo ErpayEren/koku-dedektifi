@@ -35,6 +35,14 @@
   --ease: cubic-bezier(.22, .68, 0, 1.2);
 }
 
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 html {
   background: var(--bg);
   color: var(--cream);

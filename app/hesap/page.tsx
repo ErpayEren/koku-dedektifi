@@ -210,10 +210,12 @@ export default function HesapPage() {
   return (
     <AppShell>
       <TopBar title="Hesap" />
-      <div className="px-5 py-8 md:px-12">
+
+      <div className="min-h-0 px-5 py-8 pb-24 md:px-12 md:pb-8">
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[380px_1fr]">
           <Card className="p-5 md:p-6 hover-lift">
             <CardTitle>Kimlik</CardTitle>
+
             <div className="space-y-3">
               <input
                 value={email}
@@ -235,44 +237,49 @@ export default function HesapPage() {
                 className="w-full rounded-xl border border-white/[.08] bg-transparent p-3 text-cream outline-none focus:border-[var(--gold-line)]"
               />
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-2">
+
+            <div className="mt-2 flex gap-3">
               <button
                 type="button"
                 disabled={loading}
                 onClick={runLogin}
-                className="rounded-lg border border-white/[.08] py-2.5 text-[11px] uppercase tracking-[.08em] text-cream transition-colors hover:border-[var(--gold-line)]"
+                className="flex-1 rounded-xl border border-white/20 bg-white/5 py-3.5 text-sm font-semibold tracking-wider text-white/80 transition-colors active:bg-white/10"
               >
-                {UI.login}
+                GİRİŞ YAP
               </button>
               <button
                 type="button"
                 disabled={loading}
                 onClick={runRegister}
-                className="rounded-lg bg-gold py-2.5 text-[11px] uppercase tracking-[.08em] text-bg transition-colors hover:bg-[#d7b576]"
+                className="flex-1 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 py-3.5 text-sm font-bold tracking-wider text-black shadow-[0_4px_16px_rgba(217,119,6,0.3)] transition-transform active:scale-[0.98]"
               >
-                {UI.register}
+                KAYIT OL
               </button>
             </div>
-            <button
-              type="button"
-              disabled={!isLoggedIn || loading}
-              onClick={logout}
-              className="mt-2 w-full rounded-lg border border-white/[.08] py-2.5 text-[11px] uppercase tracking-[.08em] text-muted transition-colors hover:text-cream disabled:opacity-40"
-            >
-              {UI.logout}
-            </button>
-            <button
-              type="button"
-              disabled={!isLoggedIn || loading || !sessionReady}
-              onClick={loadProfile}
-              className="mt-2 w-full rounded-lg border border-white/[.08] py-2.5 text-[11px] uppercase tracking-[.08em] text-muted transition-colors hover:text-cream disabled:opacity-40"
-            >
-              Profili Yukle
-            </button>
+
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                disabled={!isLoggedIn || loading || !sessionReady}
+                onClick={loadProfile}
+                className="w-full rounded-xl border border-white/10 bg-white/4 py-3 text-xs font-medium tracking-widest text-white/50 transition-colors active:bg-white/8 disabled:opacity-40"
+              >
+                PROFİLİ YÜKLE
+              </button>
+              <button
+                type="button"
+                disabled={!isLoggedIn || loading}
+                onClick={logout}
+                className="w-full rounded-xl border border-red-500/20 bg-red-500/5 py-3 text-xs font-medium tracking-widest text-red-400/70 transition-colors active:bg-red-500/10 disabled:opacity-40"
+              >
+                ÇIKIŞ YAP
+              </button>
+            </div>
           </Card>
 
           <Card className="p-5 md:p-6 hover-lift">
             <CardTitle>Profil ve Tercihler</CardTitle>
+
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <input
                 value={city}
@@ -297,13 +304,14 @@ export default function HesapPage() {
                 <option value="unisex">Unisex</option>
               </select>
             </div>
+
             <button
               type="button"
               disabled={!isLoggedIn || loading}
               onClick={saveProfile}
-              className="mt-4 rounded-lg bg-gold px-5 py-2.5 text-[11px] uppercase tracking-[.08em] text-bg transition-colors hover:bg-[#d8b676] disabled:opacity-40"
+              className="mt-6 w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 py-4 text-sm font-bold tracking-widest text-black shadow-[0_4px_20px_rgba(217,119,6,0.3)] transition-transform active:scale-[0.99] disabled:opacity-40"
             >
-              {UI.saveProfile}
+              PROFİLİ KAYDET
             </button>
 
             {user ? (

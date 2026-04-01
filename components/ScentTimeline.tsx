@@ -1,19 +1,32 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
 import type { AnalysisTimeline } from '@/lib/client/types';
 
 type TimelineStageId = 't0' | 't1' | 't2' | 't3';
+type PyramidTier = 'ÜST' | 'KALP' | 'ALT';
 
 interface TimelineStage {
-  id: TimelineStageId;
+  key: TimelineStageId;
   label: string;
-  timeLabel: string;
+  timeRange: string;
   notes: string[];
   description: string;
-  tone: string;
-  anchor: number;
+}
+
+interface PyramidCard {
+  label: PyramidTier;
+  notes: string[];
+}
+
+interface StageTone {
+  accent: string;
+  border: string;
+  subtleBorder: string;
+  background: string;
+  softBackground: string;
+  text: string;
+  dotShadow: string;
 }
 
 interface ScentTimelineProps {
@@ -23,29 +36,66 @@ interface ScentTimelineProps {
   timeline?: AnalysisTimeline | null;
 }
 
-const AUTO_ADVANCE_MS = 4600;
-
 const STAGE_META: Array<Omit<TimelineStage, 'notes' | 'description'>> = [
-  { id: 't0', label: 'İlk Dokunuş', timeLabel: '0-15 dk', tone: 'var(--gold)', anchor: 10 },
-  { id: 't1', label: 'Açılım', timeLabel: '15-60 dk', tone: '#a78bfa', anchor: 36 },
-  { id: 't2', label: 'Kalp', timeLabel: '1-3 saat', tone: 'var(--sage)', anchor: 64 },
-  { id: 't3', label: 'Kalan İz', timeLabel: '3 saat+', tone: '#8ab8c0', anchor: 90 },
-] as const;
+  { key: 't0', label: 'İLK DOKUNUŞ', timeRange: '0-15 dk' },
+  { key: 't1', label: 'AÇILIM', timeRange: '15-60 dk' },
+  { key: 't2', label: 'KALP', timeRange: '1-3 saat' },
+  { key: 't3', label: 'DERİN İZ', timeRange: '3 saat+' },
+];
 
-function uniqueNotes(values: string[], max = 5): string[] {
+const STAGE_TONES: Record<TimelineStageId, StageTone> = {
+  t0: {
+    accent: '#C9A96E',
+    border: 'rgba(201,169,110,.42)',
+    subtleBorder: 'rgba(201,169,110,.18)',
+    background: 'rgba(201,169,110,.12)',
+    softBackground: 'rgba(201,169,110,.08)',
+    text: '#E8CF9E',
+    dotShadow: '0 0 10px rgba(201,169,110,.55)',
+  },
+  t1: {
+    accent: '#A78BFA',
+    border: 'rgba(167,139,250,.42)',
+    subtleBorder: 'rgba(167,139,250,.18)',
+    background: 'rgba(167,139,250,.14)',
+    softBackground: 'rgba(167,139,250,.09)',
+    text: '#D7C8FF',
+    dotShadow: '0 0 10px rgba(167,139,250,.58)',
+  },
+  t2: {
+    accent: '#7EB8A4',
+    border: 'rgba(126,184,164,.42)',
+    subtleBorder: 'rgba(126,184,164,.18)',
+    background: 'rgba(126,184,164,.14)',
+    softBackground: 'rgba(126,184,164,.09)',
+    text: '#BCE3D6',
+    dotShadow: '0 0 10px rgba(126,184,164,.52)',
+  },
+  t3: {
+    accent: '#8A8480',
+    border: 'rgba(138,132,128,.34)',
+    subtleBorder: 'rgba(138,132,128,.16)',
+    background: 'rgba(138,132,128,.12)',
+    softBackground: 'rgba(138,132,128,.08)',
+    text: '#D0CBC7',
+    dotShadow: '0 0 10px rgba(138,132,128,.4)',
+  },
+};
+
+function uniqueNotes(values: string[], max = 6): string[] {
   const seen = new Set<string>();
-  const out: string[] = [];
+  const items: string[] = [];
 
   values.forEach((value) => {
     const note = String(value || '').trim();
     if (!note) return;
-    const key = note.toLowerCase();
+    const key = note.toLocaleLowerCase('tr-TR');
     if (seen.has(key)) return;
     seen.add(key);
-    out.push(note);
+    items.push(note);
   });
 
-  return out.slice(0, max);
+  return items.slice(0, max);
 }
 
 function buildDescriptions(
@@ -54,255 +104,233 @@ function buildDescriptions(
   heartNotes: string[],
   baseNotes: string[],
 ): Record<TimelineStageId, string> {
+  const topPrimary = uniqueNotes(topNotes, 3);
+  const heartPrimary = uniqueNotes(heartNotes, 3);
+  const basePrimary = uniqueNotes(baseNotes, 3);
+
   return {
     t0:
       timeline?.t0 ||
-      `${topNotes[0] || 'Üst akor'} ilk anda dikkat çeker; koku henüz tenle tam bütünleşmeden ışığını verir.`,
+      `${topPrimary.join(', ') || 'Üst akor'} ilk temasta öne çıkar; koku henüz tenle yeni buluşurken ilk izlenimi belirler.`,
     t1:
       timeline?.t1 ||
-      `${heartNotes[0] || 'Kalp notası'} görünmeye başlar; kompozisyon burada daha sıcak ve daha okunur hâle gelir.`,
+      `${uniqueNotes([...topPrimary, ...heartPrimary], 4).join(', ') || 'Açılış akoru'} kısa süre içinde görünür olur ve karakterin yönünü netleştirir.`,
     t2:
       timeline?.t2 ||
-      `${heartNotes.slice(0, 2).join(', ') || 'Kalp akışı'} kokunun asıl kimliğini taşır ve profili belirginleştirir.`,
+      `${heartPrimary.join(', ') || 'Kalp notaları'} kompozisyonun ana omurgasını taşır ve kokunun asıl kimliğini burada hissedersin.`,
     t3:
       timeline?.t3 ||
-      `${baseNotes.slice(0, 2).join(', ') || 'Baz iz'} tende kalan kalıcı imzaya dönüşür.`,
+      `${basePrimary.join(', ') || 'Baz iz'} tende kalan finali kurar; kalıcılık ve imza etkisi bu katmanda yerleşir.`,
   };
 }
 
-function stagePreview(notes: string[]): string {
-  if (notes.length === 0) return 'Veri sınırlı';
-  return notes.slice(0, 3).join(' • ');
+function progressGradientForStage(stage: TimelineStageId): string {
+  if (stage === 't0') {
+    return 'linear-gradient(90deg, #C9A96E 0%, #E4C790 100%)';
+  }
+  if (stage === 't1') {
+    return 'linear-gradient(90deg, #C9A96E 0%, #B996EF 46%, #A78BFA 100%)';
+  }
+  if (stage === 't2') {
+    return 'linear-gradient(90deg, #C9A96E 0%, #A78BFA 42%, #7EB8A4 100%)';
+  }
+  return 'linear-gradient(90deg, #C9A96E 0%, #A78BFA 34%, #7EB8A4 68%, #8A8480 100%)';
 }
 
 export function ScentTimeline({ topNotes, heartNotes, baseNotes, timeline }: ScentTimelineProps) {
-  const [activeIndex, setActiveIndex] = useState(1);
+  const [activeStep, setActiveStep] = useState(0);
 
-  const stages = useMemo<TimelineStage[]>(() => {
+  const steps = useMemo<TimelineStage[]>(() => {
     const descriptions = buildDescriptions(timeline, topNotes, heartNotes, baseNotes);
+
     return [
       {
         ...STAGE_META[0],
-        notes: uniqueNotes(topNotes),
+        notes: uniqueNotes(topNotes, 4),
         description: descriptions.t0,
       },
       {
         ...STAGE_META[1],
-        notes: uniqueNotes([...topNotes.slice(0, 2), ...heartNotes.slice(0, 2)]),
+        notes: uniqueNotes([...topNotes.slice(0, 2), ...heartNotes.slice(0, 3)], 5),
         description: descriptions.t1,
       },
       {
         ...STAGE_META[2],
-        notes: uniqueNotes(heartNotes),
+        notes: uniqueNotes(heartNotes, 5),
         description: descriptions.t2,
       },
       {
         ...STAGE_META[3],
-        notes: uniqueNotes(baseNotes),
+        notes: uniqueNotes(baseNotes, 5),
         description: descriptions.t3,
       },
     ];
   }, [baseNotes, heartNotes, timeline, topNotes]);
 
+  const pyramidCards = useMemo<PyramidCard[]>(
+    () => [
+      { label: 'ÜST', notes: uniqueNotes(topNotes, 6) },
+      { label: 'KALP', notes: uniqueNotes(heartNotes, 6) },
+      { label: 'ALT', notes: uniqueNotes(baseNotes, 6) },
+    ],
+    [baseNotes, heartNotes, topNotes],
+  );
+
   useEffect(() => {
-    setActiveIndex(1);
+    setActiveStep(0);
   }, [timeline, topNotes, heartNotes, baseNotes]);
 
-  useEffect(() => {
-    if (stages.length <= 1) return undefined;
-    const timer = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % stages.length);
-    }, AUTO_ADVANCE_MS);
-    return () => window.clearInterval(timer);
-  }, [stages.length]);
-
-  const activeStage = stages[activeIndex] ?? stages[0];
+  const activeStepData = steps[activeStep] ?? steps[0];
+  const activeTone = STAGE_TONES[activeStepData.key] ?? STAGE_TONES.t0;
+  const progressPercent = steps.length > 0 ? ((activeStep + 1) / steps.length) * 100 : 0;
 
   return (
-    <div className="flex flex-col gap-4 py-1">
-      <div className="flex flex-wrap gap-2">
-        {stages.map((stage, index) => {
-          const active = index === activeIndex;
-          return (
-            <button
-              key={stage.id}
-              type="button"
-              onClick={() => setActiveIndex(index)}
-              className="rounded-full border px-3.5 py-2 text-[10px] font-mono uppercase tracking-[.14em] transition-all"
-              style={{
-                color: active ? stage.tone : 'var(--muted)',
-                borderColor: active ? stage.tone : 'rgba(255,255,255,.08)',
-                background: active ? `${stage.tone}14` : 'rgba(255,255,255,.02)',
-                boxShadow: active ? `0 0 20px ${stage.tone}18` : 'none',
-              }}
-            >
-              {stage.label}
-            </button>
-          );
-        })}
+    <div className="flex flex-col">
+      <div className="mb-6 flex items-center gap-3">
+        <span className="h-px w-8 bg-[var(--gold-line)]" />
+        <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--muted)]">Koku Gelişimi</p>
       </div>
 
-      <div className="timeline-stage overflow-hidden rounded-[28px] border border-white/[.07] bg-[var(--bg-raise)]/88 p-4 md:p-5">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_264px]">
-          <div className="rounded-[24px] border border-white/[.06] bg-black/12 p-4 md:p-5">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {[
-                { label: 'Üst', notes: uniqueNotes(topNotes), tone: 'var(--gold)' },
-                { label: 'Kalp', notes: uniqueNotes(heartNotes), tone: '#a78bfa' },
-                { label: 'Alt', notes: uniqueNotes(baseNotes), tone: 'var(--sage)' },
-              ].map((tier) => (
-                <div key={tier.label} className="rounded-[18px] border border-white/[.06] bg-white/[.02] px-3.5 py-3.5">
-                  <p className="text-[9px] font-mono uppercase tracking-[.16em]" style={{ color: tier.tone }}>
-                    {tier.label}
-                  </p>
-                  <p className="mt-2 text-[12px] leading-relaxed text-cream/88">{stagePreview(tier.notes)}</p>
-                </div>
-              ))}
-            </div>
+      <div className="mb-6 flex flex-wrap gap-2">
+        {steps.map((step, index) => (
+          <button
+            key={step.key}
+            type="button"
+            onClick={() => setActiveStep(index)}
+            className={`cursor-pointer rounded-full border px-4 py-2 text-xs tracking-widest transition-all duration-200 ${
+              activeStep === index ? 'text-white' : 'border-white/15 bg-white/5 text-white/50 hover:border-white/30 hover:text-white/80'
+            }`}
+            style={
+              activeStep === index
+                ? {
+                    borderColor: STAGE_TONES[step.key].border,
+                    background: STAGE_TONES[step.key].background,
+                    boxShadow: `inset 0 0 0 1px ${STAGE_TONES[step.key].accent}`,
+                  }
+                : undefined
+            }
+          >
+            {step.label}
+          </button>
+        ))}
+      </div>
 
-            <div className="relative mt-4 overflow-hidden rounded-[24px] border border-white/[.06] bg-[#0c0b10] px-4 py-5 md:px-5 md:py-6">
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(167,139,250,.12),transparent_40%)]" />
-              <div className="pointer-events-none absolute inset-x-8 top-[46%] h-px bg-gradient-to-r from-amber-800/40 via-purple-800/40 to-teal-800/40" />
-              <div className="pointer-events-none absolute inset-x-8 top-[46%] h-[4px] -translate-y-1/2 rounded-full bg-white/[.06]" />
-              <div
-                className="pointer-events-none absolute top-[46%] h-[4px] -translate-y-1/2 rounded-full bg-gradient-to-r from-[#d7bc82] via-[#a78bfa] to-[#7eb8a4]"
-                style={{
-                  left: '8%',
-                  width: `${Math.max(0, activeStage.anchor - 8)}%`,
-                  transition: `width ${AUTO_ADVANCE_MS - 500}ms linear`,
-                }}
-              />
-
-              <div
-                className="pointer-events-none absolute top-[46%] h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(167,139,250,.9)_0%,rgba(167,139,250,.24)_42%,rgba(167,139,250,0)_72%)]"
-                style={{
-                  left: `${activeStage.anchor}%`,
-                  transition: `left ${AUTO_ADVANCE_MS - 500}ms linear`,
-                }}
-              />
-
-              <div className="relative grid min-h-[260px] gap-5 md:grid-cols-[minmax(0,1fr)_220px] md:items-end">
-                <div className="flex flex-col justify-end">
-                  <p className="text-[10px] font-mono uppercase tracking-[.18em]" style={{ color: activeStage.tone }}>
-                    {activeStage.label}
-                  </p>
-                  <p className="mt-3 max-w-[560px] text-[15px] leading-relaxed text-cream/96">{activeStage.description}</p>
-
-                  <div className="mt-5 space-y-3">
-                    {stages.map((stage, index) => {
-                      const active = index === activeIndex;
-                      return (
-                        <motion.button
-                          key={`${stage.id}-row`}
-                          type="button"
-                          onClick={() => setActiveIndex(index)}
-                          className="flex w-full items-start gap-3 text-left transition-opacity"
-                          style={{ opacity: active ? 1 : 0.42 }}
-                          initial={{ opacity: 0, y: 16 }}
-                          animate={{ opacity: active ? 1 : 0.42, y: 0 }}
-                          transition={{ duration: 0.4, delay: index * 0.07 }}
-                        >
-                          <span
-                            className="mt-[6px] h-2.5 w-2.5 shrink-0 rounded-full"
-                            style={{
-                              background: stage.tone,
-                              boxShadow: active ? `0 0 14px ${stage.tone}` : 'none',
-                            }}
-                          />
-                          <div>
-                            <p
-                              className={`text-[10px] font-mono uppercase tracking-widest ${
-                                active ? 'text-teal-400 font-semibold' : 'text-gray-500'
-                              }`}
-                            >
-                              {stage.label}
-                            </p>
-                            <p className="mt-1 text-[13px] leading-relaxed text-cream/82">
-                              {stage.notes.length > 0 ? stage.notes.join(', ') : 'Veri sınırlı'}
-                            </p>
-                          </div>
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-5 backdrop-blur-md">
-                  <p className="text-[9px] font-mono uppercase tracking-[.16em] text-muted">Aktif pencere</p>
-                  <p className="mt-3 text-3xl font-bold leading-none text-cream">{activeStage.timeLabel}</p>
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {activeStage.notes.slice(0, 4).map((note) => (
-                      <span
-                        key={`${activeStage.id}-${note}`}
-                        className="min-w-[96px] rounded-full border border-white/15 bg-white/6 px-3 py-1 text-center text-xs font-semibold tracking-wide text-cream/88 transition-colors hover:bg-white/12"
-                      >
-                        {note}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative mt-5 flex items-center justify-between gap-3 px-1">
-                {stages.map((stage, index) => {
-                  const active = index === activeIndex;
-                  return (
-                    <button
-                      key={`${stage.id}-marker`}
-                      type="button"
-                      onClick={() => setActiveIndex(index)}
-                      className="flex flex-col items-center gap-2 text-center"
-                      style={{ width: `${100 / stages.length}%` }}
-                    >
-                      <span
-                        className="h-2.5 w-2.5 rounded-full transition-all"
-                        style={{
-                          background: active ? stage.tone : 'rgba(255,255,255,.2)',
-                          boxShadow: active ? `0 0 16px ${stage.tone}` : 'none',
-                        }}
-                      />
-                      <span
-                        className="text-[9px] font-mono uppercase tracking-[.16em] transition-colors"
-                        style={{ color: active ? stage.tone : 'var(--hint)' }}
-                      >
-                        {stage.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+      <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
+        {pyramidCards.map((tier) => (
+          <div
+            key={tier.label}
+            className="min-w-0 rounded-xl border border-white/8 bg-white/4 p-4"
+          >
+            <p className="mb-2 text-[10px] tracking-widest text-purple-400">{tier.label}</p>
+            <p className="break-words text-sm leading-relaxed text-white/80">
+              {tier.notes.length > 0 ? tier.notes.join(' • ') : 'Veri sınırlı'}
+            </p>
           </div>
+        ))}
+      </div>
 
-          <div className="space-y-3">
-            {stages.map((stage, index) => {
-              const active = index === activeIndex;
-              return (
-                <button
-                  key={`${stage.id}-summary`}
-                  type="button"
-                  onClick={() => setActiveIndex(index)}
-                  className="w-full rounded-[20px] border px-4 py-3 text-left transition-all"
-                  style={{
-                    borderColor: active ? `${stage.tone}50` : 'rgba(255,255,255,.07)',
-                    background: active ? `${stage.tone}12` : 'rgba(255,255,255,.02)',
-                    transform: active ? 'translateX(0)' : 'translateX(0)',
-                  }}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[10px] font-mono uppercase tracking-[.16em]" style={{ color: stage.tone }}>
-                      {stage.label}
-                    </p>
-                    <span className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">{stage.timeLabel}</span>
-                  </div>
-                  <p className={`mt-2 text-[13px] leading-relaxed ${active ? 'text-cream/95' : 'text-muted'}`}>
-                    {stage.notes.length > 0 ? stage.notes.join(', ') : 'Bu aşamada veri sınırlı'}
-                  </p>
-                </button>
-              );
-            })}
+      <div className="mb-6 flex gap-4 items-start">
+        <div className="min-w-0 flex-1">
+          <p className="mb-2 text-xs tracking-widest" style={{ color: activeTone.text }}>
+            {activeStepData.label}
+          </p>
+          <p className="text-base leading-relaxed text-white/90">{activeStepData.description}</p>
+        </div>
+
+        <div
+          className="w-44 shrink-0 rounded-2xl border p-4 backdrop-blur-sm"
+          style={{ borderColor: activeTone.border, background: activeTone.softBackground }}
+        >
+          <p className="mb-2 text-[10px] tracking-widest text-white/40">AKTİF PENCERE</p>
+          <p className="mb-3 text-2xl font-bold text-white">{activeStepData.timeRange}</p>
+          <div className="flex flex-col gap-1.5">
+            {activeStepData.notes.map((note) => (
+              <span
+                key={`${activeStepData.key}-${note}`}
+                className="rounded-full border bg-white/5 px-3 py-1 text-center text-xs font-medium text-white/80"
+                style={{ borderColor: activeTone.border }}
+              >
+                {note}
+              </span>
+            ))}
           </div>
         </div>
+      </div>
+
+      <div className="relative mb-6 h-1 w-full overflow-hidden rounded-full bg-white/8">
+        <div className="absolute inset-0 rounded-full bg-[linear-gradient(90deg,rgba(201,169,110,.12)_0%,rgba(167,139,250,.1)_40%,rgba(126,184,164,.1)_72%,rgba(138,132,128,.1)_100%)]" />
+        {[25, 50, 75].map((stop) => (
+          <div
+            key={stop}
+            className="absolute top-1/2 h-3 w-px -translate-y-1/2 bg-white/10"
+            style={{ left: `calc(${stop}% - 0.5px)` }}
+          />
+        ))}
+        <div
+          className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
+          style={{
+            width: `${progressPercent}%`,
+            background: progressGradientForStage(activeStepData.key),
+            boxShadow: `0 0 18px ${activeTone.softBackground}`,
+          }}
+        />
+        <div
+          className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full transition-all duration-500"
+          style={{ left: `calc(${progressPercent}% - 6px)`, background: activeTone.accent, boxShadow: activeTone.dotShadow }}
+        />
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {steps.map((step, index) => (
+          <div
+            key={`${step.key}-entry`}
+            onClick={() => setActiveStep(index)}
+            className="cursor-pointer rounded-xl border p-4 transition-all duration-200"
+            style={
+              activeStep === index
+                ? {
+                    borderColor: STAGE_TONES[step.key].border,
+                    background: STAGE_TONES[step.key].softBackground,
+                    boxShadow: `inset 0 0 0 1px ${STAGE_TONES[step.key].border}`,
+                  }
+                : {
+                    borderColor: STAGE_TONES[step.key].subtleBorder,
+                    background: 'rgba(255,255,255,.02)',
+                  }
+            }
+            role="button"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setActiveStep(index);
+              }
+            }}
+          >
+            <div className="mb-2 flex items-center justify-between">
+              <span
+                className="text-[11px] font-medium tracking-widest"
+                style={{ color: activeStep === index ? STAGE_TONES[step.key].text : STAGE_TONES[step.key].text, opacity: activeStep === index ? 1 : 0.72 }}
+              >
+                {step.label}
+              </span>
+              <span
+                className="ml-2 shrink-0 whitespace-nowrap text-[11px]"
+                style={{ color: activeStep === index ? STAGE_TONES[step.key].text : 'rgba(255,255,255,.36)' }}
+              >
+                {step.timeRange}
+              </span>
+            </div>
+
+            <p
+              className={`text-sm leading-relaxed ${
+                activeStep === index ? 'font-medium text-white' : 'text-white/50'
+              }`}
+            >
+              {step.notes.length > 0 ? step.notes.join(', ') : 'Veri sınırlı'}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -141,7 +141,41 @@ function buildSimilarItems(values: string[]): SimilarItem[] {
 }
 
 function resolveConfidence(result: AnalysisResult): number {
-  return clampPercent(result.confidence, 87);
+  const topNotes = toList(result.pyramid?.top, 6).length;
+  const heartNotes = toList(result.pyramid?.middle, 8).length;
+  const baseNotes = toList(result.pyramid?.base, 8).length;
+  const noteCoverage = Math.min((topNotes + heartNotes + baseNotes) * 2.4, 22);
+  const moleculeCoverage = Math.min(sanitizeMolecules(result.molecules).length * 4.5, 18);
+  const similarCoverage = Math.min(toList(result.similar, 10).length * 2.5, 12);
+  const technicalCoverage = Math.min(
+    result.technical.filter((item) => typeof item.score === 'number' && Number.isFinite(item.score)).length * 4,
+    16,
+  );
+  const personaCoverage = result.persona ? 8 : 0;
+  const timelineCoverage = result.timeline ? 8 : 0;
+  const dupeCoverage = Math.min(toList(result.dupes, 8).length * 1.5, 6);
+  const descriptionCoverage = Math.min(Math.max(result.description.trim().length - 90, 0) / 12, 8);
+  const intensityCoverage = clampPercent(result.intensity, 65) * 0.08;
+
+  const derivedScore = clampPercent(
+    34 +
+      noteCoverage +
+      moleculeCoverage +
+      similarCoverage +
+      technicalCoverage +
+      personaCoverage +
+      timelineCoverage +
+      dupeCoverage +
+      descriptionCoverage +
+      intensityCoverage,
+    78,
+  );
+
+  if (typeof result.confidence === 'number' && Number.isFinite(result.confidence)) {
+    return clampPercent(Math.round(derivedScore * 0.7 + clampPercent(result.confidence, 87) * 0.3), derivedScore);
+  }
+
+  return derivedScore;
 }
 
 function noteColor(note: MoleculeData['note']): string {
@@ -462,9 +496,8 @@ export const AnalysisResults = memo(function AnalysisResults({
             </div>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-[108px_minmax(0,1fr)] lg:items-center">
-              <div className="relative z-10 mx-auto flex h-[108px] w-[108px] items-center justify-center">
-                <div className="absolute inset-0 rounded-full border border-white/[.08] animate-[aura-breathe_8s_ease-in-out_infinite]" />
-                <div className="absolute inset-[18px] rounded-full bg-[radial-gradient(circle,rgba(167,139,250,.65)_0%,rgba(167,139,250,.12)_52%,transparent_100%)] blur-[2px]" />
+              <div className="relative z-10 mx-auto flex h-[108px] w-[108px] items-center justify-center overflow-hidden rounded-full border border-white/[.08] bg-white/[.02]">
+                <div className="absolute inset-[22px] rounded-full bg-[radial-gradient(circle,rgba(167,139,250,.24)_0%,rgba(167,139,250,.08)_54%,transparent_100%)]" />
                 <div className="relative text-center">
                   <p className="text-[9px] font-mono uppercase tracking-[.16em] text-muted">İz skoru</p>
                   <p className="mt-2 text-[1.85rem] font-bold leading-none text-cream">
@@ -502,7 +535,6 @@ export const AnalysisResults = memo(function AnalysisResults({
           </div>
 
           <div className="mt-6 border-t border-white/[.06] pt-6">
-            <CardTitle className="mb-4">Koku Gelişimi</CardTitle>
             <ScentTimeline
               topNotes={toList(activeResult.pyramid?.top, 6)}
               heartNotes={toList(heartNotes, 8)}
@@ -808,9 +840,9 @@ function SignalTelemetry({
   barsReady: boolean;
 }) {
   const metrics = [
-    { label: 'Kalıcılık', value: longevity, tone: 'var(--gold)', note: longevity >= 80 ? 'Çok kalıcı' : longevity >= 60 ? 'Dengeli' : 'Hafif' },
-    { label: 'Yayılım', value: projection, tone: 'var(--sage)', note: projection >= 80 ? 'Güçlü' : projection >= 60 ? 'Orta' : 'Yakın ten' },
-    { label: 'Uyum Skoru', value: fit, tone: 'var(--gold)', note: fit >= 85 ? 'Çok yüksek' : fit >= 70 ? 'Yüksek' : 'Seçici' },
+    { label: 'Kalıcılık', value: longevity, tone: '#fbbf24', glow: '0 0 8px rgba(251,191,36,0.6)', note: longevity >= 80 ? 'Çok kalıcı' : longevity >= 60 ? 'Dengeli' : 'Hafif' },
+    { label: 'Yayılım', value: projection, tone: '#2dd4bf', glow: '0 0 8px rgba(45,212,191,0.6)', note: projection >= 80 ? 'Güçlü' : projection >= 60 ? 'Orta' : 'Yakın ten' },
+    { label: 'Uyum Skoru', value: fit, tone: '#fbbf24', glow: '0 0 8px rgba(251,191,36,0.6)', note: fit >= 85 ? 'Çok yüksek' : fit >= 70 ? 'Yüksek' : 'Seçici' },
   ];
 
   return (
@@ -818,18 +850,19 @@ function SignalTelemetry({
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {metrics.map((metric) => (
           <div key={metric.label}>
-            <p className="mb-2 text-[11px] font-mono uppercase tracking-[.16em] text-muted">{metric.label}</p>
-            <div className="mb-2 flex gap-1.5">
+            <p className="mb-2 text-[11px] font-mono uppercase tracking-[0.15em] text-white/50">{metric.label}</p>
+            <div className="mb-2 flex h-2 gap-1">
               {Array.from({ length: 5 }).map((_, index) => {
                 const threshold = (index + 1) * 20;
                 const active = metric.value >= threshold;
                 return (
                   <span
                     key={`${metric.label}-${index}`}
-                    className="h-1.5 flex-1 rounded-full transition-all duration-700"
+                    className="h-2 flex-1 rounded-full transition-all duration-700"
                     style={{
                       background: active ? metric.tone : 'rgba(255,255,255,.1)',
                       opacity: active ? 1 : 0.45,
+                      boxShadow: active ? metric.glow : 'none',
                       transform: barsReady ? 'scaleX(1)' : 'scaleX(0.25)',
                       transformOrigin: 'left center',
                     }}
@@ -837,7 +870,7 @@ function SignalTelemetry({
                 );
               })}
             </div>
-            <p className="text-[12px] text-cream/90">{metric.note}</p>
+            <p className="mt-1 text-sm text-white/80">{metric.note}</p>
           </div>
         ))}
       </div>

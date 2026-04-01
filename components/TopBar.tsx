@@ -11,7 +11,7 @@ export function TopBar({ title }: { title?: string }) {
 
   return (
     <header
-      className="flex h-[92px] items-center justify-between px-5 md:px-12
+      className="flex h-[92px] items-center justify-between px-4 sm:px-5 md:px-12
                  border-b border-white/[.06] sticky top-0 bg-bg/85 backdrop-blur-xl z-10"
     >
       <div className="md:hidden">
@@ -21,14 +21,15 @@ export function TopBar({ title }: { title?: string }) {
         {title ?? 'Koku Dedektifi'}
       </span>
 
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         {canInstall ? (
           <button
             type="button"
             onClick={() => void install()}
-            className="inline-flex items-center justify-center rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)] px-3 py-2 text-[10px] font-mono uppercase tracking-[.08em] text-gold hover:bg-gold hover:text-bg transition-colors"
+            className="inline-flex items-center justify-center rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)] px-2.5 py-2 text-[9px] font-mono uppercase tracking-[.08em] text-gold transition-colors hover:bg-gold hover:text-bg sm:px-3 sm:text-[10px]"
           >
-            Ana ekrana ekle
+            <span className="sm:hidden">Ekle</span>
+            <span className="hidden sm:inline">Ana ekrana ekle</span>
           </button>
         ) : null}
         <ProBadge />

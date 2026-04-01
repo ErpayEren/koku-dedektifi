@@ -229,7 +229,7 @@ export function ScentTimeline({ topNotes, heartNotes, baseNotes, timeline }: Sce
         ))}
       </div>
 
-      <div className="mb-6 flex gap-4 items-start">
+      <div className="mb-6 flex flex-col gap-4 items-start md:flex-row">
         <div className="min-w-0 flex-1">
           <p className="mb-2 text-xs tracking-widest" style={{ color: activeTone.text }}>
             {activeStepData.label}
@@ -238,7 +238,7 @@ export function ScentTimeline({ topNotes, heartNotes, baseNotes, timeline }: Sce
         </div>
 
         <div
-          className="w-44 shrink-0 rounded-2xl border p-4 backdrop-blur-sm"
+          className="w-full shrink-0 rounded-2xl border p-4 backdrop-blur-sm md:w-44"
           style={{ borderColor: activeTone.border, background: activeTone.softBackground }}
         >
           <p className="mb-2 text-[10px] tracking-widest text-white/40">AKTİF PENCERE</p>

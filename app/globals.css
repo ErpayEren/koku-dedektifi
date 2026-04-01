@@ -46,12 +46,14 @@
 html {
   background: var(--bg);
   color: var(--cream);
+  overflow-x: hidden;
 }
 
 body {
   min-height: 100vh;
   font-family: var(--font-sans, 'DM Sans', system-ui, sans-serif);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
   background:
     radial-gradient(1200px 760px at 120% -15%, rgba(201, 169, 110, 0.06), transparent 60%),
     radial-gradient(860px 540px at -20% 105%, rgba(126, 184, 164, 0.08), transparent 65%),

@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import type { PublicMolecule } from '@/lib/catalog-public';
+import { fadeUp, scaleIn, staggerChildren } from '@/lib/animations';
 import { MoleculeVisual } from './MoleculeVisual';
 import { Card } from './ui/Card';
 import { CardTitle } from './ui/CardTitle';
@@ -67,8 +69,14 @@ export function MoleculeExplorerClient({ molecules }: MoleculeExplorerClientProp
   }, [family, intensity, molecules, position, query, sourceType]);
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
-      <Card className="h-fit p-5 sm:p-6">
+    <motion.div
+      className="grid grid-cols-1 gap-5 px-4 py-4 sm:px-6 sm:py-5 lg:grid-cols-[280px_minmax(0,1fr)] lg:px-8 lg:py-6"
+      initial={fadeUp.initial}
+      animate={fadeUp.animate}
+      transition={fadeUp.transition}
+    >
+      <motion.div variants={scaleIn} initial="initial" animate="animate">
+        <Card className="h-fit p-5 sm:p-6">
         <CardTitle>Molekül filtreleri</CardTitle>
 
         <div className="mt-4 space-y-4">
@@ -127,9 +135,11 @@ export function MoleculeExplorerClient({ molecules }: MoleculeExplorerClientProp
             }}
           />
         </div>
-      </Card>
+        </Card>
+      </motion.div>
 
-      <Card className="p-5 sm:p-6">
+      <motion.div variants={scaleIn} initial="initial" animate="animate">
+        <Card className="p-5 sm:p-6">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <CardTitle>Molekül kataloğu</CardTitle>
@@ -147,61 +157,68 @@ export function MoleculeExplorerClient({ molecules }: MoleculeExplorerClientProp
             Arama ve filtreleri biraz gevşet; bu kombinasyonda eşleşen molekül bulunamadı.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <motion.div
+            className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+            variants={staggerChildren}
+            initial="initial"
+            animate="animate"
+          >
             {filtered.map((molecule) => (
-              <Link
-                key={molecule.id}
-                href={`/molekuller/${molecule.slug}`}
-                className="group rounded-[24px] border border-white/8 bg-white/[.03] p-4 transition-all duration-300 hover:border-[var(--gold-line)] hover:bg-white/[.05]"
-              >
-                <MoleculeVisual
-                  name={molecule.name}
-                  smiles={molecule.smiles}
-                  formula={molecule.iupac_name}
-                  compact
-                  className="pointer-events-none"
-                />
+              <motion.div key={molecule.id} variants={scaleIn}>
+                <Link
+                  href={`/molekuller/${molecule.slug}`}
+                  className="group block rounded-[24px] border border-white/8 bg-white/[.03] p-4 transition-all duration-300 hover:border-[var(--gold-line)] hover:bg-white/[.05]"
+                >
+                  <MoleculeVisual
+                    name={molecule.name}
+                    smiles={molecule.smiles}
+                    formula={molecule.iupac_name}
+                    compact
+                    className="pointer-events-none"
+                  />
 
-                <div className="mt-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h2 className="truncate text-[1.15rem] font-semibold text-cream">{molecule.name}</h2>
-                      <p className="mt-1 text-[12px] leading-relaxed text-muted">{molecule.odor_description}</p>
-                    </div>
-                    <span className="rounded-full border border-sage/25 bg-sage/10 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-sage">
-                      {molecule.found_in_fragrances.length}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-gold">
-                      {intensityLabel(molecule.odor_intensity)}
-                    </span>
-                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-muted">
-                      {roleLabel(molecule.longevity_contribution)}
-                    </span>
-                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-muted">
-                      {molecule.source_type}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {molecule.families.slice(0, 3).map((entry) => (
-                      <span
-                        key={`${molecule.slug}-${entry}`}
-                        className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1 text-[11px] text-cream/80"
-                      >
-                        {entry}
+                  <div className="mt-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h2 className="truncate text-[1.15rem] font-semibold text-cream">{molecule.name}</h2>
+                        <p className="mt-1 text-[12px] leading-relaxed text-muted">{molecule.odor_description}</p>
+                      </div>
+                      <span className="rounded-full border border-sage/25 bg-sage/10 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-sage">
+                        {molecule.found_in_fragrances.length}
                       </span>
-                    ))}
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-gold">
+                        {intensityLabel(molecule.odor_intensity)}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-muted">
+                        {roleLabel(molecule.longevity_contribution)}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-muted">
+                        {molecule.source_type}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {molecule.families.slice(0, 3).map((entry) => (
+                        <span
+                          key={`${molecule.slug}-${entry}`}
+                          className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1 text-[11px] text-cream/80"
+                        >
+                          {entry}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
-      </Card>
-    </div>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 }
 

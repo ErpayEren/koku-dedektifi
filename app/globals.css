@@ -3,6 +3,43 @@
 @tailwind utilities;
 
 :root {
+  --color-bg: #0d0d12;
+  --color-surface: rgba(255, 255, 255, 0.03);
+  --color-surface-hover: rgba(255, 255, 255, 0.06);
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-active: rgba(255, 255, 255, 0.15);
+
+  --color-amber: #f59e0b;
+  --color-amber-dim: rgba(245, 158, 11, 0.6);
+  --color-amber-glow: rgba(245, 158, 11, 0.2);
+
+  --color-purple: #a78bfa;
+  --color-purple-dim: rgba(167, 139, 250, 0.4);
+  --color-purple-glow: rgba(167, 139, 250, 0.15);
+
+  --color-teal: #2dd4bf;
+  --color-teal-dim: rgba(45, 212, 191, 0.5);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  --glow-amber: 0 0 20px rgba(245, 158, 11, 0.25);
+  --glow-purple: 0 0 20px rgba(167, 139, 250, 0.25);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+
   --bg: #09080a;
   --bg-card: #110f13;
   --bg-raise: #1a1820;

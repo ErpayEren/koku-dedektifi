@@ -710,7 +710,7 @@ export const AnalysisResults = memo(function AnalysisResults({
                 <MoleculeVisual name={molecule.name} smiles={molecule.smiles} formula={molecule.formula} compact />
               </button>
 
-              <div className="mt-4 flex items-center justify-between gap-3">
+              <div className="mt-4 grid grid-cols-[30px_minmax(0,1fr)_30px] items-start gap-3">
                 <button type="button" onClick={() => setMoleculeIndex((prev) => Math.max(0, prev - 1))} className="icon-btn" disabled={moleculeSafeIndex === 0} aria-label="Önceki molekül">
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8">
                     <path d="M8.8 2.3 4.2 7l4.6 4.7" />
@@ -720,14 +720,14 @@ export const AnalysisResults = memo(function AnalysisResults({
                   {molecule.slug ? (
                     <Link
                       href={`/molekuller/${molecule.slug}`}
-                      className="inline-block text-[2rem] font-semibold leading-none text-cream transition-colors hover:text-gold"
+                      className="block break-words text-[clamp(1.75rem,4.5vw,3rem)] font-semibold leading-[0.94] text-cream transition-colors hover:text-gold"
                     >
                       {molecule.name}
                     </Link>
                   ) : (
-                    <p className="text-[2rem] font-semibold leading-none text-cream">{molecule.name}</p>
+                    <p className="break-words text-[clamp(1.75rem,4.5vw,3rem)] font-semibold leading-[0.94] text-cream">{molecule.name}</p>
                   )}
-                  <p className="text-[12px] text-muted">
+                  <p className="mt-2 break-words text-[12px] text-muted">
                     {molecule.formula || 'Doğrulanmış formül yok'}
                     {molecule.casNumber ? ` · CAS ${molecule.casNumber}` : ''}
                   </p>

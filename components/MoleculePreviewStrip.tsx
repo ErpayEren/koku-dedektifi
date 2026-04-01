@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { getFeaturedMolecules } from '@/lib/catalog-public';
+import { fadeUp, scaleIn, staggerChildren } from '@/lib/animations';
 import { MoleculeCard, type MoleculeData } from './MoleculeCard';
 import { MoleculeVisual } from './MoleculeVisual';
 
@@ -53,7 +55,12 @@ export function MoleculePreviewStrip() {
   }, [molecules.length]);
 
   return (
-    <section className="px-5 pb-6 md:px-12">
+    <motion.section
+      className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6"
+      initial={fadeUp.initial}
+      animate={fadeUp.animate}
+      transition={fadeUp.transition}
+    >
       <div className="mx-auto max-w-[920px]">
         <div className="mb-3 flex items-center gap-3">
           <div className="h-px w-10 bg-[var(--gold-line)]" />
@@ -62,14 +69,20 @@ export function MoleculePreviewStrip() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <motion.div
+          className="grid grid-cols-1 gap-3 md:grid-cols-3"
+          variants={staggerChildren}
+          initial="initial"
+          animate="animate"
+        >
           {molecules.map((molecule, index) => {
             const active = index === activeIndex;
             return (
-              <button
+              <motion.button
                 key={molecule.name}
                 type="button"
                 onClick={() => setSelectedIndex(index)}
+                variants={scaleIn}
                 className={`group overflow-hidden rounded-[24px] border p-4 text-left transition-all duration-500 ${
                   active
                     ? 'border-[var(--gold-line)] bg-[linear-gradient(180deg,rgba(201,169,110,.10),rgba(255,255,255,.02))] shadow-[0_0_30px_rgba(201,169,110,.08)]'
@@ -101,10 +114,10 @@ export function MoleculePreviewStrip() {
                 />
 
                 <p className="mt-4 text-[13px] leading-relaxed text-muted">{molecule.type}</p>
-              </button>
+              </motion.button>
             );
           })}
-        </div>
+        </motion.div>
       </div>
 
       {selectedIndex !== null ? (
@@ -114,6 +127,6 @@ export function MoleculePreviewStrip() {
           onClose={() => setSelectedIndex(null)}
         />
       ) : null}
-    </section>
+    </motion.section>
   );
 }

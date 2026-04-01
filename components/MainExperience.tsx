@@ -6,6 +6,7 @@ import { ActionBar } from './ActionBar';
 import { AnalysisResults } from './AnalysisResults';
 import { HeroInput } from './HeroInput';
 import { LegalFooter } from './LegalFooter';
+import { MoleculePreviewStrip } from './MoleculePreviewStrip';
 import { TopBar } from './TopBar';
 import { analyzeImage, analyzeNotes, analyzeText, readableError } from '@/lib/client/api';
 import { findHistoryById, pushFeed, saveHistoryRow, upsertWardrobe } from '@/lib/client/storage';
@@ -256,6 +257,8 @@ export function MainExperience() {
         onAnalyze={runAnalyze}
         onChipPick={handleChipPick}
       />
+
+      <MoleculePreviewStrip />
 
       {error ? (
         <div className="px-5 pb-3 md:px-12">

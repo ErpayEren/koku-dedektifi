@@ -11,6 +11,8 @@ import { ScentGlyph } from './ui/ScentGlyph';
 import { ScentTimeline } from './ScentTimeline';
 import { MoleculeCard, type MoleculeData } from './MoleculeCard';
 import { MoleculeVisual } from './MoleculeVisual';
+import { getOnboardingPreferences } from '@/lib/client/storage';
+import type { OnboardingPreferences } from '@/lib/client/types';
 
 interface AnalysisResultsProps {
   result: AnalysisResult | null;
@@ -189,6 +191,53 @@ function resolveMetricScore(items: TechnicalItem[], matcher: RegExp, fallback: n
   return clampPercent(hit?.score, fallback);
 }
 
+function resolvePreferenceMatch(
+  result: AnalysisResult,
+  prefs: OnboardingPreferences | null,
+): { score: number; summary: string } {
+  if (!prefs) {
+    return { score: 0, summary: 'Kişisel tercih profili henüz kurulmadı.' };
+  }
+
+  let score = 0;
+  const matches: string[] = [];
+  const seasonHit = prefs.season && result.season.some((item) => item.toLowerCase() === prefs.season.toLowerCase());
+  if (seasonHit) {
+    score += 16;
+    matches.push(`${prefs.season} ritmine uyuyor`);
+  }
+
+  const vibe = result.persona?.vibe?.toLowerCase() || '';
+  const family = result.family.toLowerCase();
+  const stanceMatchers: Record<Exclude<OnboardingPreferences['stance'], ''>, string[]> = {
+    Sakin: ['sakin', 'temiz', 'soft', 'minimal', 'fresh'],
+    Çarpıcı: ['çarpıcı', 'güçlü', 'yoğun', 'gece', 'oryantal'],
+    Sofistike: ['sofistike', 'zarif', 'odunsu', 'amber', 'şık'],
+  };
+  if (prefs.stance) {
+    const stanceHit = stanceMatchers[prefs.stance].some((item) => vibe.includes(item) || family.includes(item));
+    if (stanceHit) {
+      score += 14;
+      matches.push(`${prefs.stance} tavrını destekliyor`);
+    }
+  }
+
+  if (prefs.intensity) {
+    const intensity = clampPercent(result.intensity, 65);
+    const wantedBand =
+      prefs.intensity === 'Hafif' ? intensity <= 42 : prefs.intensity === 'Orta' ? intensity >= 35 && intensity <= 72 : intensity >= 65;
+    if (wantedBand) {
+      score += 16;
+      matches.push(`${prefs.intensity.toLowerCase()} yoğunluk beklentine yakın`);
+    }
+  }
+
+  return {
+    score,
+    summary: matches.length > 0 ? matches.join(' • ') : 'Koku karakteri tercihlerine kısmen yakın görünüyor.',
+  };
+}
+
 const FAMILY_GLOW: Record<string, string> = {
   'Aromatik Fougere': 'rgba(126,184,164,.08)',
   Oryantal: 'rgba(201,169,110,.1)',
@@ -224,6 +273,7 @@ export const AnalysisResults = memo(function AnalysisResults({
   const [shareBusy, setShareBusy] = useState(false);
   const [analysisStepIndex, setAnalysisStepIndex] = useState(0);
   const [moleculeLookup, setMoleculeLookup] = useState<Record<string, MoleculeLookupRow>>({});
+  const [onboardingPreferences, setOnboardingPreferences] = useState<OnboardingPreferences | null>(null);
   const shareCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -263,6 +313,10 @@ export const AnalysisResults = memo(function AnalysisResults({
     const timer = window.setTimeout(() => setBarsReady(true), 60);
     return () => window.clearTimeout(timer);
   }, [result?.id, result]);
+
+  useEffect(() => {
+    setOnboardingPreferences(getOnboardingPreferences());
+  }, [result?.id]);
 
   const activeResult = result;
   const rawMolecules = useMemo(() => (activeResult ? sanitizeMolecules(activeResult.molecules) : []), [activeResult]);
@@ -371,11 +425,13 @@ export const AnalysisResults = memo(function AnalysisResults({
   };
   const wheelValues = [scores.freshness, scores.sweetness, scores.warmth, clampPercent(activeResult.intensity, 65)];
   const confidence = resolveConfidence(activeResult);
+  const preferenceMatch = resolvePreferenceMatch(activeResult, onboardingPreferences);
   const heartNotes = activeResult.pyramid?.middle ?? [];
   const glowColor = FAMILY_GLOW[activeResult.family] ?? 'rgba(201,169,110,.06)';
   const projectionScore = resolveMetricScore(activeResult.technical, /yayilim|projection|sillage/, 68);
   const longevityScore = resolveMetricScore(activeResult.technical, /kalicilik|longevity|lasting/, 80);
-  const fitScore = clampPercent(Math.round((confidence + clampPercent(activeResult.intensity, 70)) / 2), 84);
+  const baseFitScore = clampPercent(Math.round((confidence + clampPercent(activeResult.intensity, 70)) / 2), 84);
+  const fitScore = clampPercent(baseFitScore + preferenceMatch.score, baseFitScore);
   const signatureTags = [activeResult.family, activeResult.persona?.vibe || '', activeResult.occasion || '', season[0] || ''].filter(Boolean);
 
   const cardMotion = (index: number) => ({
@@ -545,6 +601,12 @@ export const AnalysisResults = memo(function AnalysisResults({
 
           <div className="mt-6 border-t border-white/[.06] pt-5">
             <CardTitle>{UI.suitability}</CardTitle>
+            {onboardingPreferences ? (
+              <div className="mb-3 rounded-2xl border border-[var(--gold-line)] bg-[var(--gold-dim)]/10 px-3.5 py-3">
+                <p className="text-[10px] font-mono uppercase tracking-[.12em] text-gold">Sana uyum skoru</p>
+                <p className="mt-2 text-[13px] leading-relaxed text-cream/92">{preferenceMatch.summary}</p>
+              </div>
+            ) : null}
             {activeResult.persona ? (
               <div className="space-y-2 text-[12px] text-muted">
                 <InfoLine label="Koku duruşu" value={activeResult.persona.vibe || 'Dengeli'} />

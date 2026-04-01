@@ -1,9 +1,10 @@
-import type { AnalysisResult, FeedItem, WardrobeItem } from './types';
+import type { AnalysisResult, FeedItem, OnboardingPreferences, WardrobeItem } from './types';
 
 const KEYS = {
   history: 'kd:history:v2',
   wardrobe: 'kd:wardrobe:v2',
   feed: 'kd:feed:v2',
+  onboarding: 'kd:onboarding:v1',
 } as const;
 
 const pendingWrites = new Map<string, number>();
@@ -96,6 +97,25 @@ export function pushFeed(event: Omit<FeedItem, 'id' | 'ts'>): void {
 
 export function clearFeed(): void {
   writeJson(KEYS.feed, []);
+}
+
+export function getOnboardingPreferences(): OnboardingPreferences | null {
+  const saved = readJson<OnboardingPreferences | null>(KEYS.onboarding, null);
+  if (!saved || typeof saved !== 'object') return null;
+  return {
+    season: saved.season || '',
+    stance: saved.stance || '',
+    intensity: saved.intensity || '',
+    completedAt: saved.completedAt || '',
+  };
+}
+
+export function setOnboardingPreferences(value: OnboardingPreferences): void {
+  writeJson(KEYS.onboarding, value);
+}
+
+export function hasCompletedOnboarding(): boolean {
+  return Boolean(getOnboardingPreferences()?.completedAt);
 }
 
 export function getAuthToken(): string {

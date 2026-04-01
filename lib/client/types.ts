@@ -92,3 +92,14 @@ export interface WardrobeItem {
   updatedAt: string;
   analysis: AnalysisResult | null;
 }
+
+export type OnboardingSeason = 'İlkbahar' | 'Yaz' | 'Sonbahar' | 'Kış';
+export type OnboardingStance = 'Sakin' | 'Çarpıcı' | 'Sofistike';
+export type OnboardingIntensity = 'Hafif' | 'Orta' | 'Yoğun';
+
+export interface OnboardingPreferences {
+  season: OnboardingSeason | '';
+  stance: OnboardingStance | '';
+  intensity: OnboardingIntensity | '';
+  completedAt: string;
+}

@@ -56,7 +56,7 @@ const NAV: NavGroup[] = [
       { label: 'Koku Akışı', href: '/akis', Icon: Wind },
     ],
   },
-] as const;
+];
 
 function getTodayCount(): number {
   const today = new Date().toISOString().slice(0, 10);
@@ -75,15 +75,15 @@ export function Sidebar() {
   const usagePct = useMemo(() => Math.min(100, todayUsage * 18), [todayUsage]);
 
   return (
-    <aside className="order-2 z-20 hidden w-full min-w-0 border-t border-white/[.06] py-4 md:order-1 md:flex md:w-64 md:min-w-[280px] md:border-r md:border-t-0 md:py-0 lg:w-80">
-      <div className="flex min-h-full w-full flex-col rounded-2xl border border-white/[0.07] bg-white/[0.03] backdrop-blur-sm md:min-h-screen md:rounded-none md:border-0 md:bg-transparent md:backdrop-blur-0">
+    <aside className="order-2 z-20 hidden w-full min-w-0 border-t border-white/[.06] py-4 md:order-1 md:flex md:w-64 md:min-w-[280px] md:shrink-0 md:self-start md:sticky md:top-0 md:h-screen md:border-r md:border-t-0 md:py-0 lg:w-80">
+      <div className="flex h-full w-full flex-col rounded-2xl border border-white/[0.07] bg-white/[0.03] backdrop-blur-sm md:rounded-none md:border-0 md:bg-transparent md:backdrop-blur-0">
         <div className="flex h-[92px] shrink-0 items-center gap-3 px-5 md:px-6">
           <Logo size="sidebar" />
         </div>
 
         <div className="mx-0 h-px w-full shrink-0 bg-white/[.08]" />
 
-        <nav className="scrollbar-none flex-1 overflow-visible py-4" role="navigation" aria-label="Ana menü">
+        <nav className="scrollbar-none flex-1 overflow-y-auto py-4" role="navigation" aria-label="Ana menü">
           {NAV.map((category, groupIndex) => (
             <div key={category.section}>
               <p

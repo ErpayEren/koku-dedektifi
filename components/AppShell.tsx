@@ -17,7 +17,7 @@ export function AppShell({
 
       {hideSidebar ? null : <Sidebar />}
 
-      <main className="order-1 flex min-h-0 w-full min-w-0 flex-col overflow-x-clip pb-24 md:order-2 md:flex-1 md:overflow-y-auto md:pb-0">
+      <main className="order-1 flex min-h-0 w-full min-w-0 flex-col overflow-x-clip pb-24 md:order-2 md:flex-1 md:pb-0">
         {children}
       </main>
 

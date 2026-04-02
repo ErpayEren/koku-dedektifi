@@ -128,6 +128,13 @@ async function handler(req, res) {
   const configured = hasSupabaseServiceConfig();
   const fragranceTable = cleanString(process.env.SUPABASE_FRAGRANCES_TABLE) || 'fragrances';
   const moleculeTable = cleanString(process.env.SUPABASE_MOLECULES_TABLE) || 'molecules';
+  const databaseUrl =
+    cleanString(process.env.SUPABASE_DB_URL)
+    || cleanString(process.env.POSTGRES_URL)
+    || cleanString(process.env.DATABASE_URL)
+    || cleanString(process.env.POSTGRES_PRISMA_URL)
+    || cleanString(process.env.POSTGRES_URL_NON_POOLING)
+    || cleanString(process.env.SUPABASE_DB_URI);
 
   let fragranceProbe = { ok: false, count: 0, status: 0, reason: configured ? 'skipped' : 'supabase_missing' };
   let moleculeProbe = { ok: false, count: 0, status: 0, reason: configured ? 'skipped' : 'supabase_missing' };
@@ -159,6 +166,8 @@ async function handler(req, res) {
     source: databaseReady ? 'supabase' : 'fallback-seed',
     checks: {
       supabaseConfigured: configured,
+      runtimeHasServiceRoleKey: Boolean(cleanString(supabase.serviceRoleKey)),
+      runtimeHasDatabaseUrl: Boolean(databaseUrl),
       fragranceTable,
       moleculeTable,
       seedFragranceCount: seed.fragranceCount,

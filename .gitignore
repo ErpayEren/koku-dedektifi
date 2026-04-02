@@ -7,6 +7,8 @@ node_modules
 dist
 build
 coverage
+playwright-report
+test-results
 *.tsbuildinfo
 *.log
 tools/mingit
@@ -39,4 +41,3 @@ mobile_flutter/android/.gradle
 mobile_flutter/android/local.properties
 mobile_flutter/android/key.properties
 mobile_flutter/keystore
-

@@ -56,6 +56,7 @@ export function MoleculePreviewStrip() {
 
   return (
     <motion.section
+      data-testid="molecule-preview-strip"
       className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6"
       initial={fadeUp.initial}
       animate={fadeUp.animate}
@@ -82,6 +83,7 @@ export function MoleculePreviewStrip() {
                 key={molecule.name}
                 type="button"
                 onClick={() => setSelectedIndex(index)}
+                data-testid="molecule-preview-card"
                 variants={scaleIn}
                 className={`group overflow-hidden rounded-[24px] border p-4 text-left transition-all duration-500 ${
                   active

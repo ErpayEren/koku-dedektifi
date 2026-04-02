@@ -85,6 +85,7 @@ export function MoleculeExplorerClient({ molecules }: MoleculeExplorerClientProp
               Ara
             </label>
             <input
+              data-testid="molecule-search-input"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Ambroxide, rose, amber..."
@@ -148,7 +149,7 @@ export function MoleculeExplorerClient({ molecules }: MoleculeExplorerClientProp
             </p>
           </div>
           <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.12em] text-gold">
-            {filtered.length} sonuç
+            <span data-testid="molecule-results-count">{filtered.length}</span> sonuç
           </span>
         </div>
 

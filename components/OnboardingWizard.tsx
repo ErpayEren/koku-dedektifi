@@ -121,7 +121,10 @@ export function OnboardingWizard() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black/70 px-4 py-6 backdrop-blur-md md:px-6 md:py-8">
+    <div
+      data-testid="onboarding-wizard"
+      className="fixed inset-0 z-[70] bg-black/70 px-4 py-6 backdrop-blur-md md:px-6 md:py-8"
+    >
       <div className="mx-auto flex h-full max-w-[740px] items-center justify-center">
         <div className="w-full overflow-hidden rounded-[32px] border border-white/[.08] bg-[var(--bg-card)] shadow-[0_30px_90px_rgba(0,0,0,.5)]">
           <div className="flex items-center justify-between border-b border-white/[.06] px-5 py-4 md:px-8 md:py-5">
@@ -134,6 +137,7 @@ export function OnboardingWizard() {
             <button
               type="button"
               onClick={dismissWizard}
+              data-testid="onboarding-skip"
               className="rounded-full border border-white/[.08] px-3 py-1.5 text-[10px] font-mono uppercase tracking-[.08em] text-muted transition-colors hover:text-cream"
             >
               Geç
@@ -266,6 +270,7 @@ export function OnboardingWizard() {
               <button
                 type="button"
                 onClick={() => (step === 0 ? dismissWizard() : setStep((current) => current - 1))}
+                data-testid="onboarding-back"
                 className="rounded-xl border border-white/[.08] px-4 py-3 text-[11px] font-mono uppercase tracking-[.08em] text-muted transition-colors hover:text-cream"
               >
                 {step === 0 ? 'Şimdilik geç' : 'Geri'}
@@ -275,6 +280,7 @@ export function OnboardingWizard() {
                 <button
                   type="button"
                   onClick={() => setStep((current) => current + 1)}
+                  data-testid="onboarding-next"
                   className="rounded-xl bg-gold px-5 py-3 text-[11px] font-mono uppercase tracking-[.1em] text-bg transition-colors hover:bg-[#d8b676]"
                 >
                   Devam
@@ -284,6 +290,7 @@ export function OnboardingWizard() {
                   type="button"
                   onClick={persistPreferences}
                   disabled={!canFinish}
+                  data-testid="onboarding-finish"
                   className={`rounded-xl px-5 py-3 text-[11px] font-mono uppercase tracking-[.1em] transition-colors ${
                     canFinish
                       ? 'bg-gold text-bg hover:bg-[#d8b676]'

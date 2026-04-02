@@ -1,6 +1,12 @@
 {
   "framework": "nextjs",
   "buildCommand": "npm run build",
+  "crons": [
+    {
+      "path": "/api/weekly-molecule",
+      "schedule": "0 9 * * 1"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/health",
@@ -29,6 +35,10 @@
     {
       "source": "/api/catalog-health",
       "destination": "/api/ops?r=catalog-health"
+    },
+    {
+      "source": "/api/weekly-molecule",
+      "destination": "/api/ops?r=weekly-molecule"
     },
     {
       "source": "/api/feed-health",

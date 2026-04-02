@@ -8,6 +8,7 @@ import {
   Archive,
   CalendarDays,
   ChevronRight,
+  FlaskConical,
   GitCompare,
   History,
   Layers,
@@ -103,6 +104,12 @@ const GROUPS: readonly GroupDefinition[] = [
         label: 'Nota Avcısı',
         description: 'Aradığın profile yakın kokuları filtrele ve bul.',
         Icon: Search,
+      },
+      {
+        href: '/haftalik-molekul',
+        label: 'Haftalık Molekül',
+        description: 'Her hafta öne çıkan imza molekülü ve kullanan parfümleri keşfet.',
+        Icon: FlaskConical,
       },
       {
         href: '/barkod',
@@ -225,7 +232,7 @@ export function MobileNav() {
                       </p>
                       {isActive ? (
                         <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-amber-300">
-                          Açık
+                          Aktif
                         </span>
                       ) : null}
                     </div>

@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Archive,
   CalendarDays,
+  FlaskConical,
   GitCompare,
   History,
   Layers,
@@ -17,6 +18,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { getHistory } from '@/lib/client/storage';
+import { useBillingEntitlement } from '@/lib/client/useBillingEntitlement';
 import { UI } from '@/lib/strings';
 import { Logo } from './ui/Logo';
 
@@ -52,6 +54,7 @@ const NAV: NavGroup[] = [
     section: 'KEŞFET',
     items: [
       { label: 'Nota Avcısı', href: '/notalar', Icon: Search },
+      { label: 'Haftalık Molekül', href: '/haftalik-molekul', Icon: FlaskConical },
       { label: 'Barkod Tara', href: '/barkod', Icon: ScanLine },
       { label: 'Koku Akışı', href: '/akis', Icon: Wind },
     ],
@@ -65,6 +68,7 @@ function getTodayCount(): number {
 
 export function Sidebar() {
   const path = usePathname();
+  const entitlement = useBillingEntitlement();
   const [todayUsage, setTodayUsage] = useState(0);
 
   useEffect(() => {
@@ -72,7 +76,14 @@ export function Sidebar() {
     setTodayUsage(getTodayCount());
   }, [path]);
 
-  const usagePct = useMemo(() => Math.min(100, todayUsage * 18), [todayUsage]);
+  const usagePct = useMemo(() => {
+    if (entitlement.dailyAnalysisLimit >= 9999) {
+      return Math.min(100, todayUsage * 8);
+    }
+    return Math.min(100, Math.round((todayUsage / Math.max(1, entitlement.dailyAnalysisLimit)) * 100));
+  }, [entitlement.dailyAnalysisLimit, todayUsage]);
+
+  const usageLabel = entitlement.dailyAnalysisLimit >= 9999 ? '∞' : String(entitlement.dailyAnalysisLimit);
 
   return (
     <aside className="order-2 z-20 hidden w-full min-w-0 border-t border-white/[.06] py-4 md:order-1 md:flex md:w-64 md:min-w-[280px] md:shrink-0 md:self-start md:sticky md:top-0 md:h-screen md:border-r md:border-t-0 md:py-0 lg:w-80">
@@ -123,7 +134,9 @@ export function Sidebar() {
         <div className="shrink-0 border-t border-white/[.08] px-4 pb-8 pt-4">
           <div className="mb-3 flex items-center justify-between px-1">
             <span className="text-[11px] tracking-wide text-white/40">{UI.navDailyLimit}</span>
-            <span className="text-[11px] font-medium text-amber-400">{todayUsage}/∞</span>
+            <span className="text-[11px] font-medium text-amber-400">
+              {todayUsage}/{usageLabel}
+            </span>
           </div>
 
           <div className="mb-4 h-px bg-white/[.08]" />

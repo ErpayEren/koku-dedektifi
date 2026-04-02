@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { MoleculeRelatedRail } from '@/components/MoleculeRelatedRail';
 import { MoleculeVisual } from '@/components/MoleculeVisual';
 import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
-import { getPublicFragrancesForMolecule, getPublicMoleculeBySlug } from '@/lib/catalog-public';
+import { getPublicFragrancesForMolecule, getPublicMoleculeBySlug, getPublicMolecules } from '@/lib/catalog-public';
 
 interface MoleculeDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -47,6 +48,19 @@ export default async function MoleculeDetailPage({ params }: MoleculeDetailPageP
 
   const fragrances = getPublicFragrancesForMolecule(molecule.slug);
   const activeDots = intensityDots(molecule.odor_intensity);
+  const relatedMolecules = getPublicMolecules()
+    .filter((candidate) => candidate.slug !== molecule.slug)
+    .map((candidate) => {
+      const sharedFamilies = candidate.families.filter((family) => molecule.families.includes(family)).length;
+      const sharedTags = candidate.profile_tags.filter((tag) => molecule.profile_tags.includes(tag)).length;
+      const sameRole = candidate.longevity_contribution === molecule.longevity_contribution ? 2 : 0;
+      const sameSource = candidate.source_type === molecule.source_type ? 1 : 0;
+      return { candidate, score: sharedFamilies * 3 + sharedTags * 2 + sameRole + sameSource };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 6)
+    .map((entry) => entry.candidate);
 
   return (
     <AppShell>
@@ -188,6 +202,8 @@ export default async function MoleculeDetailPage({ params }: MoleculeDetailPageP
               </p>
             )}
           </Card>
+
+          <MoleculeRelatedRail molecules={relatedMolecules} />
         </div>
       </div>
     </AppShell>

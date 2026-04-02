@@ -21,9 +21,6 @@ interface BillingEntitlement {
   status: string;
   source: string;
   updatedAt: string | null;
-  checkoutPlanId: string;
-  checkoutStartedAt: string | null;
-  cancelAtPeriodEnd: boolean;
 }
 
 interface BillingUser {
@@ -37,7 +34,6 @@ interface BillingResponse {
   plans: BillingPlan[];
   entitlement: BillingEntitlement;
   user: BillingUser | null;
-  devActivationAllowed: boolean;
 }
 
 interface CheckoutResponse {
@@ -47,14 +43,24 @@ interface CheckoutResponse {
   provider: string;
 }
 
-const PLAN_COPY: Record<'free' | 'pro', { name: string; features: string[] }> = {
+const PLAN_COPY: Record<'free' | 'pro', { name: string; features: string[]; note: string }> = {
   free: {
     name: 'Ücretsiz',
-    features: ['5 analiz/gün', 'Koku dolabı', 'Karşılaştırma'],
+    note: 'Başlangıç seviyesi',
+    features: ['Günlük 3 analiz', 'Temel nota analizi', '5 parfüm dolap limiti', 'Molekül önizlemesi (sadece isim)'],
   },
   pro: {
     name: 'Pro',
-    features: ['Sınırsız analiz', 'Katmanlama Lab', 'Barkod Tarayıcı', 'Cihazlar arası senkronizasyon', 'Öncelikli AI'],
+    note: 'Aylık premium erişim',
+    features: [
+      'Sınırsız analiz',
+      'Tam molekül analizi ve detay sayfaları',
+      'Sınırsız dolap',
+      'Top 10 benzer parfüm önerisi',
+      'Koku profili ve kişiselleştirme',
+      'Parfümör Gözüyle derin rapor',
+      'Öncelikli destek',
+    ],
   },
 };
 
@@ -64,7 +70,7 @@ const DEFAULT_PLANS: BillingPlan[] = [
     name: PLAN_COPY.free.name,
     price: 0,
     currency: 'TRY',
-    interval: 'gun',
+    interval: 'ay',
     featured: false,
     features: PLAN_COPY.free.features,
   },
@@ -95,8 +101,8 @@ function normalizePlans(plans: BillingPlan[] | undefined): BillingPlan[] {
     .filter((plan) => plan?.id === 'free' || plan?.id === 'pro')
     .map((plan) => ({
       ...plan,
-      name: PLAN_COPY[plan.id as 'free' | 'pro']?.name || plan.name,
-      features: PLAN_COPY[plan.id as 'free' | 'pro']?.features || plan.features,
+      name: PLAN_COPY[plan.id as 'free' | 'pro'].name,
+      features: PLAN_COPY[plan.id as 'free' | 'pro'].features,
     }));
 }
 
@@ -113,6 +119,7 @@ function PlanCard({
 }) {
   const isActive = activeTier === plan.id;
   const isBusy = busyPlanId === plan.id;
+  const copy = PLAN_COPY[plan.id as 'free' | 'pro'];
 
   return (
     <Card
@@ -127,16 +134,14 @@ function PlanCard({
         </div>
       ) : null}
 
-      <CardTitle>{plan.name}</CardTitle>
+      <CardTitle>{copy.name}</CardTitle>
       <div className="mt-3">
         <p className="text-[2.6rem] font-bold leading-none text-cream">{formatPrice(plan)}</p>
-        <p className="mt-2 text-[12px] text-muted">
-          {plan.id === 'free' ? 'Başlangıç seviyesi' : 'Aylık premium erişim'}
-        </p>
+        <p className="mt-2 text-[12px] text-muted">{copy.note}</p>
       </div>
 
       <ul className="mt-6 space-y-2.5">
-        {plan.features.map((feature) => (
+        {copy.features.map((feature) => (
           <li key={`${plan.id}-${feature}`} className="flex items-start gap-2 text-[13px] text-cream/90">
             <span className="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-[var(--gold)]" />
             <span>{feature}</span>
@@ -158,7 +163,7 @@ function PlanCard({
                 : 'bg-gold text-bg hover:bg-[#d8b676]'
         }`}
       >
-            {plan.id !== 'pro' ? 'Ücretsiz Başla' : isActive ? 'Pro Aktif' : isBusy ? 'Yönlendiriliyor...' : "Pro'ya Geç"}
+        {plan.id !== 'pro' ? 'Ücretsiz Başla' : isActive ? 'Pro Aktif' : isBusy ? 'Yönlendiriliyor...' : "Pro'ya Geç"}
       </button>
     </Card>
   );
@@ -179,14 +184,12 @@ export default function PricingPage() {
         const payload = (await response.json().catch(() => null)) as BillingResponse | null;
         if (!response.ok || !payload) {
           throw new Error(
-            payload && 'error' in payload
-              ? String((payload as { error?: string }).error || 'Paketler yuklenemedi.')
-              : 'Paketler yuklenemedi.',
+            payload && 'error' in payload ? String((payload as { error?: string }).error || 'Paketler yüklenemedi.') : 'Paketler yüklenemedi.',
           );
         }
         setData(payload);
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : 'Paketler yuklenemedi.');
+        setError(requestError instanceof Error ? requestError.message : 'Paketler yüklenemedi.');
       }
     })();
   }, []);
@@ -212,21 +215,18 @@ export default function PricingPage() {
         }),
       });
 
-      const payload = (await response.json().catch(() => null)) as
-        | CheckoutResponse
-        | { error?: string }
-        | null;
+      const payload = (await response.json().catch(() => null)) as CheckoutResponse | { error?: string } | null;
       if (!response.ok || !payload || !('checkoutUrl' in payload) || typeof payload.checkoutUrl !== 'string') {
         throw new Error(
           payload && typeof payload === 'object' && 'error' in payload
-            ? String(payload.error || 'Checkout baslatilamadi.')
-            : 'Checkout baslatilamadi.',
+            ? String(payload.error || 'Checkout başlatılamadı.')
+            : 'Checkout başlatılamadı.',
         );
       }
 
       window.location.href = payload.checkoutUrl;
     } catch (checkoutError) {
-      setError(checkoutError instanceof Error ? checkoutError.message : 'Checkout baslatilamadi.');
+      setError(checkoutError instanceof Error ? checkoutError.message : 'Checkout başlatılamadı.');
       setBusyPlanId('');
     }
   }
@@ -242,20 +242,20 @@ export default function PricingPage() {
           </div>
 
           <h1 className="text-[2.3rem] font-semibold leading-[1.06] text-cream md:text-[3rem]">
-            Koku keşfini ihtiyacına göre
+            Moleküler keşfi ücretsiz başlat,
             <br />
-            <span className="text-gold">ücretsiz başlat, Pro ile derinleştir.</span>
+            <span className="text-gold">Pro ile tam derinliği aç.</span>
           </h1>
 
           <p className="mt-4 max-w-[620px] text-[13px] leading-relaxed text-muted">
-            Ücretsiz planda günlük analiz hakkın, dolabın ve karşılaştırma akışın hazır. Pro ile Katmanlama Lab,
-            Barkod Tarayıcı, öncelikli AI ve cihazlar arası senkronizasyon açılır.
+            Ücretsiz katman hızlı analiz ve temel nota okuması sunar. Pro ile tam molekül detayları, sınırsız dolap, benzer
+            parfüm kümeleri ve kişisel koku profili açılır.
           </p>
 
           <div className="mt-6 rounded-2xl border border-white/[.08] bg-black/10 px-4 py-3 text-[12px] text-muted">
             {data?.user ? (
               <>
-                Aktif kullanıcı: <span className="text-cream">{data.user.name || data.user.email}</span> • Güncel plan:{' '}
+                Aktif kullanıcı: <span className="text-cream">{data.user.name || data.user.email}</span> · Güncel plan:{' '}
                 <span className="text-gold">{activeTier === 'pro' ? 'Pro' : 'Ücretsiz'}</span>
               </>
             ) : (
@@ -271,13 +271,7 @@ export default function PricingPage() {
 
           <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2">
             {plans.map((plan) => (
-              <PlanCard
-                key={plan.id}
-                activeTier={activeTier}
-                busyPlanId={busyPlanId}
-                onCheckout={startCheckout}
-                plan={plan}
-              />
+              <PlanCard key={plan.id} activeTier={activeTier} busyPlanId={busyPlanId} onCheckout={startCheckout} plan={plan} />
             ))}
           </div>
         </div>

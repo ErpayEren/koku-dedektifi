@@ -1,12 +1,14 @@
 'use client';
 
+import { Award, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
 import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
 import { authAction, readableError } from '@/lib/client/api';
-import { getWardrobe, setWardrobe } from '@/lib/client/storage';
+import { resolveScentBadge } from '@/lib/client/badges';
+import { getHistory, getWardrobe, setWardrobe } from '@/lib/client/storage';
 import type { WardrobeItem } from '@/lib/client/types';
 import { UI } from '@/lib/strings';
 
@@ -69,6 +71,8 @@ export default function HesapPage() {
   const [user, setUser] = useState<Profile | null>(null);
 
   const isLoggedIn = useMemo(() => Boolean(user), [user]);
+  const historyCount = getHistory().length;
+  const badgeState = useMemo(() => resolveScentBadge(historyCount), [historyCount]);
 
   async function syncWardrobeFromServer(): Promise<void> {
     try {
@@ -124,7 +128,7 @@ export default function HesapPage() {
         password,
       });
       hydrateProfile(response.user);
-      setNotice('Kayit basarili.');
+      setNotice('Kayıt başarılı.');
     } catch (err) {
       setError(readableError(err));
     } finally {
@@ -144,7 +148,7 @@ export default function HesapPage() {
       });
       hydrateProfile(response.user);
       await syncWardrobeFromServer();
-      setNotice('Giris basarili.');
+      setNotice('Giriş başarılı.');
     } catch (err) {
       setError(readableError(err));
     } finally {
@@ -159,7 +163,7 @@ export default function HesapPage() {
       const response = await authAction<{ user: Profile }>({}, 'GET');
       hydrateProfile(response.user);
       await syncWardrobeFromServer();
-      setNotice('Profil yuklendi.');
+      setNotice('Profil yüklendi.');
     } catch (err) {
       setError(readableError(err));
     } finally {
@@ -184,7 +188,7 @@ export default function HesapPage() {
         'PATCH',
       );
       hydrateProfile(response.user);
-      setNotice('Profil guncellendi.');
+      setNotice('Profil güncellendi.');
     } catch (err) {
       setError(readableError(err));
     } finally {
@@ -199,7 +203,7 @@ export default function HesapPage() {
     try {
       await authAction<{ ok: boolean }>({ action: 'logout' }, 'POST');
       setUser(null);
-      setNotice('Cikis yapildi.');
+      setNotice('Çıkış yapıldı.');
     } catch (err) {
       setError(readableError(err));
     } finally {
@@ -212,7 +216,7 @@ export default function HesapPage() {
       <TopBar title="Hesap" />
 
       <div className="min-h-0 px-5 py-8 pb-24 md:px-12 md:pb-8">
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[380px_1fr]">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
           <Card className="p-5 md:p-6 hover-lift">
             <CardTitle>Kimlik</CardTitle>
 
@@ -226,7 +230,7 @@ export default function HesapPage() {
               <input
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Sifre"
+                placeholder="Şifre"
                 type="password"
                 className="w-full rounded-xl border border-white/[.08] bg-transparent p-3 text-cream outline-none focus:border-[var(--gold-line)]"
               />
@@ -277,57 +281,102 @@ export default function HesapPage() {
             </div>
           </Card>
 
-          <Card className="p-5 md:p-6 hover-lift">
-            <CardTitle>Profil ve Tercihler</CardTitle>
+          <div className="space-y-5">
+            <Card className="p-5 md:p-6 hover-lift" glow="purple">
+              <CardTitle>Koku Profili Rozeti</CardTitle>
+              <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-center">
+                <div
+                  className="flex h-16 w-16 items-center justify-center rounded-full border"
+                  style={{ borderColor: `${badgeState.badge.tone}55`, background: `${badgeState.badge.tone}14` }}
+                >
+                  <Award className="h-7 w-7" strokeWidth={1.8} style={{ color: badgeState.badge.tone }} />
+                </div>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <input
-                value={city}
-                onChange={(event) => setCity(event.target.value)}
-                placeholder={UI.city}
-                className="w-full rounded-xl border border-white/[.08] bg-transparent p-3 text-cream outline-none focus:border-[var(--gold-line)]"
-              />
-              <input
-                value={budgetBand}
-                onChange={(event) => setBudgetBand(event.target.value)}
-                placeholder={UI.budgetRange}
-                className="w-full rounded-xl border border-white/[.08] bg-transparent p-3 text-cream outline-none focus:border-[var(--gold-line)]"
-              />
-              <select
-                value={gender}
-                onChange={(event) => setGender(event.target.value)}
-                className="w-full rounded-xl border border-white/[.08] bg-[#15131a] p-3 text-cream outline-none focus:border-[var(--gold-line)]"
-              >
-                <option value="">Stil sec</option>
-                <option value="female">Kadin</option>
-                <option value="male">Erkek</option>
-                <option value="unisex">Unisex</option>
-              </select>
-            </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-mono uppercase tracking-[.16em] text-gold/80">Aktif rozet</p>
+                  <h2 className="mt-2 text-[1.55rem] font-semibold leading-tight text-cream">{badgeState.badge.label}</h2>
+                  <p className="mt-2 text-[13px] leading-relaxed text-cream/78">{badgeState.badge.subtitle}</p>
+                </div>
+              </div>
 
-            <button
-              type="button"
-              disabled={!isLoggedIn || loading}
-              onClick={saveProfile}
-              className="mt-6 w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 py-4 text-sm font-bold tracking-widest text-black shadow-[0_4px_20px_rgba(217,119,6,0.3)] transition-transform active:scale-[0.99] disabled:opacity-40"
-            >
-              PROFİLİ KAYDET
-            </button>
-
-            {user ? (
-              <div className="mt-5 space-y-1 border-t border-white/[.06] pt-4 text-[12px] text-muted">
-                <p>
-                  <span className="text-cream">ID:</span> {user.id}
-                </p>
-                <p>
-                  <span className="text-cream">E-posta:</span> {user.email}
-                </p>
-                <p>
-                  <span className="text-cream">Ad:</span> {user.name}
+              <div className="mt-5 rounded-2xl border border-white/8 bg-black/10 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[11px] font-mono uppercase tracking-[.12em] text-muted">Analiz ilerleyişi</span>
+                  <span className="text-[12px] text-cream/80">{historyCount} analiz</span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[.08]">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${badgeState.progressPct}%`, background: badgeState.badge.tone }}
+                  />
+                </div>
+                <p className="mt-3 text-[12px] text-muted">
+                  {badgeState.nextBadge
+                    ? `${badgeState.nextBadge.label} için ${Math.max(0, badgeState.nextBadge.threshold - historyCount)} analiz daha gerekiyor.`
+                    : 'Tüm rozet seviyelerini açtın.'}
                 </p>
               </div>
-            ) : null}
-          </Card>
+            </Card>
+
+            <Card className="p-5 md:p-6 hover-lift">
+              <CardTitle>Profil ve Tercihler</CardTitle>
+
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <input
+                  value={city}
+                  onChange={(event) => setCity(event.target.value)}
+                  placeholder={UI.city}
+                  className="w-full rounded-xl border border-white/[.08] bg-transparent p-3 text-cream outline-none focus:border-[var(--gold-line)]"
+                />
+                <input
+                  value={budgetBand}
+                  onChange={(event) => setBudgetBand(event.target.value)}
+                  placeholder={UI.budgetRange}
+                  className="w-full rounded-xl border border-white/[.08] bg-transparent p-3 text-cream outline-none focus:border-[var(--gold-line)]"
+                />
+                <select
+                  value={gender}
+                  onChange={(event) => setGender(event.target.value)}
+                  className="w-full rounded-xl border border-white/[.08] bg-[#15131a] p-3 text-cream outline-none focus:border-[var(--gold-line)]"
+                >
+                  <option value="">Stil seç</option>
+                  <option value="female">Kadın</option>
+                  <option value="male">Erkek</option>
+                  <option value="unisex">Unisex</option>
+                </select>
+              </div>
+
+              <button
+                type="button"
+                disabled={!isLoggedIn || loading}
+                onClick={saveProfile}
+                className="mt-6 w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 py-4 text-sm font-bold tracking-widest text-black shadow-[0_4px_20px_rgba(217,119,6,0.3)] transition-transform active:scale-[0.99] disabled:opacity-40"
+              >
+                PROFİLİ KAYDET
+              </button>
+
+              {user ? (
+                <div className="mt-5 space-y-1 border-t border-white/[.06] pt-4 text-[12px] text-muted">
+                  <p>
+                    <span className="text-cream">ID:</span> {user.id}
+                  </p>
+                  <p>
+                    <span className="text-cream">E-posta:</span> {user.email}
+                  </p>
+                  <p>
+                    <span className="text-cream">Ad:</span> {user.name}
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-5 flex items-start gap-3 rounded-2xl border border-white/8 bg-white/[.03] px-4 py-4">
+                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-gold" strokeWidth={1.8} />
+                  <p className="text-[13px] leading-relaxed text-cream/76">
+                    Giriş yaptığında rozetlerin, tercihlerinin ve dolabının cihazlar arasında senkronize olur.
+                  </p>
+                </div>
+              )}
+            </Card>
+          </div>
         </div>
 
         {error ? <p className="mt-4 text-[12px] text-[#f1a2a2]">{error}</p> : null}

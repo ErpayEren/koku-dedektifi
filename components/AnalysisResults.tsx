@@ -13,8 +13,10 @@ import { ScentGlyph } from './ui/ScentGlyph';
 import { ScentTimeline } from './ScentTimeline';
 import { MoleculeCard, type MoleculeData } from './MoleculeCard';
 import { MoleculeVisual } from './MoleculeVisual';
+import { ShareAnalysisModal } from './ShareAnalysisModal';
 import { getOnboardingPreferences } from '@/lib/client/storage';
 import type { OnboardingPreferences } from '@/lib/client/types';
+import { useBillingEntitlement } from '@/lib/client/useBillingEntitlement';
 
 interface AnalysisResultsProps {
   result: AnalysisResult | null;
@@ -297,15 +299,18 @@ export const AnalysisResults = memo(function AnalysisResults({
   isAnalyzing,
   onAnalyzeSimilar,
 }: AnalysisResultsProps) {
+  const entitlement = useBillingEntitlement();
   const [moleculeIndex, setMoleculeIndex] = useState(0);
   const [molCardIdx, setMolCardIdx] = useState<number | null>(null);
   const [visible, setVisible] = useState(false);
   const [barsReady, setBarsReady] = useState(false);
   const [shareBusy, setShareBusy] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
   const [analysisStepIndex, setAnalysisStepIndex] = useState(0);
   const [moleculeLookup, setMoleculeLookup] = useState<Record<string, MoleculeLookupRow>>({});
   const [onboardingPreferences, setOnboardingPreferences] = useState<OnboardingPreferences | null>(null);
   const shareCardRef = useRef<HTMLDivElement | null>(null);
+  const storyShareRef = useRef<HTMLDivElement | null>(null);
   const moleculeShareRef = useRef<HTMLDivElement | null>(null);
   const [moleculeShareBusy, setMoleculeShareBusy] = useState(false);
 
@@ -397,6 +402,51 @@ export const AnalysisResults = memo(function AnalysisResults({
     };
   }, [activeResult, rawMolecules]);
 
+  const season = activeResult ? toList(activeResult.season, 6) : [];
+  const allSimilarItems = activeResult ? buildSimilarItems(toList(activeResult.similar, 10)) : [];
+  const dupes = activeResult ? toList(activeResult.dupes, 8) : [];
+  const allMoleculeData = activeResult ? toMoleculeData(rawMolecules, moleculeLookup) : [];
+  const visibleMoleculeCount = activeResult
+    ? Math.min(allMoleculeData.length, Math.max(1, entitlement.moleculeUnlockedCount))
+    : 0;
+  const moleculeData = allMoleculeData.slice(0, visibleMoleculeCount);
+  const hiddenMoleculeCount = Math.max(0, allMoleculeData.length - moleculeData.length);
+  const moleculeSafeIndex = Math.max(0, Math.min(moleculeIndex, Math.max(0, moleculeData.length - 1)));
+  const molecule = moleculeData[moleculeSafeIndex] || null;
+  const similarItems = allSimilarItems.slice(0, entitlement.similarLimit);
+  const hiddenSimilarCount = Math.max(0, allSimilarItems.length - similarItems.length);
+  const occasionList = activeResult ? toList(activeResult.persona?.occasions, 5) : [];
+  const scores = {
+    freshness: clampPercent(activeResult?.scores?.freshness, 50),
+    sweetness: clampPercent(activeResult?.scores?.sweetness, 50),
+    warmth: clampPercent(activeResult?.scores?.warmth, 50),
+  };
+  const wheelValues = [scores.freshness, scores.sweetness, scores.warmth, clampPercent(activeResult?.intensity, 65)];
+  const confidence = activeResult ? resolveConfidence(activeResult) : 0;
+  const preferenceMatch = activeResult
+    ? resolvePreferenceMatch(activeResult, onboardingPreferences)
+    : { score: 0, summary: '' };
+  const heartNotes = activeResult?.pyramid?.middle ?? [];
+  const glowColor = activeResult ? FAMILY_GLOW[activeResult.family] ?? 'rgba(201,169,110,.06)' : 'rgba(201,169,110,.06)';
+  const projectionScore = resolveMetricScore(activeResult?.technical ?? [], /yayilim|projection|sillage/, 68);
+  const longevityScore = resolveMetricScore(activeResult?.technical ?? [], /kalicilik|longevity|lasting/, 80);
+  const baseFitScore = clampPercent(Math.round((confidence + clampPercent(activeResult?.intensity, 70)) / 2), 84);
+  const fitScore = clampPercent(baseFitScore + preferenceMatch.score, baseFitScore);
+  const signatureTags = activeResult
+    ? [activeResult.family, activeResult.persona?.vibe || '', activeResult.occasion || '', season[0] || ''].filter(Boolean)
+    : [];
+
+  const cardMotion = (index: number) => ({
+    opacity: visible ? 1 : 0,
+    transform: visible ? 'translateY(0)' : 'translateY(12px)',
+    transition: `opacity .4s ease ${index * 80}ms, transform .4s var(--ease) ${index * 80}ms`,
+  });
+
+  useEffect(() => {
+    if (moleculeIndex <= Math.max(0, moleculeData.length - 1)) return;
+    setMoleculeIndex(0);
+  }, [moleculeData.length, moleculeIndex]);
+
   if (isAnalyzing) {
     return (
       <section className="anim-up-1 px-5 pb-8 md:px-12">
@@ -444,67 +494,82 @@ export const AnalysisResults = memo(function AnalysisResults({
 
   if (!activeResult) return null;
 
-  const season = toList(activeResult.season, 6);
-  const similarItems = buildSimilarItems(toList(activeResult.similar, 10));
-  const dupes = toList(activeResult.dupes, 8);
-  const moleculeData = toMoleculeData(rawMolecules, moleculeLookup);
-  const moleculeSafeIndex = Math.max(0, Math.min(moleculeIndex, Math.max(0, moleculeData.length - 1)));
-  const molecule = moleculeData[moleculeSafeIndex] || null;
-  const occasionList = toList(activeResult.persona?.occasions, 5);
-  const scores = {
-    freshness: clampPercent(activeResult.scores?.freshness, 50),
-    sweetness: clampPercent(activeResult.scores?.sweetness, 50),
-    warmth: clampPercent(activeResult.scores?.warmth, 50),
-  };
-  const wheelValues = [scores.freshness, scores.sweetness, scores.warmth, clampPercent(activeResult.intensity, 65)];
-  const confidence = resolveConfidence(activeResult);
-  const preferenceMatch = resolvePreferenceMatch(activeResult, onboardingPreferences);
-  const heartNotes = activeResult.pyramid?.middle ?? [];
-  const glowColor = FAMILY_GLOW[activeResult.family] ?? 'rgba(201,169,110,.06)';
-  const projectionScore = resolveMetricScore(activeResult.technical, /yayilim|projection|sillage/, 68);
-  const longevityScore = resolveMetricScore(activeResult.technical, /kalicilik|longevity|lasting/, 80);
-  const baseFitScore = clampPercent(Math.round((confidence + clampPercent(activeResult.intensity, 70)) / 2), 84);
-  const fitScore = clampPercent(baseFitScore + preferenceMatch.score, baseFitScore);
-  const signatureTags = [activeResult.family, activeResult.persona?.vibe || '', activeResult.occasion || '', season[0] || ''].filter(Boolean);
+  async function buildAnalysisShareFile(): Promise<File | null> {
+    if (!storyShareRef.current || !activeResult) return null;
+    const { toPng } = await import('html-to-image');
+    const dataUrl = await toPng(storyShareRef.current, {
+      cacheBust: true,
+      pixelRatio: 2,
+      backgroundColor: '#09080a',
+    });
+    const blob = await fetch(dataUrl).then((response) => response.blob());
+    return new File([blob], `${activeResult.name.toLowerCase().replace(/\s+/g, '-')}-story.png`, { type: 'image/png' });
+  }
 
-  const cardMotion = (index: number) => ({
-    opacity: visible ? 1 : 0,
-    transform: visible ? 'translateY(0)' : 'translateY(12px)',
-    transition: `opacity .4s ease ${index * 80}ms, transform .4s var(--ease) ${index * 80}ms`,
-  });
+  async function downloadFile(file: File): Promise<void> {
+    const downloadUrl = window.URL.createObjectURL(file);
+    const anchor = document.createElement('a');
+    anchor.href = downloadUrl;
+    anchor.download = file.name;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.URL.revokeObjectURL(downloadUrl);
+  }
 
   async function shareResultCard(): Promise<void> {
-    if (!shareCardRef.current || shareBusy || !activeResult) return;
-    const currentResult = activeResult;
+    if (shareBusy || !activeResult) return;
     setShareBusy(true);
     try {
-      const { toPng } = await import('html-to-image');
-      const dataUrl = await toPng(shareCardRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
-        backgroundColor: '#09080a',
-      });
-      const blob = await fetch(dataUrl).then((response) => response.blob());
-      const file = new File([blob], `${currentResult.name.toLowerCase().replace(/\s+/g, '-')}.png`, { type: 'image/png' });
+      const file = await buildAnalysisShareFile();
+      if (!file) return;
       const supportsFiles =
         typeof navigator !== 'undefined' &&
         typeof navigator.share === 'function' &&
         (typeof navigator.canShare !== 'function' || navigator.canShare({ files: [file] }));
 
       if (supportsFiles) {
-        await navigator.share({ title: currentResult.name, files: [file] });
+        await navigator.share({
+          title: activeResult.name,
+          text: `${activeResult.name} moleküler olarak Koku Dedektifi ile analiz edildi.`,
+          files: [file],
+        });
       } else {
-        const downloadUrl = window.URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.href = downloadUrl;
-        anchor.download = file.name;
-        document.body.appendChild(anchor);
-        anchor.click();
-        document.body.removeChild(anchor);
-        window.URL.revokeObjectURL(downloadUrl);
+        await downloadFile(file);
       }
+      setShareModalOpen(false);
     } catch (error) {
       console.error('[analysis-results] share failed.', error);
+    } finally {
+      setShareBusy(false);
+    }
+  }
+
+  async function copyResultLink(): Promise<void> {
+    if (!activeResult || shareBusy) return;
+    setShareBusy(true);
+    try {
+      const link = `${window.location.origin}/?replay=${encodeURIComponent(activeResult.id)}`;
+      await navigator.clipboard.writeText(link);
+      window.alert('Bağlantı kopyalandı.');
+      setShareModalOpen(false);
+    } catch (error) {
+      console.error('[analysis-results] copy failed.', error);
+    } finally {
+      setShareBusy(false);
+    }
+  }
+
+  async function downloadResultCard(): Promise<void> {
+    if (shareBusy) return;
+    setShareBusy(true);
+    try {
+      const file = await buildAnalysisShareFile();
+      if (!file) return;
+      await downloadFile(file);
+      setShareModalOpen(false);
+    } catch (error) {
+      console.error('[analysis-results] download failed.', error);
     } finally {
       setShareBusy(false);
     }
@@ -568,11 +633,11 @@ export const AnalysisResults = memo(function AnalysisResults({
           <div className="absolute left-5 top-5">
             <button
               type="button"
-              onClick={() => void shareResultCard()}
+              onClick={() => setShareModalOpen(true)}
               disabled={shareBusy}
               className="rounded-full border border-white/[.08] bg-black/20 px-3 py-2 text-[10px] font-mono uppercase tracking-[.08em] text-muted transition-colors hover:border-[var(--gold-line)] hover:text-cream disabled:opacity-50"
             >
-              {shareBusy ? 'Paylaşılıyor' : 'Paylaş'}
+              {shareBusy ? 'Hazırlanıyor' : 'Paylaş'}
             </button>
           </div>
           <div className="absolute right-5 top-5">
@@ -798,6 +863,32 @@ export const AnalysisResults = memo(function AnalysisResults({
                 </>
               ) : null}
 
+              {hiddenMoleculeCount > 0 ? (
+                <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--gold-line)]/50 bg-[linear-gradient(180deg,rgba(245,158,11,0.07),rgba(13,13,18,0.95))]">
+                  <div className="px-4 py-4">
+                    <p className="text-[10px] font-mono uppercase tracking-[.16em] text-gold/80">PRO duvarı</p>
+                    <p className="mt-2 text-[15px] font-semibold text-cream">{hiddenMoleculeCount} molekül daha gizli</p>
+                    <p className="mt-2 text-[13px] leading-relaxed text-cream/78">
+                      Ücretsiz katmanda ilk iki molekül görünür. Tam molekül analizi ve detay sayfaları Pro ile açılır.
+                    </p>
+                    <Link
+                      href="/paketler"
+                      className="mt-4 inline-flex rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)]/20 px-3.5 py-2 text-[10px] font-mono uppercase tracking-[.12em] text-gold transition-colors hover:bg-[var(--gold-dim)]/35"
+                    >
+                      PRO ile gör
+                    </Link>
+                  </div>
+                  <div className="pointer-events-none border-t border-white/[.06] bg-black/30 px-4 py-3 blur-[1.5px]">
+                    {allMoleculeData.slice(visibleMoleculeCount, visibleMoleculeCount + 2).map((item) => (
+                      <div key={`${item.name}-locked`} className="flex items-center justify-between py-2 text-[12px] text-white/40">
+                        <span>{item.name}</span>
+                        <span>{clampPercent(item.pct, 50)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               {molecule.explanation ? (
                 <div className="mt-4 rounded-2xl border border-white/[.08] bg-white/[.03] px-4 py-3">
                   <p className="text-[10px] font-mono uppercase tracking-[.12em] text-gold">Molekül Yorumu</p>
@@ -860,6 +951,21 @@ export const AnalysisResults = memo(function AnalysisResults({
             )}
           </div>
 
+          {hiddenSimilarCount > 0 ? (
+            <div className="mt-4 rounded-2xl border border-[var(--gold-line)]/35 bg-[var(--gold-dim)]/10 px-4 py-3">
+              <p className="text-[10px] font-mono uppercase tracking-[.14em] text-gold">Pro ile Top 10</p>
+              <p className="mt-2 text-[13px] leading-relaxed text-cream/82">
+                {hiddenSimilarCount} benzer koku daha bulundu. Ücretsiz katmanda ilk {entitlement.similarLimit} sonuç görünür.
+              </p>
+              <Link
+                href="/paketler"
+                className="mt-3 inline-flex rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)]/20 px-3 py-2 text-[10px] font-mono uppercase tracking-[.12em] text-gold transition-colors hover:bg-[var(--gold-dim)]/35"
+              >
+                Top 10&apos;u aç
+              </Link>
+            </div>
+          ) : null}
+
           {dupes.length > 0 ? (
             <div className="mt-5 border-t border-white/[.06] pt-5">
               <CardTitle className="mb-3">Benzer Profil Alternatifleri</CardTitle>
@@ -895,6 +1001,57 @@ export const AnalysisResults = memo(function AnalysisResults({
           </div>
         </Card>
       </div>
+
+      {molecule ? (
+        <div
+          ref={storyShareRef}
+          className="fixed -left-[9999px] top-0 flex h-[1280px] w-[720px] flex-col overflow-hidden rounded-[40px] border border-white/[.08] bg-[#09080a] p-10 text-cream"
+        >
+          <div className="rounded-[28px] border border-white/[.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))] p-8">
+            <p className="text-[12px] font-mono uppercase tracking-[.18em] text-gold/85">Koku Dedektifi</p>
+            <h2 className="mt-5 font-display text-[4.4rem] leading-[0.94] text-cream">{activeResult.name}</h2>
+            <p className="mt-3 text-[16px] uppercase tracking-[.18em] text-muted">{activeResult.family}</p>
+          </div>
+
+          <div className="mt-6 grid grid-cols-[1.1fr_0.9fr] gap-6">
+            <div className="rounded-[28px] border border-white/[.08] bg-white/[.03] p-6">
+              <p className="text-[11px] font-mono uppercase tracking-[.16em] text-gold">Top 3 nota</p>
+              <div className="mt-4 space-y-3 text-[20px] leading-tight text-cream">
+                {[
+                  ...toList(activeResult.pyramid?.top, 2),
+                  ...toList(activeResult.pyramid?.middle, 2),
+                  ...toList(activeResult.pyramid?.base, 2),
+                ]
+                  .slice(0, 3)
+                  .map((note) => (
+                    <p key={`story-${note}`}>{note}</p>
+                  ))}
+              </div>
+
+              <div className="mt-8 rounded-[24px] border border-[var(--gold-line)] bg-[var(--gold-dim)]/12 p-5">
+                <p className="text-[11px] font-mono uppercase tracking-[.16em] text-gold/80">İz skoru</p>
+                <p className="mt-3 text-[3.4rem] font-semibold leading-none text-cream">
+                  <AnimatedPercent value={confidence} />
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-[28px] border border-white/[.08] bg-[#0c0b10] p-5">
+              <MoleculeVisual name={molecule.name} smiles={molecule.smiles} formula={molecule.formula} compact />
+              <p className="mt-4 text-[11px] font-mono uppercase tracking-[.16em] text-gold/80">Baskın molekül</p>
+              <p className="mt-2 text-[1.8rem] font-semibold text-cream">{molecule.name}</p>
+              <p className="mt-2 text-[14px] leading-relaxed text-cream/76">
+                {molecule.explanation || `${molecule.name}, bu parfümün karakterini taşıyan temel moleküllerden biri.`}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-auto flex items-center justify-between rounded-[24px] border border-white/[.08] bg-white/[.03] px-6 py-5">
+            <p className="text-[14px] text-cream/78">Koku Dedektifi ile analiz edildi</p>
+            <p className="text-[12px] font-mono uppercase tracking-[.16em] text-gold">kokudedektifi.com</p>
+          </div>
+        </div>
+      ) : null}
 
       {molecule ? (
         <div
@@ -934,6 +1091,15 @@ export const AnalysisResults = memo(function AnalysisResults({
           </div>
         </div>
       ) : null}
+
+      <ShareAnalysisModal
+        open={shareModalOpen}
+        busy={shareBusy}
+        onClose={() => setShareModalOpen(false)}
+        onInstagramShare={shareResultCard}
+        onCopyLink={copyResultLink}
+        onDownload={downloadResultCard}
+      />
 
       {molCardIdx !== null ? <MoleculeCard molecules={moleculeData} initialIndex={molCardIdx} onClose={() => setMolCardIdx(null)} /> : null}
     </section>

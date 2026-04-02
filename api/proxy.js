@@ -14,7 +14,7 @@ const MAX_MESSAGE_BLOCKS = 8;
 const MAX_IMAGES_PER_REQUEST = 4;
 const MAX_INLINE_IMAGE_BYTES = 3 * 1024 * 1024;
 const MAX_IMAGE_URL_LENGTH = 4096;
-const DAILY_ANALYSIS_QUOTA_ENABLED = false;
+const DAILY_ANALYSIS_QUOTA_ENABLED = true;
 const ALLOWED_PROMPT_TYPES = new Set(['analysis', 'advisor']);
 const ALLOWED_MESSAGE_ROLES = new Set(['user', 'assistant']);
 const ALLOWED_CONTENT_TYPES = new Set(['text', 'image', 'image_url']);
@@ -452,7 +452,7 @@ async function handler(req, res) {
       return res.status(error?.statusCode || 429).json(
         error?.body || {
           error: 'Gunluk analiz limitine ulastiniz.',
-          limit: 5,
+          limit: 3,
           retryAfter: 'yarin',
         },
       );

@@ -1,9 +1,30 @@
 import { normalizeAnalysisPayload } from './analysis';
 import type { AnalysisResult, FinderCandidate } from './types';
 
+export interface ApiErrorPayload {
+  error?: string;
+  limit?: number;
+  retryAfter?: string;
+  upgrade?: string;
+  plan?: 'free' | 'pro';
+  [key: string]: unknown;
+}
+
+export class ApiError extends Error {
+  status: number;
+  payload: ApiErrorPayload;
+
+  constructor(message: string, status: number, payload: ApiErrorPayload = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.payload = payload;
+  }
+}
+
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
-  return 'Islem sirasinda beklenmeyen bir hata olustu.';
+  return 'İşlem sırasında beklenmeyen bir hata oluştu.';
 }
 
 async function jsonRequest<T>(url: string, options: RequestInit): Promise<T> {
@@ -11,11 +32,11 @@ async function jsonRequest<T>(url: string, options: RequestInit): Promise<T> {
     credentials: 'include',
     ...options,
   });
-  const data = await response.json().catch(() => ({}));
+  const data = (await response.json().catch(() => ({}))) as ApiErrorPayload;
 
   if (!response.ok) {
-    const message = typeof data?.error === 'string' ? data.error : `Istek basarisiz (${response.status})`;
-    throw new Error(message);
+    const message = typeof data?.error === 'string' ? data.error : `İstek başarısız (${response.status})`;
+    throw new ApiError(message, response.status, data);
   }
 
   return data as T;
@@ -37,7 +58,7 @@ export async function analyzeText(text: string): Promise<AnalysisResult> {
 }
 
 export async function analyzeNotes(notesText: string): Promise<AnalysisResult> {
-  const prompt = `Asagidaki nota listesine gore analiz yap: ${notesText.trim()}`;
+  const prompt = `Aşağıdaki nota listesine göre analiz yap: ${notesText.trim()}`;
   const payload = {
     promptType: 'analysis',
     messages: [{ role: 'user', content: prompt }],
@@ -59,7 +80,7 @@ export async function analyzeImage(dataUrl: string): Promise<AnalysisResult> {
       {
         role: 'user',
         content: [
-          { type: 'text', text: 'Bu gorseldeki kokuyu analiz et.' },
+          { type: 'text', text: 'Bu görseldeki kokuyu analiz et.' },
           { type: 'image_url', image_url: { url: dataUrl } },
         ],
       },
@@ -103,13 +124,8 @@ export async function runFinder(input: {
       const includeBonus = (item.includeMatches?.length || 0) * 2;
       const targetDelta = Number.isFinite(sweetness) ? Math.abs(sweetness - input.targetSweetness) * 0.45 : 0;
       const maxPenalty =
-        Number.isFinite(sweetness) && sweetness > input.maxSweetness
-          ? (sweetness - input.maxSweetness) * 1.2
-          : 0;
-      const adjustedScore = Math.max(
-        0,
-        Math.min(100, Math.round(baseScore + includeBonus - targetDelta - maxPenalty)),
-      );
+        Number.isFinite(sweetness) && sweetness > input.maxSweetness ? (sweetness - input.maxSweetness) * 1.2 : 0;
+      const adjustedScore = Math.max(0, Math.min(100, Math.round(baseScore + includeBonus - targetDelta - maxPenalty)));
 
       return {
         ...item,
@@ -133,7 +149,7 @@ export async function runLayering(input: {
   });
 
   if (!data.result) {
-    throw new Error('Katmanlama sonucu uretilemedi.');
+    throw new Error('Katmanlama sonucu üretilemedi.');
   }
 
   return {
@@ -176,10 +192,7 @@ export async function lookupBarcode(code: string): Promise<{
   };
 }
 
-export async function authAction<T>(
-  body: unknown,
-  method: 'GET' | 'POST' | 'PATCH' = 'POST',
-): Promise<T> {
+export async function authAction<T>(body: unknown, method: 'GET' | 'POST' | 'PATCH' = 'POST'): Promise<T> {
   const headers: Record<string, string> = {};
   if (method !== 'GET') headers['Content-Type'] = 'application/json';
 

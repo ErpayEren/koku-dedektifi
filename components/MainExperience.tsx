@@ -8,9 +8,11 @@ import { HeroInput } from './HeroInput';
 import { LegalFooter } from './LegalFooter';
 import { MoleculePreviewStrip } from './MoleculePreviewStrip';
 import { TopBar } from './TopBar';
-import { analyzeImage, analyzeNotes, analyzeText, readableError } from '@/lib/client/api';
-import { findHistoryById, pushFeed, saveHistoryRow, upsertWardrobe } from '@/lib/client/storage';
+import { UpgradePromptModal } from './UpgradePromptModal';
+import { ApiError, analyzeImage, analyzeNotes, analyzeText, readableError } from '@/lib/client/api';
+import { getWardrobe, pushFeed, saveHistoryRow, findHistoryById, upsertWardrobe } from '@/lib/client/storage';
 import type { AnalysisResult, InputMode, WardrobeItem } from '@/lib/client/types';
+import { useBillingEntitlement } from '@/lib/client/useBillingEntitlement';
 import { UI } from '@/lib/strings';
 
 function toWardrobeItem(result: AnalysisResult): WardrobeItem {
@@ -39,9 +41,24 @@ function replaceModeInUrl(nextMode: InputMode): void {
   window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
 }
 
+interface UpgradeState {
+  open: boolean;
+  title: string;
+  body: string;
+  featureBullets: string[];
+}
+
+const DEFAULT_UPGRADE_STATE: UpgradeState = {
+  open: false,
+  title: '',
+  body: '',
+  featureBullets: [],
+};
+
 export function MainExperience() {
   const router = useRouter();
   const [, startTransition] = useTransition();
+  const entitlement = useBillingEntitlement();
   const [mode, setMode] = useState<InputMode>('photo');
   const [textValue, setTextValue] = useState('');
   const [notesValue, setNotesValue] = useState('');
@@ -50,6 +67,9 @@ export function MainExperience() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [upgradeState, setUpgradeState] = useState<UpgradeState>(DEFAULT_UPGRADE_STATE);
+
+  const wardrobeCount = getWardrobe().length;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -80,6 +100,13 @@ export function MainExperience() {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  function openUpgradePrompt(input: Omit<UpgradeState, 'open'>): void {
+    setUpgradeState({
+      open: true,
+      ...input,
+    });
+  }
+
   const runAnalyze = useCallback(async (): Promise<void> => {
     setError('');
     setNotice('');
@@ -106,7 +133,22 @@ export function MainExperience() {
       });
       setNotice('Analiz tamamlandı.');
     } catch (err) {
-      setError(readableError(err));
+      if (err instanceof ApiError && err.status === 429) {
+        openUpgradePrompt({
+          title: 'Bugünkü limitine ulaştın',
+          body:
+            'Ücretsiz katmanda bugünkü moleküler analiz hakkını kullandın. Keşfetmeye devam etmek için Pro ile tam derinlik açılabilir.',
+          featureBullets: [
+            'Sınırsız analiz',
+            'Tam molekül analizi ve detay sayfaları',
+            'Top 10 benzer parfüm önerisi',
+            'Parfümör gözüyle derin rapor',
+          ],
+        });
+        setError('');
+      } else {
+        setError(readableError(err));
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -133,7 +175,19 @@ export function MainExperience() {
           perfume: analysis.name,
         });
       } catch (err) {
-        setError(readableError(err));
+        if (err instanceof ApiError && err.status === 429) {
+          openUpgradePrompt({
+            title: 'Bugünkü limitine ulaştın',
+            body: 'Benzer profil akışını sürdürmek için bugünkü ücretsiz kotan doldu. Pro ile keşfe kesintisiz devam edebilirsin.',
+            featureBullets: [
+              'Sınırsız analiz',
+              'Benzer parfümlerde ilk 10 sonuç',
+              'Tam molekül görünürlüğü',
+            ],
+          });
+        } else {
+          setError(readableError(err));
+        }
       } finally {
         setIsAnalyzing(false);
       }
@@ -196,14 +250,25 @@ export function MainExperience() {
       return;
     }
 
-    upsertWardrobe(toWardrobeItem(result));
+    const item = toWardrobeItem(result);
+    const alreadySaved = getWardrobe().some((row) => row.key === item.key);
+    if (!alreadySaved && entitlement.wardrobeLimit !== null && wardrobeCount >= entitlement.wardrobeLimit) {
+      openUpgradePrompt({
+        title: 'Dolap limiti doldu',
+        body: 'Ücretsiz dolapta en fazla 5 parfüm saklanabiliyor. Sınırsız koleksiyon için Pro katmanına geçebilirsin.',
+        featureBullets: ['Sınırsız dolap', 'Cihazlar arası senkronizasyon', 'Koku profili kişiselleştirme'],
+      });
+      return;
+    }
+
+    upsertWardrobe(item);
     pushFeed({
       event: 'wardrobe',
       detail: 'Dolaba eklendi',
       perfume: result.name,
     });
     setNotice('Sonuç dolaba eklendi.');
-  }, [result, router]);
+  }, [entitlement.wardrobeLimit, result, router, wardrobeCount]);
 
   const compareNow = useCallback((): void => {
     if (!result) {
@@ -288,6 +353,14 @@ export function MainExperience() {
       />
 
       <LegalFooter />
+
+      <UpgradePromptModal
+        open={upgradeState.open}
+        title={upgradeState.title}
+        body={upgradeState.body}
+        featureBullets={upgradeState.featureBullets}
+        onClose={() => setUpgradeState(DEFAULT_UPGRADE_STATE)}
+      />
     </>
   );
 }

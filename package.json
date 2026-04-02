@@ -11,6 +11,7 @@
     "seed:data-engine": "node seed.js",
     "seed:catalog": "node scripts/seed-fragrance-catalog.mjs",
     "seed:catalog:prod": "node scripts/seed-catalog-prod.mjs",
+    "seed:brewno": "node scripts/seed-brewno.mjs",
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",

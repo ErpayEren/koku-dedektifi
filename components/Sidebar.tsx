@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Archive,
   CalendarDays,
+  Coffee,
   FlaskConical,
   GitCompare,
   History,
@@ -57,6 +58,12 @@ const NAV: NavGroup[] = [
       { label: 'Haftalık Molekül', href: '/haftalik-molekul', Icon: FlaskConical },
       { label: 'Barkod Tara', href: '/barkod', Icon: ScanLine },
       { label: 'Koku Akışı', href: '/akis', Icon: Wind },
+    ],
+  },
+  {
+    section: 'BREWNO ☕',
+    items: [
+      { label: 'Kahve Keşfi', href: '/brewno' as Route, Icon: Coffee },
     ],
   },
 ];

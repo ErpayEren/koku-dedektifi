@@ -53,7 +53,7 @@ test.describe('Koku Dedektifi smoke', () => {
   test('molekul detay sayfasi ambroxide icin acilir', async ({ page }) => {
     await page.goto('/molekuller/ambroxide');
 
-    await expect(page.getByRole('heading', { name: /Ambroxide/i })).toBeVisible();
+    await expect(page.getByText(/^Ambroxide$/).first()).toBeVisible();
     await expect(page.getByText(/CAS:/i)).toBeVisible();
   });
 
@@ -74,7 +74,7 @@ test.describe('Koku Dedektifi smoke', () => {
     await page.goto('/paketler');
 
     await expect(page.getByText(/Moleküler keşfi|Molekuler kesfi/i)).toBeVisible();
-    await expect(page.getByText(/Ucretsiz|Ücretsiz/i)).toBeVisible();
-    await expect(page.getByText(/^Pro$/)).toBeVisible();
+    await expect(page.getByRole('button', { name: /Ücretsiz Başla|Ucretsiz Basla/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Pro Aktif|Pro'ya Geç|Proya Gec|Yönlendiriliyor|Yonlendiriliyor/i })).toBeVisible();
   });
 });

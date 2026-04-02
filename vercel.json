@@ -27,6 +27,10 @@
       "destination": "/api/ops?r=wardrobe-health"
     },
     {
+      "source": "/api/catalog-health",
+      "destination": "/api/ops?r=catalog-health"
+    },
+    {
       "source": "/api/feed-health",
       "destination": "/api/ops?r=feed-health"
     },

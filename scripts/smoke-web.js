@@ -26,6 +26,7 @@ async function getJson(path) {
 async function run() {
   const checks = await Promise.all([
     getJson('/api/health'),
+    getJson('/api/catalog-health'),
     getJson('/api/wardrobe-health'),
     getJson('/api/feed-health'),
     getJson('/api/billing'),
@@ -43,7 +44,10 @@ async function run() {
     console.log(summary);
 
     if (!item.ok) fail = true;
-    if ((item.path === '/api/health' || item.path === '/api/wardrobe-health' || item.path === '/api/feed-health')
+    if ((item.path === '/api/health'
+      || item.path === '/api/catalog-health'
+      || item.path === '/api/wardrobe-health'
+      || item.path === '/api/feed-health')
       && item?.data?.ready !== true) {
       fail = true;
     }

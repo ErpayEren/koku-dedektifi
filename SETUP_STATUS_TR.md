@@ -16,19 +16,32 @@ Bu dokuman, istenen 5 basligi repo icinde nasil tamamladigimizi ozetler.
 
 Repo tarafinda hazir:
 - SQL schema: `docs/supabase_schema.sql`
+- Faz 2 katalog migration: `supabase/migrations/20260401_phase2_catalog.sql`
 - Sunucu config: `lib/server/supabase-config.js`
 - Auth users adapter: `lib/server/supabase-auth-users.js`
+- Seed veri paketi: `data/catalog-seed.json`
+- Seed scripti: `scripts/seed-fragrance-catalog.mjs`
 
 Yapilacaklar:
 1. Supabase projesi ac.
 2. `docs/supabase_schema.sql` dosyasini SQL editor'da calistir.
+3. `supabase/migrations/20260401_phase2_catalog.sql` migration'ini calistir.
+4. Katalogu seed et:
+   ```powershell
+   npm run seed:catalog
+   ```
 3. Envleri ekle:
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
    - (opsiyonel alias) `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_KEY`
-4. Gerekirse strict moda al:
+5. Gerekirse strict moda al:
    - `WARDROBE_REQUIRE_SUPABASE=true`
    - `FEED_REQUIRE_SUPABASE=true`
+
+Not:
+- Supabase katalog envleri eksikse uygulama yine calisir; `data/catalog-seed.json` fallback katalog olarak kullanilir.
+- Canli katalog durumu icin kontrol endpoint'i:
+  - `/api/catalog-health`
 
 ## 3) Flutter SDK / mobil plugin hazirligi
 
@@ -67,6 +80,7 @@ npm run check:readiness
 Bu komut:
 - `.env.local`
 - Supabase env + schema varligi
+- katalog seed sayisi ve molekul yeterliligi
 - Flutter wrapper/SDK varligi
 - RevenueCat opsiyonel durumu
 - Billing checklist + provider env eksiklerini tek ciktiyla raporlar.

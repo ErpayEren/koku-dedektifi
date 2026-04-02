@@ -45,6 +45,26 @@ const envPath = path.join(root, '.env.local');
 const env = readEnvFile(envPath);
 let hasFailure = false;
 
+function readCatalogSeed() {
+  const filePath = path.join(root, 'data', 'catalog-seed.json');
+  if (!fs.existsSync(filePath)) {
+    return { ok: false, fragranceCount: 0, moleculeCount: 0, everyFragranceHasThreeMolecules: false };
+  }
+
+  try {
+    const raw = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    const fragranceCount = Array.isArray(raw.fragrances) ? raw.fragrances.length : 0;
+    const moleculeCount = Array.isArray(raw.molecules) ? raw.molecules.length : 0;
+    const everyFragranceHasThreeMolecules = Array.isArray(raw.fragrances)
+      ? raw.fragrances.every((item) => Array.isArray(item.key_molecules) && item.key_molecules.length >= 3)
+      : false;
+
+    return { ok: true, fragranceCount, moleculeCount, everyFragranceHasThreeMolecules };
+  } catch {
+    return { ok: false, fragranceCount: 0, moleculeCount: 0, everyFragranceHasThreeMolecules: false };
+  }
+}
+
 if (exists('.env.local')) {
   ok('.env.local mevcut');
 } else {
@@ -67,6 +87,23 @@ if (supabaseUrl && supabaseKey) {
   hasFailure = true;
 } else {
   warn('Supabase cloud sync ayarsiz (opsiyonel)');
+}
+
+const catalogSeed = readCatalogSeed();
+if (!catalogSeed.ok) {
+  fail('data/catalog-seed.json okunamadi');
+  hasFailure = true;
+} else if (catalogSeed.fragranceCount >= 20 && catalogSeed.moleculeCount >= 20 && catalogSeed.everyFragranceHasThreeMolecules) {
+  ok(`Katalog seed hazir (${catalogSeed.fragranceCount} parfum, ${catalogSeed.moleculeCount} molekul)`);
+} else {
+  fail(`Katalog seed eksik (parfum=${catalogSeed.fragranceCount}, molekul=${catalogSeed.moleculeCount}, 3+ molekul=${catalogSeed.everyFragranceHasThreeMolecules})`);
+  hasFailure = true;
+}
+
+if (supabaseUrl && supabaseKey) {
+  ok('Catalog seed Supabase ortam degiskenleri ile yuklenebilir');
+} else {
+  warn('Supabase katalog env eksik; uygulama katalogu seed fallback ile calistirir');
 }
 
 if (exists('docs/supabase_schema.sql')) ok('Supabase schema dosyasi mevcut');

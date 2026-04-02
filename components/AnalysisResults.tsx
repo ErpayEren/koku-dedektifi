@@ -1,9 +1,8 @@
 'use client';
 
 import { memo } from 'react';
+import dynamic from 'next/dynamic';
 import { SectionDivider } from './ui/SectionDivider';
-import { MoleculeCard } from './MoleculeCard';
-import { ShareAnalysisModal } from './ShareAnalysisModal';
 import { AnalysisLoadingState } from './analysis-results/AnalysisLoadingState';
 import { ShareCanvases } from './analysis-results/ShareCanvases';
 import {
@@ -14,6 +13,11 @@ import {
   WheelPanel,
 } from './analysis-results/panels';
 import { useAnalysisResultsModel } from './analysis-results/useAnalysisResultsModel';
+
+const MoleculeCard = dynamic(() => import('./MoleculeCard').then((module) => module.MoleculeCard));
+const ShareAnalysisModal = dynamic(() =>
+  import('./ShareAnalysisModal').then((module) => module.ShareAnalysisModal),
+);
 
 interface AnalysisResultsProps {
   result: import('@/lib/client/types').AnalysisResult | null;

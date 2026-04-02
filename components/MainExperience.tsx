@@ -1,17 +1,38 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { ActionBar } from './ActionBar';
-import { AnalysisResults } from './AnalysisResults';
 import { HeroInput } from './HeroInput';
 import { LegalFooter } from './LegalFooter';
-import { MoleculePreviewStrip } from './MoleculePreviewStrip';
 import { TopBar } from './TopBar';
-import { UpgradePromptModal } from './UpgradePromptModal';
 import { StatusBanners } from './main-experience/StatusBanners';
 import { useMainExperienceController } from './main-experience/useMainExperienceController';
 import { UI } from '@/lib/strings';
+import type { MoleculePreviewEntry } from './MoleculePreviewStrip';
 
-export function MainExperience() {
+const AnalysisResults = dynamic(
+  () => import('./AnalysisResults').then((module) => module.AnalysisResults),
+  {
+    loading: () => <div className="px-5 pb-8 md:px-12" />,
+  },
+);
+
+const MoleculePreviewStrip = dynamic(
+  () => import('./MoleculePreviewStrip').then((module) => module.MoleculePreviewStrip),
+  {
+    loading: () => <div className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6" />,
+  },
+);
+
+const UpgradePromptModal = dynamic(
+  () => import('./UpgradePromptModal').then((module) => module.UpgradePromptModal),
+);
+
+interface MainExperienceProps {
+  featuredMolecules: MoleculePreviewEntry[];
+}
+
+export function MainExperience({ featuredMolecules }: MainExperienceProps) {
   const controller = useMainExperienceController();
 
   return (
@@ -32,7 +53,7 @@ export function MainExperience() {
         onChipPick={controller.handleChipPick}
       />
 
-      <MoleculePreviewStrip />
+      <MoleculePreviewStrip molecules={featuredMolecules} />
 
       <StatusBanners error={controller.error} notice={controller.notice} />
 

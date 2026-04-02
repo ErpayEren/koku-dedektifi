@@ -2,10 +2,29 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { getFeaturedMolecules } from '@/lib/catalog-public';
 import { fadeUp, scaleIn, staggerChildren } from '@/lib/animations';
 import { MoleculeCard, type MoleculeData } from './MoleculeCard';
 import { MoleculeVisual } from './MoleculeVisual';
+
+export interface MoleculePreviewEntry {
+  name: string;
+  formula: string;
+  type: string;
+  note: 'top' | 'heart' | 'base';
+  origin: string[];
+  pct: number;
+  smiles?: string;
+  verified?: boolean;
+  slug?: string;
+  casNumber?: string;
+  profileTags?: string[];
+  funFact?: string;
+  explanation?: string;
+}
+
+interface MoleculePreviewStripProps {
+  molecules: MoleculePreviewEntry[];
+}
 
 function buildPreviewExplanation(type: string, profileTags: string[]): string {
   const tags = profileTags.slice(0, 2).join(' · ');
@@ -15,33 +34,17 @@ function buildPreviewExplanation(type: string, profileTags: string[]): string {
   return `${type} etkisini parfüm iskeletinde daha net hissettirir.`;
 }
 
-export function MoleculePreviewStrip() {
+export function MoleculePreviewStrip({ molecules: featuredMolecules }: MoleculePreviewStripProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const molecules = useMemo<MoleculeData[]>(
     () =>
-      getFeaturedMolecules().map((item) => ({
-        name: item.name,
-        formula: item.iupac_name,
-        type: item.families.join(' · '),
-        note:
-          item.longevity_contribution === 'top'
-            ? 'top'
-            : item.longevity_contribution === 'heart'
-              ? 'heart'
-              : 'base',
-        origin: [item.natural_source, `${item.found_in_fragrances.length} parfümde görülüyor`],
-        pct: Math.min(92, Math.max(24, Math.round(item.usage_percentage_typical * 6))),
-        smiles: item.smiles,
-        verified: true,
-        slug: item.slug,
-        casNumber: item.cas_number,
-        profileTags: item.profile_tags,
-        funFact: item.fun_fact,
-        explanation: buildPreviewExplanation(item.odor_description, item.profile_tags),
+      featuredMolecules.map((item) => ({
+        ...item,
+        explanation: item.explanation || buildPreviewExplanation(item.type, item.profileTags || []),
       })),
-    [],
+    [featuredMolecules],
   );
 
   useEffect(() => {
@@ -53,6 +56,8 @@ export function MoleculePreviewStrip() {
 
     return () => window.clearInterval(timer);
   }, [molecules.length]);
+
+  if (molecules.length === 0) return null;
 
   return (
     <motion.section
@@ -66,7 +71,7 @@ export function MoleculePreviewStrip() {
         <div className="mb-3 flex items-center gap-3">
           <div className="h-px w-10 bg-[var(--gold-line)]" />
           <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-gold/80">
-            Moleküler önizleme
+            Moleküler Önizleme
           </p>
         </div>
 
@@ -94,7 +99,7 @@ export function MoleculePreviewStrip() {
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[11px] font-mono uppercase tracking-[0.12em] text-gold/75">
-                      {active ? 'İkonik molekül' : 'Molekül kartı'}
+                      {active ? 'İkonik Molekül' : 'Molekül Kartı'}
                     </p>
                     <h3 className="mt-2 text-[1.35rem] font-semibold leading-none text-cream">
                       {molecule.name}

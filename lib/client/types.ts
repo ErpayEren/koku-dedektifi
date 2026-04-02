@@ -1,4 +1,5 @@
 export type InputMode = 'photo' | 'text' | 'notes';
+export type MoleculeEvidenceLevel = 'official' | 'mapped' | 'validated' | 'inferred';
 
 export interface MoleculeItem {
   name: string;
@@ -8,6 +9,11 @@ export interface MoleculeItem {
   origin: string;
   note: string;
   contribution: string;
+  evidence?: string;
+  evidenceLevel?: MoleculeEvidenceLevel;
+  confidence?: number;
+  evidenceReason?: string;
+  matchedNotes?: string[];
 }
 
 export interface TechnicalItem {

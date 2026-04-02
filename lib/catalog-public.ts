@@ -67,6 +67,7 @@ function normalizeText(value: string): string {
   return String(value || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[_/]+/g, ' ')
     .trim()
     .toLowerCase();
 }
@@ -166,6 +167,26 @@ const moleculeRows: PublicMolecule[] = moleculesSource.map((item) => {
 
 const moleculeBySlug = new Map(moleculeRows.map((item) => [item.slug, item]));
 
+function buildCatalogEvidence(
+  noteKey: string,
+  matchedNote: string,
+  role: FragranceCatalogMolecule['role'],
+): Pick<FragranceCatalogMolecule, 'confidence' | 'evidence_level' | 'evidence_reason' | 'matched_notes'> {
+  const normalizedKey = normalizeText(noteKey);
+  const normalizedMatched = normalizeText(matchedNote);
+  const exactMatch = normalizedKey === normalizedMatched;
+  const confidence = exactMatch ? 92 : normalizedMatched.includes(normalizedKey) ? 84 : 74;
+  const roleLabel =
+    role === 'top' ? 'üst nota izinde' : role === 'heart' ? 'kalp notası izinde' : role === 'base' ? 'derin izde' : 'yapısal omurgada';
+
+  return {
+    confidence,
+    evidence_level: 'mapped',
+    evidence_reason: `${matchedNote} notası ${roleLabel} ${noteKey} → molekül eşlemesiyle doğrulandı.`,
+    matched_notes: [matchedNote],
+  };
+}
+
 function deriveKeyMolecules(fragrance: Phase8Fragrance): FragranceCatalogMolecule[] {
   const notes = [
     ...fragrance.top_notes.map((note) => ({ note, role: 'top' as const })),
@@ -184,6 +205,7 @@ function deriveKeyMolecules(fragrance: Phase8Fragrance): FragranceCatalogMolecul
         const molecule = moleculeBySlug.get(slug);
         if (!molecule || seen.has(molecule.slug)) continue;
         seen.add(molecule.slug);
+        const evidence = buildCatalogEvidence(noteKey, entry.note, entry.role);
         picked.push({
           id: molecule.id,
           slug: molecule.slug,
@@ -191,6 +213,10 @@ function deriveKeyMolecules(fragrance: Phase8Fragrance): FragranceCatalogMolecul
           smiles: molecule.smiles,
           percentage: Math.max(10, 70 - picked.length * 9),
           role: entry.role,
+          confidence: evidence.confidence,
+          evidence_level: evidence.evidence_level,
+          evidence_reason: evidence.evidence_reason,
+          matched_notes: evidence.matched_notes,
         });
       }
     }

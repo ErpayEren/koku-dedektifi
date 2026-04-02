@@ -6,11 +6,22 @@
     "rose-oxide",
     "damascenone"
   ],
+  "floral": [
+    "geraniol",
+    "citronellol",
+    "phenylethanol",
+    "hedione"
+  ],
   "citrus": [
     "limonene",
     "citral",
     "linalool",
     "nootkatone"
+  ],
+  "fresh": [
+    "limonene",
+    "linalool",
+    "calone"
   ],
   "bergamot": [
     "limonene",
@@ -53,6 +64,11 @@
     "ambrettolide",
     "muscone"
   ],
+  "musky": [
+    "galaxolide",
+    "ambrettolide",
+    "muscone"
+  ],
   "jasmine": [
     "hedione",
     "benzyl-acetate",
@@ -71,6 +87,11 @@
     "ionone",
     "irone"
   ],
+  "powdery": [
+    "irone",
+    "ionone",
+    "phenylethanol"
+  ],
   "patchouli": [
     "patchouli-alcohol"
   ],
@@ -79,6 +100,9 @@
     "ambrettolide",
     "cashmeran"
   ],
+  "ambergris": [
+    "ambroxide"
+  ],
   "oud": [
     "ambroxide",
     "cedramber",
@@ -86,6 +110,11 @@
   ],
   "saffron": [
     "safranal"
+  ],
+  "spicy": [
+    "safranal",
+    "2-acetylpyrazine",
+    "guaiacol"
   ],
   "leather": [
     "safranal",
@@ -117,6 +146,11 @@
     "hexenyl-acetate",
     "hexyl-acetate"
   ],
+  "fruity": [
+    "ethyl-butyrate",
+    "allyl-hexanoate",
+    "hexyl-acetate"
+  ],
   "pineapple": [
     "ethyl-butyrate",
     "allyl-hexanoate",
@@ -129,6 +163,10 @@
   "tonka": [
     "coumarin",
     "vanillin"
+  ],
+  "vetiver": [
+    "vetiverol",
+    "vetiveryl-acetate"
   ],
   "incense": [
     "guaiacol",

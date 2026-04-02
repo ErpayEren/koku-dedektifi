@@ -447,8 +447,20 @@ export function MoleculePanel({
                       }`}
                       aria-label={`${item.name} detayını göster`}
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="truncate text-[12px] text-cream">{item.name}</span>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <span className="block truncate text-[12px] text-cream">{item.name}</span>
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            {item.evidenceLabel ? (
+                              <span className="rounded-full border border-white/[.08] px-2 py-1 text-[9px] font-mono uppercase tracking-[.1em] text-muted">
+                                {item.evidenceLabel}
+                              </span>
+                            ) : null}
+                            {typeof item.confidence === 'number' ? (
+                              <span className="text-[10px] font-mono text-sage">{item.confidence}% guven</span>
+                            ) : null}
+                          </div>
+                        </div>
                         <span className="text-[11px] font-mono text-gold">{pct}%</span>
                       </div>
                       <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[.08]">
@@ -499,6 +511,39 @@ export function MoleculePanel({
               <p className="mt-2 text-[13px] leading-relaxed text-cream/92">{molecule.explanation}</p>
             </div>
           ) : null}
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_112px]">
+            <div className="rounded-2xl border border-white/[.08] bg-white/[.03] px-4 py-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {molecule.evidenceLabel ? (
+                  <span className="rounded-full border border-white/[.08] px-2.5 py-1 text-[10px] font-mono uppercase tracking-[.1em] text-gold">
+                    {molecule.evidenceLabel}
+                  </span>
+                ) : null}
+                {molecule.matchedNotes && molecule.matchedNotes.length > 0 ? (
+                  <span className="rounded-full border border-white/[.08] px-2.5 py-1 text-[10px] font-mono uppercase tracking-[.1em] text-muted">
+                    {molecule.matchedNotes.slice(0, 2).join(' • ')}
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-2 text-[12px] leading-relaxed text-cream/86">
+                {molecule.presenceCopy || molecule.evidenceReason || 'Bu molekul kompozisyon sinyalleriyle destekleniyor.'}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-center">
+              <p className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">Guven</p>
+              <p className="mt-2 text-[1.25rem] font-semibold leading-none text-cream">
+                <AnimatedPercent value={molecule.confidence ?? 0} />
+              </p>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[.08]">
+                <div
+                  className="h-full rounded-full transition-all duration-700 ease-out"
+                  style={{ width: `${molecule.confidence ?? 0}%`, background: 'var(--sage)' }}
+                />
+              </div>
+            </div>
+          </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
             {molecule.profileTags?.slice(0, 3).map((tag) => (

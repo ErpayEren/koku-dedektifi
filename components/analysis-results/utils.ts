@@ -17,6 +17,8 @@ export interface MoleculeLookupRow {
   origin?: string;
 }
 
+type MoleculeEvidenceLevel = MoleculeItem['evidenceLevel'];
+
 export const MOLECULE_ACCENTS = ['#d8b06d', '#a78bfa', '#2dd4bf', '#d58ebb', '#7ecfe5'] as const;
 
 export const FAMILY_GLOW: Record<string, string> = {
@@ -29,17 +31,17 @@ export const FAMILY_GLOW: Record<string, string> = {
 };
 
 export const ANALYSIS_STEPS = [
-  'Koku profili çözümlemesi yapılıyor...',
+  'Koku profili cozumlemesi yapiliyor...',
   'Nota piramidi kuruluyor...',
-  'Moleküler izler eşleştiriliyor...',
-  'Benzer profiller taranıyor...',
+  'Molekuler izler eslestiriliyor...',
+  'Benzer profiller taraniyor...',
 ] as const;
 
 export const WHEEL_AXES = [
   { label: 'Tazelik', short: 'F', color: 'var(--sage)' },
-  { label: 'Tatlılık', short: 'T', color: '#d58ebb' },
-  { label: 'Sıcaklık', short: 'S', color: 'var(--gold)' },
-  { label: 'Yoğunluk', short: 'Y', color: '#8ab8c0' },
+  { label: 'Tatlilik', short: 'T', color: '#d58ebb' },
+  { label: 'Sicaklik', short: 'S', color: 'var(--gold)' },
+  { label: 'Yogunluk', short: 'Y', color: '#8ab8c0' },
 ] as const;
 
 export function moleculeAccent(index: number): string {
@@ -68,25 +70,45 @@ export function clampPercent(value: unknown, fallback = 50): number {
   return Math.max(0, Math.min(100, Math.round(num)));
 }
 
+function normalizeEvidenceLevel(value: unknown): MoleculeEvidenceLevel {
+  return value === 'official' || value === 'mapped' || value === 'validated' || value === 'inferred'
+    ? value
+    : undefined;
+}
+
 export function sanitizeMolecules(value: unknown): MoleculeItem[] {
   if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => {
-      if (!item || typeof item !== "object") return null;
-      const row = item as Record<string, unknown>;
-      const name = typeof row.name === 'string' ? row.name.trim() : '';
-      if (!name) return null;
-      return {
-        name,
-        smiles: typeof row.smiles === 'string' ? row.smiles : '',
-        formula: typeof row.formula === 'string' ? row.formula : '',
-        family: typeof row.family === 'string' ? row.family : '',
-        origin: typeof row.origin === 'string' ? row.origin : '',
-        note: typeof row.note === 'string' ? row.note : '',
-        contribution: typeof row.contribution === 'string' ? row.contribution : '',
-      };
-    })
-    .filter((item): item is MoleculeItem => Boolean(item));
+  const sanitized: MoleculeItem[] = [];
+  value.forEach((item) => {
+    if (!item || typeof item !== 'object') return null;
+    const row = item as Record<string, unknown>;
+    const name = typeof row.name === 'string' ? row.name.trim() : '';
+    if (!name) return null;
+    sanitized.push({
+      name,
+      smiles: typeof row.smiles === 'string' ? row.smiles : '',
+      formula: typeof row.formula === 'string' ? row.formula : '',
+      family: typeof row.family === 'string' ? row.family : '',
+      origin: typeof row.origin === 'string' ? row.origin : '',
+      note: typeof row.note === 'string' ? row.note : '',
+      contribution: typeof row.contribution === 'string' ? row.contribution : '',
+      evidence: typeof row.evidence === 'string' ? row.evidence : '',
+      evidenceLevel: normalizeEvidenceLevel(row.evidenceLevel ?? row.evidence_level),
+      confidence: Number.isFinite(Number(row.confidence)) ? clampPercent(row.confidence, 0) : undefined,
+      evidenceReason:
+        typeof row.evidenceReason === 'string'
+          ? row.evidenceReason
+          : typeof row.evidence_reason === 'string'
+            ? row.evidence_reason
+            : '',
+      matchedNotes: Array.isArray(row.matchedNotes)
+        ? row.matchedNotes.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+        : Array.isArray(row.matched_notes)
+          ? row.matched_notes.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+          : [],
+    });
+  });
+  return sanitized;
 }
 
 function normalizeMoleculeNote(note: string, index: number, total: number): MoleculeData['note'] {
@@ -110,7 +132,7 @@ function parseContributionPct(value: string, index: number, total: number): numb
 }
 
 function resolveMoleculeType(family: string): string {
-  return family.trim() || 'Aromatik bileşik';
+  return family.trim() || 'Aromatik bilesik';
 }
 
 function resolveMoleculeOrigin(origin: string): string[] {
@@ -127,19 +149,56 @@ function buildMoleculeExplanation(
   profileTags: string[],
   families: string,
 ): string {
-  const roleLabel = note === 'top' ? 'ilk açılışı' : note === 'heart' ? 'kalp notalarını' : 'kalan izi';
-  const profileText = profileTags.length > 0 ? profileTags.slice(0, 2).join(' · ').toLowerCase() : '';
+  if (item.evidenceReason?.trim()) {
+    return item.evidenceReason.trim();
+  }
+
+  const roleLabel = note === 'top' ? 'ilk acilisi' : note === 'heart' ? 'kalp notalarini' : 'kalan izi';
+  const profileText = profileTags.length > 0 ? profileTags.slice(0, 2).join(' • ').toLowerCase() : '';
   const familyText = families.trim();
 
   if (profileText && familyText) {
-    return `${item.name}, ${familyText.toLowerCase()} çizgiyi ${profileText} karakteriyle güçlendirip bu parfümün ${roleLabel} belirginleştiriyor.`;
+    return `${item.name}, ${familyText.toLowerCase()} cizgiyi ${profileText} karakteriyle guclendirip bu parfumun ${roleLabel} belirginlestiriyor.`;
   }
 
   if (familyText) {
-    return `${item.name}, ${familyText.toLowerCase()} etkisiyle bu parfümün ${roleLabel} karakteristik hale getiriyor.`;
+    return `${item.name}, ${familyText.toLowerCase()} etkisiyle bu parfumun ${roleLabel} karakteristik hale getiriyor.`;
   }
 
-  return `${item.name}, kompozisyonun ${roleLabel} öne çıkaran karakter moleküllerden biri olarak çalışıyor.`;
+  return `${item.name}, kompozisyonun ${roleLabel} one cikan karakter molekullerden biri olarak calisiyor.`;
+}
+
+function resolveEvidenceTone(level: MoleculeEvidenceLevel): { label: string; reason: string; probability: boolean } {
+  switch (level) {
+    case 'official':
+      return { label: 'Resmi dogrulama', reason: 'Resmi nota izi ve katalog referansi', probability: false };
+    case 'mapped':
+      return { label: 'Nota eslesmesi', reason: 'Yasal nota → molekul eslesmesi', probability: false };
+    case 'validated':
+      return { label: 'Veritabani izi', reason: 'Yerel yapi veritabani eslesmesi', probability: false };
+    case 'inferred':
+      return { label: 'Guclu aday', reason: 'Kompozisyon sinyallerinden turetildi', probability: true };
+    default:
+      return { label: 'Molekul izi', reason: 'Kompozisyon sinyallerinden turetildi', probability: false };
+  }
+}
+
+function buildPresenceCopy(
+  name: string,
+  level: MoleculeEvidenceLevel,
+  confidence: number,
+  matchedNotes: string[],
+): string {
+  const tone = resolveEvidenceTone(level);
+  if (tone.probability && confidence >= 60) {
+    return `${name} bu parfumde %${confidence} guvenle guclu aday gorunuyor.`;
+  }
+
+  if (matchedNotes.length > 0) {
+    return `${matchedNotes.slice(0, 2).join(', ')} izi ${name} molekulunu destekliyor.`;
+  }
+
+  return tone.reason;
 }
 
 export function toMoleculeData(molecules: MoleculeItem[], lookup: Record<string, MoleculeLookupRow>): MoleculeData[] {
@@ -150,14 +209,27 @@ export function toMoleculeData(molecules: MoleculeItem[], lookup: Record<string,
     const smiles = resolved.smiles || item.smiles || catalog?.smiles || undefined;
     const verified = Boolean(smiles);
     const formula = verified ? resolved.formula || item.formula || catalog?.iupac_name || '' : '';
-    const family = resolved.family || item.family || catalog?.families.join(' · ') || '';
+    const family = resolved.family || item.family || catalog?.families.join(' • ') || '';
     const origin = resolved.origin || item.origin || catalog?.natural_source || '';
     const profileTags = catalog?.profile_tags ?? [];
+    const evidenceLevel = item.evidenceLevel ?? (catalog ? 'mapped' : 'inferred');
+    const confidence =
+      typeof item.confidence === 'number'
+        ? clampPercent(item.confidence, 72)
+        : evidenceLevel === 'official'
+          ? 96
+          : evidenceLevel === 'mapped'
+            ? 84
+            : evidenceLevel === 'validated'
+              ? 72
+              : 62;
+    const matchedNotes = item.matchedNotes && item.matchedNotes.length > 0 ? item.matchedNotes : item.note ? [item.note] : [];
+    const evidenceTone = resolveEvidenceTone(evidenceLevel);
 
     return {
       name: item.name,
       formula,
-      type: verified ? resolveMoleculeType(family) : 'Doğrulanmamış nota izi',
+      type: verified ? resolveMoleculeType(family) : 'Dogrulanmamis nota izi',
       note,
       origin: resolveMoleculeOrigin(origin),
       pct: parseContributionPct(item.contribution, index, molecules.length),
@@ -168,6 +240,12 @@ export function toMoleculeData(molecules: MoleculeItem[], lookup: Record<string,
       profileTags,
       funFact: catalog?.fun_fact,
       explanation: buildMoleculeExplanation(item, note, profileTags, family),
+      evidenceLevel,
+      evidenceLabel: evidenceTone.label,
+      confidence,
+      evidenceReason: item.evidenceReason || evidenceTone.reason,
+      matchedNotes,
+      presenceCopy: buildPresenceCopy(item.name, evidenceLevel, confidence, matchedNotes),
     };
   });
 }
@@ -233,7 +311,7 @@ export function resolvePreferenceMatch(
   prefs: OnboardingPreferences | null,
 ): { score: number; summary: string } {
   if (!prefs) {
-    return { score: 0, summary: 'Kişisel tercih profili henüz kurulmadı.' };
+    return { score: 0, summary: 'Kisisel tercih profili henuz kurulmadi.' };
   }
 
   let score = 0;
@@ -246,16 +324,18 @@ export function resolvePreferenceMatch(
 
   const vibe = result.persona?.vibe?.toLowerCase() || '';
   const family = result.family.toLowerCase();
-  const stanceMatchers: Record<Exclude<OnboardingPreferences['stance'], ''>, string[]> = {
+  const stanceMatchers: Record<string, string[]> = {
     Sakin: ['sakin', 'temiz', 'soft', 'minimal', 'fresh'],
-    Çarpıcı: ['çarpıcı', 'güçlü', 'yoğun', 'gece', 'oryantal'],
-    Sofistike: ['sofistike', 'zarif', 'odunsu', 'amber', 'şık'],
+    Carpici: ['carpici', 'guclu', 'yogun', 'gece', 'oryantal'],
+    Sofistike: ['sofistike', 'zarif', 'odunsu', 'amber', 'sik'],
   };
+
   if (prefs.stance) {
-    const stanceHit = stanceMatchers[prefs.stance].some((item) => vibe.includes(item) || family.includes(item));
+    const matcherKey = prefs.stance === 'Çarpıcı' ? 'Carpici' : prefs.stance;
+    const stanceHit = stanceMatchers[matcherKey].some((item) => vibe.includes(item) || family.includes(item));
     if (stanceHit) {
       score += 14;
-      matches.push(`${prefs.stance} tavrını destekliyor`);
+      matches.push(`${prefs.stance} tavrini destekliyor`);
     }
   }
 
@@ -265,12 +345,12 @@ export function resolvePreferenceMatch(
       prefs.intensity === 'Hafif' ? intensity <= 42 : prefs.intensity === 'Orta' ? intensity >= 35 && intensity <= 72 : intensity >= 65;
     if (wantedBand) {
       score += 16;
-      matches.push(`${prefs.intensity.toLowerCase()} yoğunluk beklentine yakın`);
+      matches.push(`${prefs.intensity.toLowerCase()} yogunluk beklentine yakin`);
     }
   }
 
   return {
     score,
-    summary: matches.length > 0 ? matches.join(' • ') : 'Koku karakteri tercihlerine kısmen yakın görünüyor.',
+    summary: matches.length > 0 ? matches.join(' • ') : 'Koku karakteri tercihlerine kismen yakin gorunuyor.',
   };
 }

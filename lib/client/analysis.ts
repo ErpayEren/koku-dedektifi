@@ -1,4 +1,4 @@
-import type { AnalysisResult, AnalysisTimeline, MoleculeItem, TechnicalItem } from './types';
+import type { AnalysisResult, AnalysisTimeline, MoleculeEvidenceLevel, MoleculeItem, TechnicalItem } from './types';
 
 function cleanText(value: unknown, fallback = ''): string {
   if (typeof value !== 'string') return fallback;
@@ -27,25 +27,46 @@ function clampScore(value: unknown, fallback = 50): number {
   return Math.max(0, Math.min(100, Math.round(num)));
 }
 
+function parseEvidenceLevel(value: unknown): MoleculeEvidenceLevel | undefined {
+  if (value === 'official' || value === 'mapped' || value === 'validated' || value === 'inferred') {
+    return value;
+  }
+  return undefined;
+}
+
 function normalizeMolecules(value: unknown): MoleculeItem[] {
   if (!Array.isArray(value)) return [];
-  return value
-    .map((raw) => {
-      if (!raw || typeof raw !== 'object') return null;
-      const entry = raw as Record<string, unknown>;
-      const name = cleanText(entry.name);
-      if (!name) return null;
-      return {
-        name,
-        smiles: cleanText(entry.smiles),
-        formula: cleanText(entry.formula),
-        family: cleanText(entry.family),
-        origin: cleanText(entry.origin),
-        note: cleanText(entry.note),
-        contribution: cleanText(entry.contribution),
-      };
-    })
-    .filter((item): item is MoleculeItem => Boolean(item));
+  const molecules: MoleculeItem[] = [];
+  value.forEach((raw) => {
+    if (!raw || typeof raw !== 'object') return;
+    const entry = raw as Record<string, unknown>;
+    const name = cleanText(entry.name);
+    if (!name) return;
+    molecules.push({
+      name,
+      smiles: cleanText(entry.smiles),
+      formula: cleanText(entry.formula),
+      family: cleanText(entry.family),
+      origin: cleanText(entry.origin),
+      note: cleanText(entry.note),
+      contribution: cleanText(entry.contribution),
+      evidence: cleanText(entry.evidence),
+      evidenceLevel: parseEvidenceLevel(entry.evidence_level ?? entry.evidenceLevel),
+      confidence: Number.isFinite(Number(entry.confidence)) ? clampScore(entry.confidence, 0) : undefined,
+      evidenceReason: cleanText(entry.evidence_reason ?? entry.evidenceReason),
+      matchedNotes: asList(entry.matched_notes ?? entry.matchedNotes, 6),
+    });
+  });
+  return molecules;
+}
+
+function extractConfidenceScore(value: unknown): number | undefined {
+  if (Number.isFinite(Number(value))) return clampScore(value, 85);
+  if (value && typeof value === 'object') {
+    const score = Number((value as Record<string, unknown>).score);
+    if (Number.isFinite(score)) return clampScore(score, 85);
+  }
+  return undefined;
 }
 
 function normalizeTechnical(value: unknown): TechnicalItem[] {
@@ -145,7 +166,7 @@ export function normalizeAnalysisPayload(data: unknown): AnalysisResult {
   const molecules = normalizeMolecules(raw.molecules);
   const technical = normalizeTechnical(raw.technical);
   const timeline = normalizeTimeline(raw.timeline);
-  const confidence = Number(raw.confidence);
+  const confidence = extractConfidenceScore(raw.confidence);
 
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
@@ -190,7 +211,7 @@ export function normalizeAnalysisPayload(data: unknown): AnalysisResult {
     timeline,
     technical,
     molecules,
-    confidence: Number.isFinite(confidence) ? clampScore(confidence, 85) : undefined,
+    confidence,
     createdAt: now,
   };
 }

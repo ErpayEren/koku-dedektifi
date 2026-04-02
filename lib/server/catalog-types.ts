@@ -61,6 +61,8 @@ export interface MoleculeCatalogRow extends Omit<SeedMoleculeRecord, 'slug'> {
   found_in_fragrances: string[];
 }
 
+export type MoleculeEvidenceLevel = 'official' | 'mapped' | 'validated' | 'inferred';
+
 export interface FragranceCatalogMolecule {
   id: string;
   slug: string;
@@ -68,6 +70,10 @@ export interface FragranceCatalogMolecule {
   smiles: string;
   percentage: number;
   role: 'top' | 'heart' | 'base' | 'structure';
+  evidence_level: MoleculeEvidenceLevel;
+  confidence: number;
+  evidence_reason: string;
+  matched_notes: string[];
 }
 
 export interface FragranceCatalogRow extends Omit<SeedFragranceRecord, 'similar_slugs' | 'molecule_preview_slug' | 'key_molecules'> {

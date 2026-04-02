@@ -64,8 +64,31 @@ function setCorsHeaders(req, res) {
 }
 
 function readSeedCounts() {
-  const seedPath = path.join(process.cwd(), 'data', 'catalog-seed.json');
-  const raw = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+  const fragrancesPath = path.join(process.cwd(), 'fragrances.json');
+  const moleculesPath = path.join(process.cwd(), 'molecules.json');
+  const noteMapPath = path.join(process.cwd(), 'note-molecule-map.json');
+
+  if (fs.existsSync(fragrancesPath) && fs.existsSync(moleculesPath) && fs.existsSync(noteMapPath)) {
+    const fragrances = JSON.parse(fs.readFileSync(fragrancesPath, 'utf8'));
+    const molecules = JSON.parse(fs.readFileSync(moleculesPath, 'utf8'));
+    return {
+      fragranceCount: Array.isArray(fragrances) ? fragrances.length : 0,
+      moleculeCount: Array.isArray(molecules) ? molecules.length : 0,
+      everyFragranceHasThreeMolecules: Array.isArray(fragrances)
+        ? fragrances.every((item) => {
+            const notes = [
+              ...(Array.isArray(item.top_notes) ? item.top_notes : []),
+              ...(Array.isArray(item.heart_notes) ? item.heart_notes : []),
+              ...(Array.isArray(item.base_notes) ? item.base_notes : []),
+            ];
+            return notes.length >= 3;
+          })
+        : false,
+    };
+  }
+
+  const legacySeedPath = path.join(process.cwd(), 'data', 'catalog-seed.json');
+  const raw = JSON.parse(fs.readFileSync(legacySeedPath, 'utf8'));
   return {
     fragranceCount: Array.isArray(raw.fragrances) ? raw.fragrances.length : 0,
     moleculeCount: Array.isArray(raw.molecules) ? raw.molecules.length : 0,

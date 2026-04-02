@@ -1,0 +1,148 @@
+{
+  "rose": [
+    "geraniol",
+    "citronellol",
+    "phenylethanol",
+    "rose-oxide",
+    "damascenone"
+  ],
+  "citrus": [
+    "limonene",
+    "citral",
+    "linalool",
+    "nootkatone"
+  ],
+  "bergamot": [
+    "limonene",
+    "linalyl-acetate",
+    "citral"
+  ],
+  "orange": [
+    "limonene",
+    "citral",
+    "nootkatone"
+  ],
+  "grapefruit": [
+    "nootkatone",
+    "limonene",
+    "citral"
+  ],
+  "woody": [
+    "iso-e-super",
+    "cedramber",
+    "cedrene",
+    "ambroxide"
+  ],
+  "cedar": [
+    "cedrene",
+    "cedrol",
+    "iso-e-super"
+  ],
+  "sandalwood": [
+    "alpha-santalol",
+    "iso-e-super",
+    "javanol"
+  ],
+  "vanilla": [
+    "vanillin",
+    "ethyl-vanillin",
+    "coumarin"
+  ],
+  "musk": [
+    "galaxolide",
+    "ambrettolide",
+    "muscone"
+  ],
+  "jasmine": [
+    "hedione",
+    "benzyl-acetate",
+    "indole"
+  ],
+  "lavender": [
+    "linalool",
+    "linalyl-acetate",
+    "lavandulol"
+  ],
+  "iris": [
+    "irone",
+    "ionone"
+  ],
+  "violet": [
+    "ionone",
+    "irone"
+  ],
+  "patchouli": [
+    "patchouli-alcohol"
+  ],
+  "amber": [
+    "ambroxide",
+    "ambrettolide",
+    "cashmeran"
+  ],
+  "oud": [
+    "ambroxide",
+    "cedramber",
+    "patchouli-alcohol"
+  ],
+  "saffron": [
+    "safranal"
+  ],
+  "leather": [
+    "safranal",
+    "birch-tar",
+    "isobutyl-quinoline"
+  ],
+  "tobacco": [
+    "coumarin",
+    "guaiacol",
+    "2-acetylpyrazine"
+  ],
+  "coffee": [
+    "2-acetylpyrazine",
+    "guaiacol"
+  ],
+  "marine": [
+    "calone",
+    "ambroxide"
+  ],
+  "aquatic": [
+    "calone",
+    "ambroxide"
+  ],
+  "green": [
+    "cis-3-hexenol",
+    "galbanol"
+  ],
+  "apple": [
+    "hexenyl-acetate",
+    "hexyl-acetate"
+  ],
+  "pineapple": [
+    "ethyl-butyrate",
+    "allyl-hexanoate",
+    "nootkatone"
+  ],
+  "coconut": [
+    "gamma-nonalactone",
+    "delta-decalactone"
+  ],
+  "tonka": [
+    "coumarin",
+    "vanillin"
+  ],
+  "incense": [
+    "guaiacol",
+    "olibanol",
+    "incense-acetate"
+  ],
+  "neroli": [
+    "linalool",
+    "linalyl-acetate",
+    "benzyl-acetate"
+  ],
+  "orange_blossom": [
+    "linalool",
+    "benzyl-acetate",
+    "indole"
+  ]
+}

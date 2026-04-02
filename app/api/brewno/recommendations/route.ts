@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
   if (tasteProfile && tasteProfile.quiz_completed) {
     // Content-based recommendation
     const scored = candidates.map((coffee) => {
-      const { score, reasons } = contentBasedScore(coffee, tasteProfile!);
+      const { score, reasons } = contentBasedScore(coffee, tasteProfile);
       return { ...coffee, match_score: score, match_reasons: reasons };
     });
     scored.sort((a, b) => b.match_score - a.match_score);

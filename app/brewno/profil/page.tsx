@@ -70,7 +70,7 @@ export default function ProfilPage() {
           <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-6 text-center">
             <p className="text-lg font-medium text-cream">Track Your Coffee Journey</p>
             <p className="mt-2 text-sm text-white/50">
-              Sign in to rate coffees, save your wishlist, follow other enthusiasts, and get personalised recommendations.
+              Sign in to rate coffees, save your wishlist, follow other enthusiasts, and get personalized recommendations.
             </p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
               <Link

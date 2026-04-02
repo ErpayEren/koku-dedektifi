@@ -237,10 +237,12 @@ export function coffeeSimilarityScore(a: Coffee, b: Coffee): number {
   let score = 0;
 
   if (a.roast_level === b.roast_level) score += 25;
-  else if (
-    Math.abs(ROAST_LEVELS.indexOf(a.roast_level as never) - ROAST_LEVELS.indexOf(b.roast_level as never)) === 1
-  ) {
-    score += 10;
+  else {
+    const idxA = ROAST_LEVELS.indexOf(a.roast_level as (typeof ROAST_LEVELS)[number]);
+    const idxB = ROAST_LEVELS.indexOf(b.roast_level as (typeof ROAST_LEVELS)[number]);
+    if (idxA !== -1 && idxB !== -1 && Math.abs(idxA - idxB) === 1) {
+      score += 10;
+    }
   }
 
   if (a.process === b.process) score += 20;

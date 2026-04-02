@@ -9,45 +9,37 @@ interface FlavorNoteTagProps {
   onClick?: () => void;
 }
 
-// Determine color group for a note
-function getNoteColor(note: string): string {
-  const lowerNote = note.toLowerCase();
-  for (const [group, notes] of Object.entries(FLAVOR_NOTE_GROUPS)) {
-    if (notes.includes(lowerNote)) {
-      const colorMap: Record<string, string> = {
-        Fruity:    'rgba(245,158,11,0.15)',
-        Floral:    'rgba(167,139,250,0.15)',
-        Chocolate: 'rgba(120,53,15,0.3)',
-        Nutty:     'rgba(180,120,60,0.2)',
-        Sweet:     'rgba(201,169,110,0.2)',
-        Spiced:    'rgba(239,68,68,0.15)',
-        'Tea-like': 'rgba(126,184,164,0.15)',
-        Savory:    'rgba(107,114,128,0.2)',
-      };
-      return colorMap[group] ?? 'rgba(255,255,255,0.07)';
-    }
-  }
-  return 'rgba(255,255,255,0.07)';
+interface NoteTheme {
+  bgInactive: string;
+  bgActive: string;
+  text: string;
 }
 
-function getNoteTextColor(note: string): string {
+const NOTE_THEMES: Record<string, NoteTheme> = {
+  Fruity:     { bgInactive: 'rgba(245,158,11,0.15)',  bgActive: 'rgba(245,158,11,0.35)',  text: '#f59e0b' },
+  Floral:     { bgInactive: 'rgba(167,139,250,0.15)', bgActive: 'rgba(167,139,250,0.35)', text: '#a78bfa' },
+  Chocolate:  { bgInactive: 'rgba(120,53,15,0.30)',   bgActive: 'rgba(120,53,15,0.55)',   text: '#a16207' },
+  Nutty:      { bgInactive: 'rgba(180,120,60,0.20)',  bgActive: 'rgba(180,120,60,0.45)',  text: '#d97706' },
+  Sweet:      { bgInactive: 'rgba(201,169,110,0.20)', bgActive: 'rgba(201,169,110,0.45)', text: '#c9a96e' },
+  Spiced:     { bgInactive: 'rgba(239,68,68,0.15)',   bgActive: 'rgba(239,68,68,0.35)',   text: '#ef4444' },
+  'Tea-like': { bgInactive: 'rgba(126,184,164,0.15)', bgActive: 'rgba(126,184,164,0.35)', text: '#7eb8a4' },
+  Savory:     { bgInactive: 'rgba(107,114,128,0.20)', bgActive: 'rgba(107,114,128,0.45)', text: '#9ca3af' },
+};
+
+const DEFAULT_THEME: NoteTheme = {
+  bgInactive: 'rgba(255,255,255,0.07)',
+  bgActive:   'rgba(255,255,255,0.15)',
+  text:       'rgba(255,255,255,0.6)',
+};
+
+function getNoteTheme(note: string): NoteTheme {
   const lowerNote = note.toLowerCase();
   for (const [group, notes] of Object.entries(FLAVOR_NOTE_GROUPS)) {
     if (notes.includes(lowerNote)) {
-      const colorMap: Record<string, string> = {
-        Fruity:    '#f59e0b',
-        Floral:    '#a78bfa',
-        Chocolate: '#a16207',
-        Nutty:     '#d97706',
-        Sweet:     '#c9a96e',
-        Spiced:    '#ef4444',
-        'Tea-like': '#7eb8a4',
-        Savory:    '#9ca3af',
-      };
-      return colorMap[group] ?? 'rgba(255,255,255,0.6)';
+      return NOTE_THEMES[group] ?? DEFAULT_THEME;
     }
   }
-  return 'rgba(255,255,255,0.6)';
+  return DEFAULT_THEME;
 }
 
 const sizeClasses = {
@@ -57,8 +49,7 @@ const sizeClasses = {
 };
 
 export function FlavorNoteTag({ note, size = 'md', active = false, onClick }: FlavorNoteTagProps) {
-  const bg = getNoteColor(note);
-  const textColor = getNoteTextColor(note);
+  const theme = getNoteTheme(note);
 
   return (
     <button
@@ -71,9 +62,9 @@ export function FlavorNoteTag({ note, size = 'md', active = false, onClick }: Fl
         ${active ? 'ring-1' : ''}
       `}
       style={{
-        background: active ? `${bg.replace('0.15', '0.35').replace('0.2', '0.4')}` : bg,
-        color: textColor,
-        border: `1px solid ${textColor}22`,
+        background: active ? theme.bgActive : theme.bgInactive,
+        color: theme.text,
+        border: `1px solid ${theme.text}22`,
       }}
     >
       {note}

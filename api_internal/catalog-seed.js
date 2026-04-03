@@ -44,6 +44,8 @@ async function handler(req, res) {
       serviceRoleKey: config.serviceRoleKey,
       moleculeTable: cleanString(process.env.SUPABASE_MOLECULES_TABLE) || 'molecules',
       fragranceTable: cleanString(process.env.SUPABASE_FRAGRANCES_TABLE) || 'fragrances',
+      evidenceTable:
+        cleanString(process.env.SUPABASE_FRAGRANCE_MOLECULE_EVIDENCE_TABLE) || 'fragrance_molecule_evidence',
     });
 
     return res.status(200).json({

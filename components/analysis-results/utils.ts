@@ -1,6 +1,6 @@
 'use client';
 
-import { getPublicMoleculeByName } from '@/lib/catalog-public';
+import { getPublicFragranceByName, getPublicMoleculeByName } from '@/lib/catalog-public';
 import type { AnalysisResult, MoleculeItem, TechnicalItem } from '@/lib/client/types';
 import type { OnboardingPreferences } from '@/lib/client/types';
 import type { MoleculeData } from '@/components/MoleculeCard';
@@ -71,9 +71,20 @@ export function clampPercent(value: unknown, fallback = 50): number {
 }
 
 function normalizeEvidenceLevel(value: unknown): MoleculeEvidenceLevel {
-  return value === 'official' || value === 'mapped' || value === 'validated' || value === 'inferred'
-    ? value
-    : undefined;
+  if (
+    value === 'verified_component' ||
+    value === 'signature_molecule' ||
+    value === 'accord_component' ||
+    value === 'note_match' ||
+    value === 'unmatched'
+  ) {
+    return value;
+  }
+  if (value === 'official') return 'verified_component';
+  if (value === 'validated') return 'signature_molecule';
+  if (value === 'mapped') return 'note_match';
+  if (value === 'inferred') return 'accord_component';
+  return undefined;
 }
 
 export function sanitizeMolecules(value: unknown): MoleculeItem[] {
@@ -94,7 +105,12 @@ export function sanitizeMolecules(value: unknown): MoleculeItem[] {
       contribution: typeof row.contribution === 'string' ? row.contribution : '',
       evidence: typeof row.evidence === 'string' ? row.evidence : '',
       evidenceLevel: normalizeEvidenceLevel(row.evidenceLevel ?? row.evidence_level),
-      confidence: Number.isFinite(Number(row.confidence)) ? clampPercent(row.confidence, 0) : undefined,
+      evidenceLabel:
+        typeof row.evidenceLabel === 'string'
+          ? row.evidenceLabel
+          : typeof row.evidence_label === 'string'
+            ? row.evidence_label
+            : '',
       evidenceReason:
         typeof row.evidenceReason === 'string'
           ? row.evidenceReason
@@ -132,7 +148,7 @@ function parseContributionPct(value: string, index: number, total: number): numb
 }
 
 function resolveMoleculeType(family: string): string {
-  return family.trim() || 'Aromatik bilesik';
+  return family.trim() || 'Aromatik bileşik';
 }
 
 function resolveMoleculeOrigin(origin: string): string[] {
@@ -148,9 +164,14 @@ function buildMoleculeExplanation(
   note: MoleculeData['note'],
   profileTags: string[],
   families: string,
+  linkedFragrances: string[],
 ): string {
   if (item.evidenceReason?.trim()) {
     return item.evidenceReason.trim();
+  }
+
+  if (linkedFragrances.length > 0) {
+    return `Bu molekül ${linkedFragrances.slice(0, 2).join(', ')} parfümlerinde savunulabilir bir iz bırakıyor.`;
   }
 
   const roleLabel = note === 'top' ? 'ilk acilisi' : note === 'heart' ? 'kalp notalarini' : 'kalan izi';
@@ -158,95 +179,124 @@ function buildMoleculeExplanation(
   const familyText = families.trim();
 
   if (profileText && familyText) {
-    return `${item.name}, ${familyText.toLowerCase()} cizgiyi ${profileText} karakteriyle guclendirip bu parfumun ${roleLabel} belirginlestiriyor.`;
+    return `${item.name}, ${familyText.toLowerCase()} çizgiyi ${profileText} karakteriyle güçlendirip bu parfümün ${roleLabel} belirginleştiriyor.`;
   }
 
   if (familyText) {
-    return `${item.name}, ${familyText.toLowerCase()} etkisiyle bu parfumun ${roleLabel} karakteristik hale getiriyor.`;
+    return `${item.name}, ${familyText.toLowerCase()} etkisiyle bu parfümün ${roleLabel} karakteristik hale getiriyor.`;
   }
 
-  return `${item.name}, kompozisyonun ${roleLabel} one cikan karakter molekullerden biri olarak calisiyor.`;
+  return `${item.name}, kompozisyonun ${roleLabel} öne çıkan karakter moleküllerinden biri olarak çalışıyor.`;
 }
 
-function resolveEvidenceTone(level: MoleculeEvidenceLevel): { label: string; reason: string; probability: boolean } {
+export function resolveEvidenceTone(level: MoleculeEvidenceLevel): { label: string; reason: string; accent: string } {
   switch (level) {
-    case 'official':
-      return { label: 'Resmi dogrulama', reason: 'Resmi nota izi ve katalog referansi', probability: false };
-    case 'mapped':
-      return { label: 'Nota eslesmesi', reason: 'Yasal nota → molekul eslesmesi', probability: false };
-    case 'validated':
-      return { label: 'Veritabani izi', reason: 'Yerel yapi veritabani eslesmesi', probability: false };
-    case 'inferred':
-      return { label: 'Guclu aday', reason: 'Kompozisyon sinyallerinden turetildi', probability: true };
+    case 'signature_molecule':
+      return { label: 'İmza Molekül', reason: 'Küratörlü katalogda imza iz olarak yer alıyor.', accent: '#a78bfa' };
+    case 'verified_component':
+      return { label: 'Doğrulanmış Bileşen', reason: 'Küratörlü kaynakta savunulabilir bileşen olarak yer alıyor.', accent: 'var(--gold)' };
+    case 'accord_component':
+      return { label: 'Muhtemel Akor Bileşeni', reason: 'Birden fazla nota izinin ortak akorunda beliriyor.', accent: 'var(--sage)' };
+    case 'note_match':
+      return { label: 'Nota Eşleşmesi', reason: 'Nota ve molekül haritası tarafından destekleniyor.', accent: '#d8b06d' };
+    case 'unmatched':
+      return { label: 'Henüz Eşleşmedi', reason: 'Bu molekül için savunulabilir parfüm bağlantısı kurulmadı.', accent: 'rgba(255,255,255,.45)' };
     default:
-      return { label: 'Molekul izi', reason: 'Kompozisyon sinyallerinden turetildi', probability: false };
+      return { label: 'Nota Eşleşmesi', reason: 'Nota ve molekül haritası tarafından destekleniyor.', accent: '#d8b06d' };
   }
 }
 
 function buildPresenceCopy(
   name: string,
   level: MoleculeEvidenceLevel,
-  confidence: number,
   matchedNotes: string[],
+  linkedFragrances: string[],
 ): string {
   const tone = resolveEvidenceTone(level);
-  if (tone.probability && confidence >= 60) {
-    return `${name} bu parfumde %${confidence} guvenle guclu aday gorunuyor.`;
+  if (linkedFragrances.length > 0) {
+    return `Bu molekül ${linkedFragrances.slice(0, 2).join(', ')} gibi parfümlerde savunulabilir bir iz sunuyor.`;
   }
 
   if (matchedNotes.length > 0) {
-    return `${matchedNotes.slice(0, 2).join(', ')} izi ${name} molekulunu destekliyor.`;
+    return `${matchedNotes.slice(0, 2).join(', ')} izi ${name} molekülünü destekliyor.`;
   }
 
   return tone.reason;
 }
 
-export function toMoleculeData(molecules: MoleculeItem[], lookup: Record<string, MoleculeLookupRow>): MoleculeData[] {
-  return molecules.map((item, index) => {
+export function traceStrengthLabel(value: number): string {
+  if (value >= 72) return 'Yüksek iz';
+  if (value >= 54) return 'Belirgin iz';
+  if (value >= 36) return 'Destekleyici iz';
+  return 'Nazik iz';
+}
+
+export function toMoleculeData(
+  molecules: MoleculeItem[],
+  lookup: Record<string, MoleculeLookupRow>,
+  fragranceName?: string,
+): MoleculeData[] {
+  const fragrance = fragranceName ? getPublicFragranceByName(fragranceName) : null;
+
+  return molecules.flatMap((item, index) => {
     const resolved = lookup[item.name.toLowerCase()] || {};
     const catalog = getPublicMoleculeByName(item.name);
-    const note = normalizeMoleculeNote(item.note, index, molecules.length);
-    const smiles = resolved.smiles || item.smiles || catalog?.smiles || undefined;
-    const verified = Boolean(smiles);
-    const formula = verified ? resolved.formula || item.formula || catalog?.iupac_name || '' : '';
-    const family = resolved.family || item.family || catalog?.families.join(' • ') || '';
-    const origin = resolved.origin || item.origin || catalog?.natural_source || '';
-    const profileTags = catalog?.profile_tags ?? [];
-    const evidenceLevel = item.evidenceLevel ?? (catalog ? 'mapped' : 'inferred');
-    const confidence =
-      typeof item.confidence === 'number'
-        ? clampPercent(item.confidence, 72)
-        : evidenceLevel === 'official'
-          ? 96
-          : evidenceLevel === 'mapped'
-            ? 84
-            : evidenceLevel === 'validated'
-              ? 72
-              : 62;
-    const matchedNotes = item.matchedNotes && item.matchedNotes.length > 0 ? item.matchedNotes : item.note ? [item.note] : [];
-    const evidenceTone = resolveEvidenceTone(evidenceLevel);
+    if (!catalog) return [];
+    if ((catalog.linked_fragrances_count || 0) === 0 && !catalog.is_iconic) return [];
 
-    return {
-      name: item.name,
-      formula,
-      type: verified ? resolveMoleculeType(family) : 'Dogrulanmamis nota izi',
-      note,
-      origin: resolveMoleculeOrigin(origin),
-      pct: parseContributionPct(item.contribution, index, molecules.length),
-      smiles,
-      verified,
-      slug: catalog?.slug,
-      casNumber: catalog?.cas_number,
-      profileTags,
-      funFact: catalog?.fun_fact,
-      explanation: buildMoleculeExplanation(item, note, profileTags, family),
-      evidenceLevel,
-      evidenceLabel: evidenceTone.label,
-      confidence,
-      evidenceReason: item.evidenceReason || evidenceTone.reason,
-      matchedNotes,
-      presenceCopy: buildPresenceCopy(item.name, evidenceLevel, confidence, matchedNotes),
-    };
+    const relation = fragrance?.key_molecules.find(
+      (entry) =>
+        entry.slug === catalog.slug || entry.name.trim().toLowerCase() === item.name.trim().toLowerCase(),
+    );
+    const note = normalizeMoleculeNote(item.note, index, molecules.length);
+    const smiles = resolved.smiles || item.smiles || catalog.smiles || undefined;
+    const verified = Boolean(smiles);
+    const formula = verified ? resolved.formula || item.formula || catalog.iupac_name || '' : '';
+    const family = resolved.family || item.family || catalog.families.join(' • ') || '';
+    const origin = resolved.origin || item.origin || catalog.natural_source || '';
+    const profileTags = catalog.profile_tags ?? [];
+    const evidenceLevel =
+      relation?.evidence_level ||
+      item.evidenceLevel ||
+      catalog.primary_evidence_level ||
+      (catalog.is_iconic ? 'signature_molecule' : 'unmatched');
+    const matchedNotes =
+      relation?.matched_notes?.length
+        ? relation.matched_notes
+        : item.matchedNotes && item.matchedNotes.length > 0
+          ? item.matchedNotes
+          : item.note
+            ? [item.note]
+            : [];
+    const linkedFragrances = catalog.linked_fragrance_names || [];
+    const evidenceTone = resolveEvidenceTone(evidenceLevel);
+    const strength = relation?.percentage || parseContributionPct(item.contribution, index, molecules.length);
+
+    return [
+      {
+        name: item.name,
+        formula,
+        type: verified ? resolveMoleculeType(family) : 'Doğrulanmamış nota izi',
+        note,
+        origin: resolveMoleculeOrigin(origin),
+        pct: strength,
+        smiles,
+        verified,
+        slug: catalog.slug,
+        casNumber: catalog.cas_number,
+        profileTags,
+        funFact: catalog.fun_fact,
+        explanation: buildMoleculeExplanation(item, note, profileTags, family, linkedFragrances),
+        evidenceLevel,
+        evidenceLabel: evidenceTone.label,
+        evidenceReason: relation?.evidence_reason || item.evidenceReason || evidenceTone.reason,
+        matchedNotes,
+        presenceCopy: buildPresenceCopy(item.name, evidenceLevel, matchedNotes, linkedFragrances),
+        linkedFragrances,
+        evidenceAccent: evidenceTone.accent,
+        traceStrengthLabel: traceStrengthLabel(strength),
+      },
+    ];
   });
 }
 
@@ -311,7 +361,7 @@ export function resolvePreferenceMatch(
   prefs: OnboardingPreferences | null,
 ): { score: number; summary: string } {
   if (!prefs) {
-    return { score: 0, summary: 'Kisisel tercih profili henuz kurulmadi.' };
+    return { score: 0, summary: 'Kisisel tercih profili henuz kurulmedi.' };
   }
 
   let score = 0;

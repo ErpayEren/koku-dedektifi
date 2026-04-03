@@ -7,6 +7,7 @@ import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
 import { getPublicFragrancesForMolecule, getPublicMoleculeBySlug, getPublicMolecules } from '@/lib/catalog-public';
+import type { MoleculeEvidenceLevel } from '@/lib/server/catalog-types';
 
 interface MoleculeDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -36,6 +37,14 @@ function roleBadgeTone(value: string): string {
   if (value === 'heart') return 'text-[#a78bfa] border-[#a78bfa]/35 bg-[#a78bfa]/10';
   if (value === 'base') return 'text-sage border-sage/35 bg-sage/10';
   return 'text-cream/80 border-white/10 bg-white/5';
+}
+
+function evidenceTone(level: MoleculeEvidenceLevel | undefined): string {
+  if (level === 'signature_molecule') return 'text-[#cab8ff] border-[#a78bfa]/35 bg-[#a78bfa]/12';
+  if (level === 'verified_component') return 'text-gold border-[var(--gold-line)] bg-[var(--gold-dim)]/15';
+  if (level === 'accord_component') return 'text-sage border-sage/35 bg-sage/10';
+  if (level === 'note_match') return 'text-cream/82 border-white/12 bg-white/5';
+  return 'text-muted border-white/10 bg-white/5';
 }
 
 export default async function MoleculeDetailPage({ params }: MoleculeDetailPageProps) {
@@ -83,17 +92,10 @@ export default async function MoleculeDetailPage({ params }: MoleculeDetailPageP
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.2fr)_360px] lg:items-start">
               <div>
                 <CardTitle>{molecule.name}</CardTitle>
-                <p className="mt-3 text-[13px] font-mono uppercase tracking-[.12em] text-muted">
-                  {molecule.iupac_name}
-                </p>
+                <p className="mt-3 text-[13px] font-mono uppercase tracking-[.12em] text-muted">{molecule.iupac_name}</p>
 
                 <div className="mt-6">
-                  <MoleculeVisual
-                    name={molecule.name}
-                    smiles={molecule.smiles}
-                    formula={molecule.iupac_name}
-                    className="min-h-[360px]"
-                  />
+                  <MoleculeVisual name={molecule.name} smiles={molecule.smiles} formula={molecule.iupac_name} className="min-h-[360px]" />
                 </div>
               </div>
 
@@ -126,6 +128,9 @@ export default async function MoleculeDetailPage({ params }: MoleculeDetailPageP
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
+                    <span className={`rounded-full border px-3 py-1.5 text-[10px] font-mono uppercase tracking-[.12em] ${evidenceTone(molecule.primary_evidence_level)}`}>
+                      {molecule.primary_evidence_label}
+                    </span>
                     {molecule.families.map((family) => (
                       <span
                         key={family}
@@ -155,9 +160,7 @@ export default async function MoleculeDetailPage({ params }: MoleculeDetailPageP
                     <p className="text-[10px] font-mono uppercase tracking-[.14em] text-muted">Doğal kaynak</p>
                     <p className="mt-2 text-[14px] text-cream/90">{molecule.natural_source}</p>
 
-                    <p className="mt-3 text-[10px] font-mono uppercase tracking-[.14em] text-muted">
-                      Tipik kullanım
-                    </p>
+                    <p className="mt-3 text-[10px] font-mono uppercase tracking-[.14em] text-muted">Tipik kullanım</p>
                     <p className="mt-2 text-[14px] text-cream/90">
                       %{molecule.usage_percentage_typical} · {roleLabel(molecule.longevity_contribution)}
                     </p>
@@ -177,29 +180,46 @@ export default async function MoleculeDetailPage({ params }: MoleculeDetailPageP
                     <Link
                       key={fragrance.id}
                       href={`/?mode=text&q=${encodeURIComponent(`${fragrance.brand} ${fragrance.name}`)}`}
-                      className="min-w-[260px] rounded-[24px] border border-white/8 bg-white/[.03] p-4 transition-all duration-300 hover:border-[var(--gold-line)] hover:bg-white/[.05]"
+                      className="min-w-[280px] rounded-[24px] border border-white/8 bg-white/[.03] p-4 transition-all duration-300 hover:border-[var(--gold-line)] hover:bg-white/[.05]"
                     >
-                      <p className="text-[11px] font-mono uppercase tracking-[.12em] text-gold/75">
-                        {fragrance.brand}
-                      </p>
-                      <h2 className="mt-2 text-[1.45rem] font-semibold leading-[1.02] text-cream">
-                        {fragrance.name}
-                      </h2>
+                      <p className="text-[11px] font-mono uppercase tracking-[.12em] text-gold/75">{fragrance.brand}</p>
+                      <h2 className="mt-2 text-[1.45rem] font-semibold leading-[1.02] text-cream">{fragrance.name}</h2>
                       <p className="mt-3 text-[12px] text-muted">
                         {fragrance.character_tags.slice(0, 3).join(' · ') || 'Karakter notu yakında'}
                       </p>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {moleculeRef?.evidence_label ? (
+                          <span className={`rounded-full border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[.12em] ${evidenceTone(moleculeRef.evidence_level)}`}>
+                            {moleculeRef.evidence_label}
+                          </span>
+                        ) : null}
+                        {moleculeRef?.matched_notes?.slice(0, 2).map((note) => (
+                          <span
+                            key={`${fragrance.id}-${note}`}
+                            className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[.12em] text-muted"
+                          >
+                            {note}
+                          </span>
+                        ))}
+                      </div>
+
+                      <p className="mt-3 text-[12px] leading-relaxed text-cream/78">
+                        {moleculeRef?.evidence_reason || `${molecule.name}, bu parfüm içinde savunulabilir bir moleküler iz bırakıyor.`}
+                      </p>
+
                       <div className="mt-4 flex items-center justify-between text-[11px] font-mono uppercase tracking-[.1em] text-muted">
                         <span>{fragrance.concentration}</span>
-                        <span className="text-sage">{moleculeRef?.percentage ?? 0}% katkı</span>
+                        <span className="text-sage">
+                          {moleculeRef?.matched_notes?.length ? `${moleculeRef.matched_notes.length} nota izi` : 'Katalog bağı'}
+                        </span>
                       </div>
                     </Link>
                   );
                 })}
               </div>
             ) : (
-              <p className="mt-4 text-[13px] text-muted">
-                Bu molekül henüz katalogdaki parfümlerle eşleşmedi.
-              </p>
+              <p className="mt-4 text-[13px] text-muted">Bu molekül henüz katalogdaki parfümlerle savunulabilir biçimde eşleşmedi.</p>
             )}
           </Card>
 

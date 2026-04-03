@@ -59,9 +59,20 @@ export interface CatalogSeedPayload {
 export interface MoleculeCatalogRow extends Omit<SeedMoleculeRecord, 'slug'> {
   slug: string;
   found_in_fragrances: string[];
+  linked_fragrances_count?: number;
+  linked_fragrance_names?: string[];
+  primary_evidence_level?: MoleculeEvidenceLevel;
+  primary_evidence_label?: string;
+  is_iconic?: boolean;
+  canonical_slug?: string;
 }
 
-export type MoleculeEvidenceLevel = 'official' | 'mapped' | 'validated' | 'inferred';
+export type MoleculeEvidenceLevel =
+  | 'verified_component'
+  | 'signature_molecule'
+  | 'accord_component'
+  | 'note_match'
+  | 'unmatched';
 
 export interface FragranceCatalogMolecule {
   id: string;
@@ -71,9 +82,25 @@ export interface FragranceCatalogMolecule {
   percentage: number;
   role: 'top' | 'heart' | 'base' | 'structure';
   evidence_level: MoleculeEvidenceLevel;
-  confidence: number;
+  evidence_label: string;
   evidence_reason: string;
   matched_notes: string[];
+}
+
+export interface FragranceMoleculeEvidenceRow {
+  id: string;
+  fragrance_id: string;
+  fragrance_slug: string;
+  fragrance_name: string;
+  molecule_id: string;
+  molecule_slug: string;
+  evidence_level: MoleculeEvidenceLevel;
+  evidence_label: string;
+  evidence_reason: string;
+  matched_notes: string[];
+  note_roles: Array<'top' | 'heart' | 'base' | 'structure'>;
+  is_iconic: boolean;
+  percentage: number;
 }
 
 export interface FragranceCatalogRow extends Omit<SeedFragranceRecord, 'similar_slugs' | 'molecule_preview_slug' | 'key_molecules'> {

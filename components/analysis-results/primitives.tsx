@@ -26,10 +26,11 @@ export function ConfidenceRing({ pct }: { pct: number }) {
   const r = 22;
   const circ = 2 * Math.PI * r;
   const dash = (pct / 100) * circ;
+  const qualitativeLabel = pct >= 85 ? 'Küratörlü' : pct >= 70 ? 'Tutarlı' : pct >= 55 ? 'Destekli' : 'Sinyal';
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <svg width="56" height="56" viewBox="0 0 56 56" fill="none" aria-label={`Güven skoru ${pct}`}>
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none" aria-label={`Veri dayanağı ${qualitativeLabel}`}>
         <circle cx="28" cy="28" r={r} stroke="var(--border-md)" strokeWidth="2.5" />
         <circle
           cx="28"
@@ -42,11 +43,14 @@ export function ConfidenceRing({ pct }: { pct: number }) {
           transform="rotate(-90 28 28)"
           style={{ transition: 'stroke-dasharray .8s cubic-bezier(.22,.68,0,1.2)' }}
         />
-        <text x="28" y="32" textAnchor="middle" fontFamily="var(--font-mono)" fontSize="11" fill="var(--gold)">
-          {pct}%
+        <text x="28" y="31" textAnchor="middle" fontFamily="var(--font-mono)" fontSize="8" fill="var(--gold)">
+          Veri
         </text>
       </svg>
-      <span className="text-[8px] font-mono tracking-[.1em] uppercase text-[var(--muted)]">Güven</span>
+      <span className="text-[8px] font-mono tracking-[.1em] uppercase text-[var(--muted)]">Veri dayanağı</span>
+      <span className="rounded-full border border-[var(--gold-line)]/35 bg-[var(--gold-dim)]/10 px-2 py-0.5 text-[8px] font-mono uppercase tracking-[.12em] text-gold/85">
+        {qualitativeLabel}
+      </span>
     </div>
   );
 }
@@ -136,9 +140,27 @@ export function SignalTelemetry({
   barsReady: boolean;
 }) {
   const metrics = [
-    { label: 'Kalıcılık', value: longevity, tone: '#fbbf24', glow: '0 0 8px rgba(251,191,36,0.6)', note: longevity >= 80 ? 'Çok kalıcı' : longevity >= 60 ? 'Dengeli' : 'Hafif' },
-    { label: 'Yayılım', value: projection, tone: '#2dd4bf', glow: '0 0 8px rgba(45,212,191,0.6)', note: projection >= 80 ? 'Güçlü' : projection >= 60 ? 'Orta' : 'Yakın ten' },
-    { label: 'Uyum Skoru', value: fit, tone: '#fbbf24', glow: '0 0 8px rgba(251,191,36,0.6)', note: fit >= 85 ? 'Çok yüksek' : fit >= 70 ? 'Yüksek' : 'Seçici' },
+    {
+      label: 'Kalıcılık',
+      value: longevity,
+      tone: '#fbbf24',
+      glow: '0 0 8px rgba(251,191,36,0.6)',
+      note: longevity >= 80 ? 'Çok kalıcı' : longevity >= 60 ? 'Dengeli' : 'Hafif',
+    },
+    {
+      label: 'Yayılım',
+      value: projection,
+      tone: '#2dd4bf',
+      glow: '0 0 8px rgba(45,212,191,0.6)',
+      note: projection >= 80 ? 'Güçlü' : projection >= 60 ? 'Orta' : 'Yakın ten',
+    },
+    {
+      label: 'Uyum Skoru',
+      value: fit,
+      tone: '#fbbf24',
+      glow: '0 0 8px rgba(251,191,36,0.6)',
+      note: fit >= 85 ? 'Çok yüksek' : fit >= 70 ? 'Yüksek' : 'Seçici',
+    },
   ];
 
   return (

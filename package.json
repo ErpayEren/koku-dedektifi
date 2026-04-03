@@ -11,6 +11,7 @@
     "seed:data-engine": "node seed.js",
     "seed:catalog": "node scripts/seed-fragrance-catalog.mjs",
     "seed:catalog:prod": "node scripts/seed-catalog-prod.mjs",
+    "backfill:molecule-links": "node scripts/backfill-fragrance-molecule-evidence.mjs",
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",

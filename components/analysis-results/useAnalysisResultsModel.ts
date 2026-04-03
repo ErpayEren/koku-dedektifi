@@ -138,7 +138,7 @@ export function useAnalysisResultsModel({ result, isAnalyzing }: UseAnalysisResu
   const season = activeResult ? toList(activeResult.season, 6) : [];
   const allSimilarItems = activeResult ? buildSimilarItems(toList(activeResult.similar, 10)) : [];
   const dupes = activeResult ? toList(activeResult.dupes, 8) : [];
-  const allMoleculeData = activeResult ? toMoleculeData(rawMolecules, moleculeLookup) : [];
+  const allMoleculeData = activeResult ? toMoleculeData(rawMolecules, moleculeLookup, activeResult.name) : [];
   const visibleMoleculeCount = activeResult
     ? Math.min(allMoleculeData.length, Math.max(1, entitlement.moleculeUnlockedCount))
     : 0;

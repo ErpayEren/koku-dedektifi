@@ -1,102 +1,16 @@
-const fs = require('fs');
-const path = require('path');
 const {
   cleanString,
   resolveSupabaseConfig,
   hasSupabaseServiceConfig,
 } = require('../lib/server/supabase-config');
-
-const ALLOWED_ORIGINS = [
-  'https://koku-dedektifi.vercel.app',
-  'http://localhost:3000',
-  'http://localhost:5500',
-  'http://127.0.0.1:5500',
-];
-
-const SECURITY_HEADERS = {
-  'Cache-Control': 'no-store, max-age=0',
-  Pragma: 'no-cache',
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'Referrer-Policy': 'no-referrer',
-  'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
-  'X-Robots-Tag': 'noindex, nofollow',
-};
-
-function setSecurityHeaders(res) {
-  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
-    res.setHeader(key, value);
-  }
-}
-
-function getAllowedOrigins(req) {
-  const origins = new Set(ALLOWED_ORIGINS);
-  const forwardedHost = cleanString(req.headers['x-forwarded-host']);
-  const host = cleanString(req.headers.host);
-  const candidateHost = forwardedHost || host;
-
-  if (candidateHost) {
-    const proto = cleanString(req.headers['x-forwarded-proto'])
-      || (/^(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/i.test(candidateHost) ? 'http' : 'https');
-    origins.add(`${proto}://${candidateHost}`);
-  }
-
-  return origins;
-}
-
-function setCorsHeaders(req, res) {
-  const origin = cleanString(req.headers.origin);
-  if (!origin) {
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    res.setHeader('Access-Control-Max-Age', '86400');
-    return true;
-  }
-
-  if (!getAllowedOrigins(req).has(origin)) return false;
-
-  res.setHeader('Access-Control-Allow-Origin', origin);
-  res.setHeader('Vary', 'Origin');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Max-Age', '86400');
-  return true;
-}
-
-function readSeedCounts() {
-  const fragrancesPath = path.join(process.cwd(), 'fragrances.json');
-  const moleculesPath = path.join(process.cwd(), 'molecules.json');
-  const noteMapPath = path.join(process.cwd(), 'note-molecule-map.json');
-
-  if (fs.existsSync(fragrancesPath) && fs.existsSync(moleculesPath) && fs.existsSync(noteMapPath)) {
-    const fragrances = JSON.parse(fs.readFileSync(fragrancesPath, 'utf8'));
-    const molecules = JSON.parse(fs.readFileSync(moleculesPath, 'utf8'));
-    return {
-      fragranceCount: Array.isArray(fragrances) ? fragrances.length : 0,
-      moleculeCount: Array.isArray(molecules) ? molecules.length : 0,
-      everyFragranceHasThreeMolecules: Array.isArray(fragrances)
-        ? fragrances.every((item) => {
-            const notes = [
-              ...(Array.isArray(item.top_notes) ? item.top_notes : []),
-              ...(Array.isArray(item.heart_notes) ? item.heart_notes : []),
-              ...(Array.isArray(item.base_notes) ? item.base_notes : []),
-            ];
-            return notes.length >= 3;
-          })
-        : false,
-    };
-  }
-
-  const legacySeedPath = path.join(process.cwd(), 'data', 'catalog-seed.json');
-  const raw = JSON.parse(fs.readFileSync(legacySeedPath, 'utf8'));
-  return {
-    fragranceCount: Array.isArray(raw.fragrances) ? raw.fragrances.length : 0,
-    moleculeCount: Array.isArray(raw.molecules) ? raw.molecules.length : 0,
-    everyFragranceHasThreeMolecules: Array.isArray(raw.fragrances)
-      ? raw.fragrances.every((item) => Array.isArray(item.key_molecules) && item.key_molecules.length >= 3)
-      : false,
-  };
-}
+const {
+  setCorsHeaders,
+  setSecurityHeaders,
+} = require('../lib/server/config');
+const {
+  loadCatalogSeed,
+  buildCatalogRecords,
+} = require('../lib/server/catalog-seed');
 
 function parseContentRangeTotal(value) {
   const raw = cleanString(value);
@@ -139,18 +53,20 @@ async function countTableRows(config, table) {
 
 async function handler(req, res) {
   setSecurityHeaders(res);
-  if (!setCorsHeaders(req, res)) {
-    return res.status(403).json({ error: 'Bu origin icin erisim izni yok.' });
+  if (!setCorsHeaders(req, res, { methods: 'GET, OPTIONS', headers: 'Content-Type' })) {
+    return res.status(403).json({ error: 'Bu origin için erişim izni yok.' });
   }
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const seed = readSeedCounts();
+  const seed = loadCatalogSeed();
+  const seedRecords = buildCatalogRecords(seed);
   const supabase = resolveSupabaseConfig();
   const configured = hasSupabaseServiceConfig();
   const fragranceTable = cleanString(process.env.SUPABASE_FRAGRANCES_TABLE) || 'fragrances';
   const moleculeTable = cleanString(process.env.SUPABASE_MOLECULES_TABLE) || 'molecules';
+  const evidenceTable = cleanString(process.env.SUPABASE_FRAGRANCE_MOLECULE_EVIDENCE_TABLE) || 'fragrance_molecule_evidence';
   const databaseUrl =
     cleanString(process.env.SUPABASE_DB_URL)
     || cleanString(process.env.POSTGRES_URL)
@@ -161,27 +77,35 @@ async function handler(req, res) {
 
   let fragranceProbe = { ok: false, count: 0, status: 0, reason: configured ? 'skipped' : 'supabase_missing' };
   let moleculeProbe = { ok: false, count: 0, status: 0, reason: configured ? 'skipped' : 'supabase_missing' };
+  let evidenceProbe = { ok: false, count: 0, status: 0, reason: configured ? 'skipped' : 'supabase_missing' };
 
   if (configured) {
     try {
-      [fragranceProbe, moleculeProbe] = await Promise.all([
+      [fragranceProbe, moleculeProbe, evidenceProbe] = await Promise.all([
         countTableRows(supabase, fragranceTable),
         countTableRows(supabase, moleculeTable),
+        countTableRows(supabase, evidenceTable),
       ]);
     } catch (error) {
       const reason = cleanString(error?.message) || 'catalog_probe_failed';
       fragranceProbe = { ok: false, count: 0, status: 0, reason };
       moleculeProbe = { ok: false, count: 0, status: 0, reason };
+      evidenceProbe = { ok: false, count: 0, status: 0, reason };
     }
   }
 
-  const databaseReady = configured
-    && fragranceProbe.ok
-    && moleculeProbe.ok
-    && fragranceProbe.count >= 20
-    && moleculeProbe.count >= 20;
-
-  const fallbackReady = seed.fragranceCount >= 20 && seed.moleculeCount >= 20 && seed.everyFragranceHasThreeMolecules;
+  const databaseReady =
+    configured &&
+    fragranceProbe.ok &&
+    moleculeProbe.ok &&
+    fragranceProbe.count >= 20 &&
+    moleculeProbe.count >= 20;
+  const evidenceReady = evidenceProbe.ok && evidenceProbe.count > 0;
+  const fallbackReady =
+    seedRecords.fragrances.length >= 20 &&
+    seedRecords.molecules.length >= 20 &&
+    Array.isArray(seedRecords.relations) &&
+    seedRecords.relations.length > 0;
 
   return res.status(200).json({
     ok: true,
@@ -193,14 +117,21 @@ async function handler(req, res) {
       runtimeHasDatabaseUrl: Boolean(databaseUrl),
       fragranceTable,
       moleculeTable,
-      seedFragranceCount: seed.fragranceCount,
-      seedMoleculeCount: seed.moleculeCount,
-      everyFragranceHasThreeMolecules: seed.everyFragranceHasThreeMolecules,
+      evidenceTable,
+      seedFragranceCount: seedRecords.fragrances.length,
+      seedMoleculeCount: seedRecords.molecules.length,
+      seedEvidenceRelationCount: Array.isArray(seedRecords.relations) ? seedRecords.relations.length : 0,
+      seedVisibleMoleculeCount: seedRecords.stats?.visibleMoleculeCount || 0,
+      seedHiddenZeroLinkCount: seedRecords.stats?.zeroLinkHiddenCount || 0,
       databaseFragranceCount: fragranceProbe.count,
       databaseMoleculeCount: moleculeProbe.count,
+      databaseEvidenceRelationCount: evidenceProbe.count,
       databaseProbeOk: fragranceProbe.ok && moleculeProbe.ok,
+      evidenceProbeOk: evidenceProbe.ok,
+      evidenceReady,
       fragranceProbeReason: fragranceProbe.reason,
       moleculeProbeReason: moleculeProbe.reason,
+      evidenceProbeReason: evidenceProbe.reason,
       urlHost: cleanString(supabase.url).replace(/^https?:\/\//i, ''),
     },
     ts: new Date().toISOString(),

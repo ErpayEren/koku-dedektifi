@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
@@ -71,7 +71,7 @@ export function OverviewPanel({
           disabled={shareBusy}
           className="rounded-full border border-white/[.08] bg-black/20 px-3 py-2 text-[10px] font-mono uppercase tracking-[.08em] text-muted transition-colors hover:border-[var(--gold-line)] hover:text-cream disabled:opacity-50"
         >
-          {shareBusy ? 'Hazırlanıyor' : 'Paylaş'}
+          {shareBusy ? 'HazÄ±rlanÄ±yor' : 'PaylaÅŸ'}
         </button>
       </div>
 
@@ -94,7 +94,7 @@ export function OverviewPanel({
 
       <div className="mt-7">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-[10px] font-mono uppercase tracking-[.1em] text-muted">Yoğunluk</span>
+          <span className="text-[10px] font-mono uppercase tracking-[.1em] text-muted">YoÄŸunluk</span>
           <span className="text-[12px] text-cream">{result.intensity}%</span>
         </div>
         <div className="h-[6px] overflow-hidden rounded-full bg-white/[.08]">
@@ -107,7 +107,7 @@ export function OverviewPanel({
 
       <div className="mt-6 border-t border-white/[.06] pt-5">
         <CardTitle>{UI.scentDescription}</CardTitle>
-        <p className="text-[15px] leading-relaxed text-cream/95">{result.description || 'Açıklama şu an hazır değil.'}</p>
+        <p className="text-[15px] leading-relaxed text-cream/95">{result.description || 'AÃ§Ä±klama ÅŸu an hazÄ±r deÄŸil.'}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           {season.map((tag) => (
             <span key={tag} className="rounded-full border border-white/[.08] px-2.5 py-1.5 text-[10px] font-mono text-muted">
@@ -125,14 +125,14 @@ export function OverviewPanel({
       <div className="mt-4 rounded-[24px] border border-white/[.06] bg-black/10 p-5">
         <div className="mb-4 flex items-center justify-between gap-4">
           <CardTitle>Koku Sahnesi</CardTitle>
-          <span className="text-[10px] font-mono uppercase tracking-[.12em] text-gold">Canlı iz</span>
+          <span className="text-[10px] font-mono uppercase tracking-[.12em] text-gold">CanlÄ± iz</span>
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[108px_minmax(0,1fr)] lg:items-center">
           <div className="relative z-10 mx-auto flex h-[108px] w-[108px] items-center justify-center overflow-hidden rounded-full border border-white/[.08] bg-white/[.02]">
             <div className="absolute inset-[22px] rounded-full bg-[radial-gradient(circle,rgba(167,139,250,.24)_0%,rgba(167,139,250,.08)_54%,transparent_100%)]" />
             <div className="relative text-center">
-              <p className="text-[9px] font-mono uppercase tracking-[.16em] text-muted">İz skoru</p>
+              <p className="text-[9px] font-mono uppercase tracking-[.16em] text-muted">Ä°z skoru</p>
               <p className="mt-2 text-[1.85rem] font-bold leading-none text-cream">
                 <AnimatedPercent value={confidence} />
               </p>
@@ -140,15 +140,15 @@ export function OverviewPanel({
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <SceneCell label="Duruş" value={result.persona?.vibe || 'Dengeli'} tone="#a78bfa" />
-            <SceneCell label="An" value={result.occasion || 'Günlük'} tone="var(--gold)" />
-            <SceneCell label="İz" value={season[0] || 'Dört mevsim'} tone="var(--sage)" />
+            <SceneCell label="DuruÅŸ" value={result.persona?.vibe || 'Dengeli'} tone="#a78bfa" />
+            <SceneCell label="An" value={result.occasion || 'GÃ¼nlÃ¼k'} tone="var(--gold)" />
+            <SceneCell label="Ä°z" value={season[0] || 'DÃ¶rt mevsim'} tone="var(--sage)" />
           </div>
         </div>
       </div>
 
       <div className="mt-6 border-t border-white/[.06] pt-6">
-        <CardTitle>İmza Sinyalleri</CardTitle>
+        <CardTitle>Ä°mza Sinyalleri</CardTitle>
         <SignalTelemetry
           longevity={longevityScore}
           projection={projectionScore}
@@ -207,16 +207,16 @@ export function DetailPanel({
         ) : null}
         {result.persona ? (
           <div className="space-y-2 text-[12px] text-muted">
-            <InfoLine label="Koku duruşu" value={result.persona.vibe || 'Dengeli'} />
+            <InfoLine label="Koku duruÅŸu" value={result.persona.vibe || 'Dengeli'} />
             <InfoLine
-              label="Kullanım sahnesi"
-              value={occasionList.join(', ') || result.occasion || 'Genel kullanım'}
+              label="KullanÄ±m sahnesi"
+              value={occasionList.join(', ') || result.occasion || 'Genel kullanÄ±m'}
             />
             <InfoLine label="Cinsiyet dengesi" value={result.persona.gender || 'Unisex'} />
-            <InfoLine label="Sezon eğilimi" value={season.join(', ') || result.persona.season || 'Dört mevsim'} />
+            <InfoLine label="Sezon eÄŸilimi" value={season.join(', ') || result.persona.season || 'DÃ¶rt mevsim'} />
           </div>
         ) : (
-          <p className="text-[12px] text-muted">Bu kokuda persona sinyali sınırlı; genel kullanım sahnesine açık.</p>
+          <p className="text-[12px] text-muted">Bu kokuda persona sinyali sÄ±nÄ±rlÄ±; genel kullanÄ±m sahnesine aÃ§Ä±k.</p>
         )}
       </div>
     </Card>
@@ -254,14 +254,14 @@ export function SimilarPanel({
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <span className="block truncate text-[14px] text-cream">{item.name}</span>
-                  <span className="mt-1 block text-[11px] text-muted">Bu profile göre yeniden analiz çalıştır.</span>
+                  <span className="mt-1 block text-[11px] text-muted">Bu profile gÃ¶re yeniden analiz Ã§alÄ±ÅŸtÄ±r.</span>
                 </div>
                 <SimilarityArc pct={item.similarity} />
               </div>
             </button>
           ))
         ) : (
-          <p className="text-[12px] text-muted">Bu koku için benzer profil önerisi çıkmadı.</p>
+          <p className="text-[12px] text-muted">Bu koku iÃ§in benzer profil Ã¶nerisi Ã§Ä±kmadÄ±.</p>
         )}
       </div>
 
@@ -269,13 +269,13 @@ export function SimilarPanel({
         <div className="mt-4 rounded-2xl border border-[var(--gold-line)]/35 bg-[var(--gold-dim)]/10 px-4 py-3">
           <p className="text-[10px] font-mono uppercase tracking-[.14em] text-gold">Pro ile Top 10</p>
           <p className="mt-2 text-[13px] leading-relaxed text-cream/82">
-            {hiddenSimilarCount} benzer koku daha bulundu. Ücretsiz katmanda ilk {similarLimit} sonuç görünür.
+            {hiddenSimilarCount} benzer koku daha bulundu. Ãœcretsiz katmanda ilk {similarLimit} sonuÃ§ gÃ¶rÃ¼nÃ¼r.
           </p>
           <Link
             href="/paketler"
             className="mt-3 inline-flex rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)]/20 px-3 py-2 text-[10px] font-mono uppercase tracking-[.12em] text-gold transition-colors hover:bg-[var(--gold-dim)]/35"
           >
-            Top 10&apos;u aç
+            Top 10&apos;u aÃ§
           </Link>
         </div>
       ) : null}
@@ -326,9 +326,9 @@ export function WheelPanel({ wheelValues, scores, intensity, style }: WheelPanel
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2">
         <MetricPill label="Tazelik" value={scores.freshness} tone="var(--sage)" />
-        <MetricPill label="Tatlılık" value={scores.sweetness} tone="#d58ebb" />
-        <MetricPill label="Sıcaklık" value={scores.warmth} tone="#d3a36a" />
-        <MetricPill label="Yoğunluk" value={clampPercent(intensity, 65)} tone="#8ab8c0" />
+        <MetricPill label="TatlÄ±lÄ±k" value={scores.sweetness} tone="#d58ebb" />
+        <MetricPill label="SÄ±caklÄ±k" value={scores.warmth} tone="#d3a36a" />
+        <MetricPill label="YoÄŸunluk" value={clampPercent(intensity, 65)} tone="#8ab8c0" />
       </div>
     </Card>
   );
@@ -375,13 +375,13 @@ export function MoleculePanel({
             type="button"
             className="w-full rounded-[28px] border border-white/[.08] bg-[#0c0b10] p-4 text-left transition-colors hover:border-[var(--gold-line)]"
             onClick={() => onOpenMolecule(moleculeSafeIndex)}
-            aria-label={`${molecule.name} molekül kartını aç`}
+            aria-label={`${molecule.name} molekul kartini ac`}
           >
             <MoleculeVisual name={molecule.name} smiles={molecule.smiles} formula={molecule.formula} compact />
           </button>
 
           <div className="mt-4 grid grid-cols-[30px_minmax(0,1fr)_30px] items-start gap-3">
-            <button type="button" onClick={onPrev} className="icon-btn" disabled={moleculeSafeIndex === 0} aria-label="Önceki molekül">
+            <button type="button" onClick={onPrev} className="icon-btn" disabled={moleculeSafeIndex === 0} aria-label="Onceki molekul">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M8.8 2.3 4.2 7l4.6 4.7" />
               </svg>
@@ -398,17 +398,17 @@ export function MoleculePanel({
                 <p className="break-words text-[clamp(1.75rem,4.5vw,3rem)] font-semibold leading-[0.94] text-cream">{molecule.name}</p>
               )}
               <p className="mt-2 break-words text-[12px] text-muted">
-                {molecule.formula || 'Doğrulanmış formül yok'}
+                {molecule.formula || 'Dogrulanmis formul yok'}
                 {molecule.casNumber ? ` · CAS ${molecule.casNumber}` : ''}
               </p>
-              <p className="mt-1 text-[11px] text-sage">{molecule.type || 'Molekül ailesi'}</p>
+              <p className="mt-1 text-[11px] text-sage">{molecule.type || 'Molekul ailesi'}</p>
             </div>
             <button
               type="button"
               onClick={onNext}
               className="icon-btn"
               disabled={moleculeSafeIndex >= moleculeData.length - 1}
-              aria-label="Sonraki molekül"
+              aria-label="Sonraki molekul"
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M5.2 2.3 9.8 7l-4.6 4.7" />
@@ -427,7 +427,7 @@ export function MoleculePanel({
                     className={`h-1.5 rounded-full transition-all ${
                       index === moleculeSafeIndex ? 'w-8 bg-gold' : 'w-1.5 bg-white/[.25]'
                     }`}
-                    aria-label={`${index + 1}. moleküle git`}
+                    aria-label={`${index + 1}. molekule git`}
                   />
                 ))}
               </div>
@@ -445,23 +445,27 @@ export function MoleculePanel({
                           ? 'border-[var(--gold-line)] bg-[var(--gold-dim)]/30'
                           : 'border-white/[.07] hover:border-[var(--gold-line)]'
                       }`}
-                      aria-label={`${item.name} detayını göster`}
+                      aria-label={`${item.name} detayini goster`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <span className="block truncate text-[12px] text-cream">{item.name}</span>
                           <div className="mt-1 flex flex-wrap items-center gap-1.5">
                             {item.evidenceLabel ? (
-                              <span className="rounded-full border border-white/[.08] px-2 py-1 text-[9px] font-mono uppercase tracking-[.1em] text-muted">
+                              <span
+                                className="rounded-full px-2 py-1 text-[9px] font-mono uppercase tracking-[.1em]"
+                                style={{
+                                  color: item.evidenceAccent || 'var(--gold)',
+                                  background: `${item.evidenceAccent || 'var(--gold)'}15`,
+                                  border: `1px solid ${item.evidenceAccent || 'var(--gold)'}30`,
+                                }}
+                              >
                                 {item.evidenceLabel}
                               </span>
                             ) : null}
-                            {typeof item.confidence === 'number' ? (
-                              <span className="text-[10px] font-mono text-sage">{item.confidence}% güven</span>
-                            ) : null}
                           </div>
                         </div>
-                        <span className="text-[11px] font-mono text-gold">{pct}%</span>
+                        <span className="text-[11px] font-mono text-gold">{item.traceStrengthLabel || 'Belirgin iz'}</span>
                       </div>
                       <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[.08]">
                         <div
@@ -482,23 +486,23 @@ export function MoleculePanel({
           {hiddenMoleculeCount > 0 ? (
             <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--gold-line)]/50 bg-[linear-gradient(180deg,rgba(245,158,11,0.07),rgba(13,13,18,0.95))]">
               <div className="px-4 py-4">
-                <p className="text-[10px] font-mono uppercase tracking-[.16em] text-gold/80">PRO duvarı</p>
-                <p className="mt-2 text-[15px] font-semibold text-cream">{hiddenMoleculeCount} molekül daha gizli</p>
+                <p className="text-[10px] font-mono uppercase tracking-[.16em] text-gold/80">PRO duvari</p>
+                <p className="mt-2 text-[15px] font-semibold text-cream">{hiddenMoleculeCount} molekul daha gizli</p>
                 <p className="mt-2 text-[13px] leading-relaxed text-cream/78">
-                  Ücretsiz katmanda ilk iki molekül görünür. Tam molekül analizi ve detay sayfaları Pro ile açılır.
+                  Ucretsiz katmanda ilk iki molekul gorunur. Tam molekul analizi ve detay sayfalari Pro ile acilir.
                 </p>
                 <Link
                   href="/paketler"
                   className="mt-4 inline-flex rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)]/20 px-3.5 py-2 text-[10px] font-mono uppercase tracking-[.12em] text-gold transition-colors hover:bg-[var(--gold-dim)]/35"
                 >
-                  PRO ile gör
+                  PRO ile gor
                 </Link>
               </div>
               <div className="pointer-events-none border-t border-white/[.06] bg-black/30 px-4 py-3 blur-[1.5px]">
                 {allMoleculeData.slice(visibleMoleculeCount, visibleMoleculeCount + 2).map((item) => (
                   <div key={`${item.name}-locked`} className="flex items-center justify-between py-2 text-[12px] text-white/40">
                     <span>{item.name}</span>
-                    <span>{clampPercent(item.pct, 50)}%</span>
+                    <span>{item.traceStrengthLabel || 'Belirgin iz'}</span>
                   </div>
                 ))}
               </div>
@@ -507,16 +511,23 @@ export function MoleculePanel({
 
           {molecule.explanation ? (
             <div className="mt-4 rounded-2xl border border-white/[.08] bg-white/[.03] px-4 py-3">
-              <p className="text-[10px] font-mono uppercase tracking-[.12em] text-gold">Molekül Yorumu</p>
+              <p className="text-[10px] font-mono uppercase tracking-[.12em] text-gold">Molekul yorumu</p>
               <p className="mt-2 text-[13px] leading-relaxed text-cream/92">{molecule.explanation}</p>
             </div>
           ) : null}
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_112px]">
+          <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(180px,220px)]">
             <div className="rounded-2xl border border-white/[.08] bg-white/[.03] px-4 py-3">
               <div className="flex flex-wrap items-center gap-2">
                 {molecule.evidenceLabel ? (
-                  <span className="rounded-full border border-white/[.08] px-2.5 py-1 text-[10px] font-mono uppercase tracking-[.1em] text-gold">
+                  <span
+                    className="rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-[.1em]"
+                    style={{
+                      color: molecule.evidenceAccent || 'var(--gold)',
+                      background: `${molecule.evidenceAccent || 'var(--gold)'}15`,
+                      border: `1px solid ${molecule.evidenceAccent || 'var(--gold)'}30`,
+                    }}
+                  >
                     {molecule.evidenceLabel}
                   </span>
                 ) : null}
@@ -527,21 +538,16 @@ export function MoleculePanel({
                 ) : null}
               </div>
               <p className="mt-2 text-[12px] leading-relaxed text-cream/86">
-                {molecule.presenceCopy || molecule.evidenceReason || 'Bu molekül kompozisyon sinyalleriyle destekleniyor.'}
+                {molecule.presenceCopy || molecule.evidenceReason || 'Bu molekul kompozisyon sinyalleriyle destekleniyor.'}
               </p>
             </div>
 
             <div className="rounded-2xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-center">
-              <p className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">Güven</p>
-              <p className="mt-2 text-[1.25rem] font-semibold leading-none text-cream">
-                <AnimatedPercent value={molecule.confidence ?? 0} />
+              <p className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">Bu molekul su parfumlerde bulunur</p>
+              <p className="mt-2 text-[1rem] font-semibold leading-snug text-cream">
+                {molecule.linkedFragrances?.length ? molecule.linkedFragrances.slice(0, 2).join(', ') : 'Henuz eslesmedi'}
               </p>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[.08]">
-                <div
-                  className="h-full rounded-full transition-all duration-700 ease-out"
-                  style={{ width: `${molecule.confidence ?? 0}%`, background: 'var(--sage)' }}
-                />
-              </div>
+              <p className="mt-2 text-[11px] text-muted">{molecule.traceStrengthLabel || 'Belirgin iz'}</p>
             </div>
           </div>
 
@@ -562,7 +568,7 @@ export function MoleculePanel({
                 href={`/molekuller/${molecule.slug}`}
                 className="rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)]/20 px-3.5 py-2 text-[10px] font-mono uppercase tracking-[.08em] text-gold transition-colors hover:bg-[var(--gold-dim)]/35"
               >
-                Detay sayfasına git
+                Detay sayfasina git
               </Link>
             ) : null}
             <button
@@ -571,13 +577,14 @@ export function MoleculePanel({
               disabled={moleculeShareBusy}
               className="rounded-full border border-white/[.08] bg-black/20 px-3.5 py-2 text-[10px] font-mono uppercase tracking-[.08em] text-muted transition-colors hover:border-[var(--gold-line)] hover:text-cream disabled:opacity-50"
             >
-              {moleculeShareBusy ? 'Hazırlanıyor' : 'Bu Molekülleri Paylaş'}
+              {moleculeShareBusy ? 'Hazirlaniyor' : 'Bu Molekulleri Paylas'}
             </button>
           </div>
         </div>
       ) : (
-        <p className="text-[12px] text-muted">Bu analizde doğrulanmış molekül izi bulunamadı.</p>
+        <p className="text-[12px] text-muted">Bu analizde savunulabilir molekul bagi bulunamadi.</p>
       )}
     </Card>
   );
 }
+

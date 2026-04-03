@@ -28,9 +28,19 @@ function clampScore(value: unknown, fallback = 50): number {
 }
 
 function parseEvidenceLevel(value: unknown): MoleculeEvidenceLevel | undefined {
-  if (value === 'official' || value === 'mapped' || value === 'validated' || value === 'inferred') {
+  if (
+    value === 'verified_component' ||
+    value === 'signature_molecule' ||
+    value === 'accord_component' ||
+    value === 'note_match' ||
+    value === 'unmatched'
+  ) {
     return value;
   }
+  if (value === 'official') return 'verified_component';
+  if (value === 'validated') return 'signature_molecule';
+  if (value === 'mapped') return 'note_match';
+  if (value === 'inferred') return 'accord_component';
   return undefined;
 }
 
@@ -52,7 +62,7 @@ function normalizeMolecules(value: unknown): MoleculeItem[] {
       contribution: cleanText(entry.contribution),
       evidence: cleanText(entry.evidence),
       evidenceLevel: parseEvidenceLevel(entry.evidence_level ?? entry.evidenceLevel),
-      confidence: Number.isFinite(Number(entry.confidence)) ? clampScore(entry.confidence, 0) : undefined,
+      evidenceLabel: cleanText(entry.evidence_label ?? entry.evidenceLabel),
       evidenceReason: cleanText(entry.evidence_reason ?? entry.evidenceReason),
       matchedNotes: asList(entry.matched_notes ?? entry.matchedNotes, 6),
     });

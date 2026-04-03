@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import type { Route } from 'next';
 import { usePathname } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Archive,
   CalendarDays,
@@ -31,6 +31,11 @@ interface NavItem {
 interface NavGroup {
   section: string;
   items: NavItem[];
+}
+
+interface DesktopFrame {
+  left: number;
+  width: number;
 }
 
 const NAV: NavGroup[] = [
@@ -69,12 +74,42 @@ function getTodayCount(): number {
 export function Sidebar() {
   const path = usePathname();
   const entitlement = useBillingEntitlement();
+  const placeholderRef = useRef<HTMLElement | null>(null);
   const [todayUsage, setTodayUsage] = useState(0);
+  const [desktopFrame, setDesktopFrame] = useState<DesktopFrame>({ left: 0, width: 0 });
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     setTodayUsage(getTodayCount());
   }, [path]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const measure = () => {
+      const node = placeholderRef.current;
+      if (!node) return;
+      const rect = node.getBoundingClientRect();
+      setDesktopFrame({
+        left: rect.left,
+        width: rect.width,
+      });
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(() => measure());
+    if (placeholderRef.current) {
+      observer.observe(placeholderRef.current);
+    }
+
+    window.addEventListener('resize', measure);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
 
   const usagePct = useMemo(() => {
     if (entitlement.dailyAnalysisLimit >= 9999) {
@@ -87,8 +122,14 @@ export function Sidebar() {
   const usageLabel = entitlement.dailyAnalysisLimit >= 9999 ? '∞' : String(entitlement.dailyAnalysisLimit);
 
   return (
-    <aside className="order-2 z-20 hidden w-full min-w-0 border-t border-white/[.06] py-4 md:order-1 md:flex md:w-64 md:min-w-[280px] md:shrink-0 md:self-start md:border-r md:border-t-0 md:py-0 lg:w-80">
-      <div className="flex w-full flex-col rounded-2xl border border-white/[0.07] bg-white/[0.03] backdrop-blur-sm md:sticky md:top-0 md:h-screen md:rounded-none md:border-0 md:bg-transparent md:backdrop-blur-0">
+    <aside
+      ref={placeholderRef}
+      className="order-2 z-20 hidden w-full min-w-0 border-t border-white/[.06] py-4 md:order-1 md:flex md:w-64 md:min-w-[280px] md:shrink-0 md:self-start md:border-t-0 md:py-0 lg:w-80"
+    >
+      <div
+        className="flex w-full flex-col rounded-2xl border border-white/[0.07] bg-white/[0.03] backdrop-blur-sm md:fixed md:top-0 md:h-screen md:rounded-none md:border-r md:border-white/[.06] md:border-l-0 md:border-t-0 md:border-b-0 md:bg-[rgba(12,12,18,0.9)] md:backdrop-blur-md"
+        style={desktopFrame.width > 0 ? { left: desktopFrame.left, width: desktopFrame.width } : undefined}
+      >
         <div className="flex h-[92px] shrink-0 items-center gap-3 px-5 md:px-6">
           <Logo size="sidebar" />
         </div>

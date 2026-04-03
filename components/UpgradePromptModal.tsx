@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { useInstantProUpgrade } from '@/lib/client/useInstantProUpgrade';
 
 interface UpgradePromptModalProps {
   open: boolean;
@@ -17,6 +17,8 @@ export function UpgradePromptModal({
   featureBullets,
   onClose,
 }: UpgradePromptModalProps) {
+  const { activate, busy, error, clearError } = useInstantProUpgrade();
+
   if (!open) return null;
 
   return (
@@ -54,13 +56,26 @@ export function UpgradePromptModal({
             ))}
           </div>
 
+          {error ? (
+            <div className="mt-4 rounded-2xl border border-[#6c3438] bg-[#271317] px-4 py-3 text-[12px] text-[#f1a2a2]">
+              {error}
+            </div>
+          ) : null}
+
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/paketler"
-              className="inline-flex flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 px-4 py-3.5 text-[11px] font-mono uppercase tracking-[0.14em] text-black shadow-[0_4px_20px_rgba(217,119,6,0.35)] transition-transform hover:scale-[1.01]"
+            <button
+              type="button"
+              onClick={() => {
+                clearError();
+                void activate().then((upgraded) => {
+                  if (upgraded) onClose();
+                });
+              }}
+              disabled={busy}
+              className="inline-flex flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 px-4 py-3.5 text-[11px] font-mono uppercase tracking-[0.14em] text-black shadow-[0_4px_20px_rgba(217,119,6,0.35)] transition-transform hover:scale-[1.01] disabled:opacity-60"
             >
-              Keşfetmeye Devam Et →
-            </Link>
+              {busy ? 'PRO AÇILIYOR...' : "PRO'YU AÇ →"}
+            </button>
             <button
               type="button"
               onClick={onClose}

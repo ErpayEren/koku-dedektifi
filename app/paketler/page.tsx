@@ -5,6 +5,7 @@ import { AppShell } from '@/components/AppShell';
 import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
+import { useInstantProUpgrade } from '@/lib/client/useInstantProUpgrade';
 
 interface BillingPlan {
   id: string;
@@ -36,13 +37,6 @@ interface BillingResponse {
   user: BillingUser | null;
 }
 
-interface CheckoutResponse {
-  checkoutId: string;
-  checkoutUrl: string;
-  planId: string;
-  provider: string;
-}
-
 const PLAN_COPY: Record<'free' | 'pro', { name: string; features: string[]; note: string }> = {
   free: {
     name: 'Ücretsiz',
@@ -58,7 +52,7 @@ const PLAN_COPY: Record<'free' | 'pro', { name: string; features: string[]; note
       'Sınırsız dolap',
       'Top 10 benzer parfüm önerisi',
       'Koku profili ve kişiselleştirme',
-      'Parfümör Gözüyle derin rapor',
+      'Parfümör gözüyle derin rapor',
       'Öncelikli destek',
     ],
   },
@@ -109,12 +103,12 @@ function normalizePlans(plans: BillingPlan[] | undefined): BillingPlan[] {
 function PlanCard({
   activeTier,
   busyPlanId,
-  onCheckout,
+  onActivate,
   plan,
 }: {
   activeTier: 'free' | 'pro';
   busyPlanId: string;
-  onCheckout: (planId: string) => Promise<void>;
+  onActivate: (planId: string) => Promise<void>;
   plan: BillingPlan;
 }) {
   const isActive = activeTier === plan.id;
@@ -152,7 +146,7 @@ function PlanCard({
       <button
         type="button"
         disabled={plan.id !== 'pro' || isActive || isBusy}
-        onClick={() => void onCheckout(plan.id)}
+        onClick={() => void onActivate(plan.id)}
         className={`mt-7 w-full rounded-xl py-3 text-[11px] font-mono uppercase tracking-[.1em] transition-colors ${
           plan.id !== 'pro'
             ? 'border border-white/[.08] bg-white/[.04] text-muted'
@@ -163,15 +157,17 @@ function PlanCard({
                 : 'bg-gold text-bg hover:bg-[#d8b676]'
         }`}
       >
-        {plan.id !== 'pro' ? 'Ücretsiz Başla' : isActive ? 'Pro Aktif' : isBusy ? 'Yönlendiriliyor...' : "Pro'ya Geç"}
+        {plan.id !== 'pro' ? 'Ücretsiz Başla' : isActive ? 'Pro Aktif' : isBusy ? 'PRO AÇILIYOR...' : "Pro'ya Geç"}
       </button>
     </Card>
   );
 }
 
 export default function PricingPage() {
+  const { activate, busy, error: upgradeError, clearError } = useInstantProUpgrade();
   const [data, setData] = useState<BillingResponse | null>(null);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [busyPlanId, setBusyPlanId] = useState('');
 
   useEffect(() => {
@@ -183,9 +179,7 @@ export default function PricingPage() {
         });
         const payload = (await response.json().catch(() => null)) as BillingResponse | null;
         if (!response.ok || !payload) {
-          throw new Error(
-            payload && 'error' in payload ? String((payload as { error?: string }).error || 'Paketler yüklenemedi.') : 'Paketler yüklenemedi.',
-          );
+          throw new Error('Paketler yüklenemedi.');
         }
         setData(payload);
       } catch (requestError) {
@@ -197,36 +191,33 @@ export default function PricingPage() {
   const plans = useMemo(() => normalizePlans(data?.plans), [data?.plans]);
   const activeTier = data?.entitlement?.tier === 'pro' ? 'pro' : 'free';
 
-  async function startCheckout(planId: string): Promise<void> {
+  async function activatePlan(planId: string): Promise<void> {
     if (planId !== 'pro') return;
     setBusyPlanId(planId);
     setError('');
+    setNotice('');
+    clearError();
 
     try {
-      const response = await fetch('/api/billing', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'start_checkout',
-          planId: 'pro',
-        }),
-      });
+      const upgraded = await activate();
+      if (!upgraded) return;
 
-      const payload = (await response.json().catch(() => null)) as CheckoutResponse | { error?: string } | null;
-      if (!response.ok || !payload || !('checkoutUrl' in payload) || typeof payload.checkoutUrl !== 'string') {
-        throw new Error(
-          payload && typeof payload === 'object' && 'error' in payload
-            ? String(payload.error || 'Checkout başlatılamadı.')
-            : 'Checkout başlatılamadı.',
-        );
-      }
-
-      window.location.href = payload.checkoutUrl;
-    } catch (checkoutError) {
-      setError(checkoutError instanceof Error ? checkoutError.message : 'Checkout başlatılamadı.');
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              entitlement: {
+                ...current.entitlement,
+                tier: 'pro',
+                status: 'active',
+                source: 'instant-upgrade',
+                updatedAt: new Date().toISOString(),
+              },
+            }
+          : current,
+      );
+      setNotice('Pro hesabın aktif edildi.');
+    } finally {
       setBusyPlanId('');
     }
   }
@@ -248,8 +239,8 @@ export default function PricingPage() {
           </h1>
 
           <p className="mt-4 max-w-[620px] text-[13px] leading-relaxed text-muted">
-            Ücretsiz katman hızlı analiz ve temel nota okuması sunar. Pro ile tam molekül detayları, sınırsız dolap, benzer
-            parfüm kümeleri ve kişisel koku profili açılır.
+            Ücretsiz katman hızlı analiz ve temel nota okuması sunar. Şimdilik ürünleştirme akışını hızlandırmak için
+            &nbsp;&ldquo;Pro&apos;ya Geç&rdquo; butonu hesabını doğrudan Pro yapar.
           </p>
 
           <div className="mt-6 rounded-2xl border border-white/[.08] bg-black/10 px-4 py-3 text-[12px] text-muted">
@@ -259,19 +250,25 @@ export default function PricingPage() {
                 <span className="text-gold">{activeTier === 'pro' ? 'Pro' : 'Ücretsiz'}</span>
               </>
             ) : (
-              'Giriş yapmadan da paketleri inceleyebilirsin. Checkout adımında hesabınla eşleştirilir.'
+              "Giriş yapmadan paketleri inceleyebilirsin. Pro aktivasyonu için önce hesabına giriş yapman gerekir."
             )}
           </div>
 
-          {error ? (
+          {error || upgradeError ? (
             <div className="mt-4 rounded-2xl border border-[#6c3438] bg-[#271317] px-4 py-3 text-[12px] text-[#f1a2a2]">
-              {error}
+              {error || upgradeError}
+            </div>
+          ) : null}
+
+          {notice ? (
+            <div className="mt-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-[12px] text-emerald-200">
+              {notice}
             </div>
           ) : null}
 
           <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2">
             {plans.map((plan) => (
-              <PlanCard key={plan.id} activeTier={activeTier} busyPlanId={busyPlanId} onCheckout={startCheckout} plan={plan} />
+              <PlanCard key={plan.id} activeTier={activeTier} busyPlanId={busy || busyPlanId === plan.id ? plan.id : ''} onActivate={activatePlan} plan={plan} />
             ))}
           </div>
         </div>

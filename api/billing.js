@@ -309,6 +309,24 @@ async function handleActivateDev(res, auth, body) {
   return res.status(200).json({ ok: true, entitlement });
 }
 
+async function handleInstantUpgrade(res, auth, body) {
+  if (!auth) return res.status(401).json({ error: 'Pro aktivasyonu için giriş gerekli.' });
+
+  const plan = getPlanById(cleanString(body.planId).toLowerCase());
+  if (!plan || plan.id !== 'pro') {
+    return res.status(400).json({ error: 'Geçersiz plan seçimi.' });
+  }
+
+  const entitlement = await writeEntitlementForUser(auth.user.id, {
+    tier: plan.id,
+    status: 'active',
+    source: 'instant-upgrade',
+    cancelAtPeriodEnd: false,
+  });
+
+  return res.status(200).json({ ok: true, entitlement });
+}
+
 async function handleCancel(res, auth) {
   if (!auth) return res.status(401).json({ error: 'İptal için giriş gerekli.' });
   const current = await readEntitlementForUser(auth.user.id);
@@ -364,6 +382,7 @@ async function handler(req, res) {
 
   if (action === 'start_checkout') return handleStartCheckout(res, auth, body);
   if (action === 'activate_dev_plan') return handleActivateDev(res, auth, body);
+  if (action === 'instant_upgrade') return handleInstantUpgrade(res, auth, body);
   if (action === 'cancel_subscription') return handleCancel(res, auth);
 
   return res.status(400).json({ error: 'Bilinmeyen action' });

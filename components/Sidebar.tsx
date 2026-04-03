@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { getHistory } from '@/lib/client/storage';
 import { useBillingEntitlement } from '@/lib/client/useBillingEntitlement';
+import { useInstantProUpgrade } from '@/lib/client/useInstantProUpgrade';
 import { LogoMark } from './ui/LogoMark';
 
 interface NavItem {
@@ -36,7 +37,7 @@ const EXPANDED_WIDTH = 304;
 const COLLAPSED_WIDTH = 88;
 const RAIL_BREAKPOINT = 1280;
 const RAIL_SCROLL_THRESHOLD = 120;
-const COLLAPSE_DELAY_MS = 160;
+const COLLAPSE_DELAY_MS = 180;
 
 const NAV: NavGroup[] = [
   {
@@ -74,6 +75,7 @@ function getTodayCount(): number {
 export function Sidebar() {
   const pathname = usePathname();
   const entitlement = useBillingEntitlement();
+  const { activate, busy: upgradeBusy } = useInstantProUpgrade();
   const placeholderRef = useRef<HTMLElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
@@ -87,9 +89,9 @@ export function Sidebar() {
   const [scrollFade, setScrollFade] = useState({ top: false, bottom: true });
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     setTodayUsage(getTodayCount());
-  }, [pathname]);
+  }, [pathname, entitlement.tier]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -218,8 +220,8 @@ export function Sidebar() {
   return (
     <aside
       ref={placeholderRef}
-      style={{ '--sidebar-width': `${sidebarWidth}px` } as CSSProperties}
-      className="order-2 z-20 hidden w-full min-w-0 border-t border-white/[.06] py-4 md:order-1 md:flex md:w-[var(--sidebar-width)] md:min-w-[var(--sidebar-width)] md:shrink-0 md:self-start md:border-t-0 md:py-0 md:transition-[width,min-width] md:duration-500 md:ease-[cubic-bezier(0.22,1,0.36,1)]"
+      style={{ '--sidebar-width': `${sidebarWidth}px`, willChange: 'width' } as CSSProperties}
+      className="order-2 z-20 hidden w-full min-w-0 border-t border-white/[.06] py-4 md:order-1 md:flex md:w-[var(--sidebar-width)] md:min-w-[var(--sidebar-width)] md:shrink-0 md:self-start md:border-t-0 md:py-0 md:transition-[width,min-width] md:duration-[760ms] md:ease-[cubic-bezier(0.16,1,0.3,1)]"
     >
       <div
         ref={panelRef}
@@ -227,29 +229,27 @@ export function Sidebar() {
         onMouseLeave={scheduleCollapse}
         onFocusCapture={openRail}
         onBlurCapture={handleBlurCapture}
-        className={`flex w-full flex-col rounded-2xl border border-white/[0.07] bg-[rgba(12,12,18,0.88)] backdrop-blur-md md:fixed md:top-0 md:h-screen md:w-[var(--sidebar-width)] md:rounded-none md:border-y-0 md:border-l-0 md:border-r md:border-white/[.06] md:transition-[width,background-color,border-color,box-shadow] md:duration-500 md:ease-[cubic-bezier(0.22,1,0.36,1)] ${
-          collapsed
-            ? 'md:bg-[rgba(12,12,18,0.94)] md:shadow-[inset_-1px_0_0_rgba(255,255,255,0.03)]'
-            : 'md:bg-[rgba(12,12,18,0.90)]'
+        className={`flex w-full flex-col rounded-2xl border border-white/[0.07] bg-[rgba(12,12,18,0.92)] backdrop-blur-md md:fixed md:top-0 md:h-screen md:w-[var(--sidebar-width)] md:rounded-none md:border-y-0 md:border-l-0 md:border-r md:border-white/[.06] md:transition-[width,box-shadow] md:duration-[760ms] md:ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          collapsed ? 'md:shadow-[inset_-1px_0_0_rgba(255,255,255,0.03)]' : ''
         }`}
-        style={{ left: panelLeft } as CSSProperties}
+        style={{ left: panelLeft, willChange: 'width' } as CSSProperties}
       >
         <div
-          className={`flex h-[92px] shrink-0 items-center transition-[padding,gap] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          className={`flex h-[92px] shrink-0 items-center transition-[padding,gap] duration-[680ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
             collapsed ? 'justify-center px-0' : 'gap-3 px-5 md:px-6'
           }`}
         >
           <Link
             href="/"
-            className={`group inline-flex items-center no-underline transition-[gap] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            className={`group inline-flex items-center no-underline transition-[gap] duration-[680ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
               collapsed ? 'justify-center gap-0' : 'gap-3'
             }`}
             aria-label="Koku Dedektifi ana sayfa"
           >
             <LogoMark size={collapsed ? 54 : 72} />
             <span
-              className={`overflow-hidden whitespace-nowrap font-display italic leading-[0.96] tracking-[-0.02em] text-[24px] transition-[max-width,opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                collapsed ? 'max-w-0 -translate-x-2 opacity-0' : 'max-w-[180px] translate-x-0 opacity-100'
+              className={`overflow-hidden whitespace-nowrap font-display italic leading-[0.96] tracking-[-0.02em] text-[24px] transition-[max-width,transform] duration-[460ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                collapsed ? 'max-w-0 -translate-x-2 delay-0' : 'max-w-[180px] translate-x-0 delay-[120ms]'
               }`}
             >
               <span className="text-cream">Koku </span>
@@ -274,12 +274,12 @@ export function Sidebar() {
             {NAV.map((group, groupIndex) => (
               <div key={group.section} className={groupIndex === 0 ? '' : collapsed ? 'mt-4' : 'mt-0'}>
                 <p
-                  className={`overflow-hidden text-[10px] font-medium tracking-[0.2em] text-white/30 transition-[max-height,opacity,margin,padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  className={`overflow-hidden text-[10px] font-medium tracking-[0.2em] text-white/30 transition-[max-height,margin,padding] duration-[380ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
                     collapsed
-                      ? 'mb-0 mt-0 max-h-0 px-0 opacity-0'
+                      ? 'mb-0 mt-0 max-h-0 px-0'
                       : groupIndex === 0
-                        ? 'mb-1 mt-0 max-h-6 px-4 opacity-100'
-                        : 'mb-1 mt-6 max-h-6 px-4 opacity-100'
+                        ? 'mb-1 mt-0 max-h-6 px-4'
+                        : 'mb-1 mt-6 max-h-6 px-4'
                   }`}
                 >
                   {group.section}
@@ -296,12 +296,12 @@ export function Sidebar() {
                       title={collapsed ? item.label : undefined}
                       aria-label={collapsed ? item.label : undefined}
                       aria-current={isActive ? 'page' : undefined}
-                      className={`group relative flex items-center rounded-2xl transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                      className={`group relative flex items-center rounded-2xl transition-all duration-[420ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
                         collapsed ? 'mx-3 my-1.5 min-h-[54px] justify-center px-0' : 'mx-2 min-h-[48px] gap-3 px-4 py-3'
                       } ${
                         isActive
                           ? collapsed
-                            ? 'bg-amber-500/[0.08] text-amber-300 shadow-[0_0_16px_rgba(217,119,6,0.10)]'
+                            ? 'bg-amber-500/[0.07] text-amber-300 shadow-[0_0_12px_rgba(217,119,6,0.08)]'
                             : 'bg-amber-500/10 text-amber-400'
                           : collapsed
                             ? 'text-white/56 hover:bg-white/[0.04] hover:text-white/90'
@@ -309,10 +309,10 @@ export function Sidebar() {
                       }`}
                     >
                       <span
-                        className={`flex items-center justify-center rounded-xl transition-all duration-300 ${
+                        className={`flex items-center justify-center rounded-xl transition-all duration-[420ms] ${
                           collapsed
                             ? isActive
-                              ? 'h-11 w-11 border border-amber-500/22 bg-amber-500/[0.09] text-amber-300'
+                              ? 'h-11 w-11 border border-amber-500/18 bg-amber-500/[0.07] text-amber-300'
                               : 'h-11 w-11 border border-white/[0.05] bg-white/[0.02] text-white/44 group-hover:border-white/[0.10] group-hover:bg-white/[0.04] group-hover:text-white/82'
                             : `h-4 w-4 shrink-0 ${isActive ? 'text-amber-400' : 'text-white/40'}`
                         }`}
@@ -321,8 +321,8 @@ export function Sidebar() {
                       </span>
 
                       <span
-                        className={`overflow-hidden whitespace-nowrap text-sm font-medium transition-[max-width,opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                          collapsed ? 'max-w-0 -translate-x-1 opacity-0' : 'max-w-[160px] translate-x-0 opacity-100'
+                        className={`overflow-hidden whitespace-nowrap text-sm font-medium transition-[max-width,transform] duration-[360ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                          collapsed ? 'max-w-0 -translate-x-1 delay-0' : 'max-w-[160px] translate-x-0 delay-[90ms]'
                         }`}
                       >
                         {item.label}
@@ -330,7 +330,7 @@ export function Sidebar() {
 
                       {isActive ? (
                         collapsed ? (
-                          <div className="absolute right-[8px] top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-amber-400/85" />
+                          <div className="absolute right-[8px] top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-amber-400/82" />
                         ) : (
                           <div className="ml-auto h-4 w-1 rounded-full bg-amber-400" />
                         )
@@ -344,19 +344,21 @@ export function Sidebar() {
         </div>
 
         <div
-          className={`shrink-0 border-t border-white/[.08] transition-[padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          className={`shrink-0 border-t border-white/[.08] transition-[padding] duration-[680ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
             collapsed ? 'px-3 pb-6 pt-4' : 'px-4 pb-8 pt-4'
           }`}
         >
           {collapsed ? (
             <div className="flex flex-col items-center gap-4">
-              <Link
-                href="/paketler"
-                title="Pro'ya Geç"
-                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-amber-500/25 bg-amber-500/[0.12] px-3 text-[11px] font-semibold tracking-[0.18em] text-amber-300 shadow-[0_0_18px_rgba(217,119,6,0.16)] transition-all duration-300 hover:border-amber-400/35 hover:bg-amber-500/[0.16]"
+              <button
+                type="button"
+                title="Pro'yu aç"
+                onClick={() => void activate()}
+                disabled={upgradeBusy}
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-amber-500/25 bg-amber-500/[0.12] px-3 text-[11px] font-semibold tracking-[0.18em] text-amber-300 shadow-[0_0_18px_rgba(217,119,6,0.16)] transition-all duration-300 hover:border-amber-400/35 hover:bg-amber-500/[0.16] disabled:opacity-60"
               >
-                PRO
-              </Link>
+                {upgradeBusy ? '...' : 'PRO'}
+              </button>
 
               <div className="h-11 w-[6px] overflow-hidden rounded-full bg-white/[0.08]">
                 <div
@@ -390,12 +392,14 @@ export function Sidebar() {
                 />
               </div>
 
-              <Link
-                href="/paketler"
-                className="block w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 py-3.5 text-center text-sm font-bold tracking-widest text-black shadow-[0_4px_20px_rgba(217,119,6,0.35)] transition-transform active:scale-[0.98]"
+              <button
+                type="button"
+                onClick={() => void activate()}
+                disabled={upgradeBusy}
+                className="block w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 py-3.5 text-center text-sm font-bold tracking-widest text-black shadow-[0_4px_20px_rgba(217,119,6,0.35)] transition-transform active:scale-[0.98] disabled:opacity-60"
               >
-                PRO&apos;YA GEÇ
-              </Link>
+                {upgradeBusy ? 'PRO AÇILIYOR...' : "PRO'YA GEÇ"}
+              </button>
             </>
           )}
         </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { BILLING_UPDATED_EVENT } from './useInstantProUpgrade';
 
 export type BillingTier = 'free' | 'pro';
 
@@ -8,6 +9,8 @@ interface BillingEntitlementPayload {
   entitlement?: {
     tier?: BillingTier;
     status?: string;
+    source?: string;
+    updatedAt?: string | null;
   };
 }
 
@@ -86,8 +89,20 @@ export function useBillingEntitlement(): BillingEntitlementSnapshot {
 
     void hydratePlan();
 
+    const onBillingUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<BillingEntitlementPayload['entitlement']>;
+      const tier = customEvent.detail?.tier === 'pro' ? 'pro' : 'free';
+      const status = typeof customEvent.detail?.status === 'string' ? customEvent.detail.status : 'active';
+      if (!cancelled) {
+        setSnapshot(buildEntitlementSnapshot(tier, status));
+      }
+    };
+
+    window.addEventListener(BILLING_UPDATED_EVENT, onBillingUpdated as EventListener);
+
     return () => {
       cancelled = true;
+      window.removeEventListener(BILLING_UPDATED_EVENT, onBillingUpdated as EventListener);
     };
   }, []);
 

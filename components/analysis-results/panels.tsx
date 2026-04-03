@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
-import { UI } from '@/lib/strings';
-import type { AnalysisResult } from '@/lib/client/types';
 import type { MoleculeData } from '@/components/MoleculeCard';
+import { MoleculeVisual } from '@/components/MoleculeVisual';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
 import { ScentGlyph } from '@/components/ui/ScentGlyph';
-import { MoleculeVisual } from '@/components/MoleculeVisual';
+import type { AnalysisResult } from '@/lib/client/types';
+import { UI } from '@/lib/strings';
 import { ScentTimeline } from '@/components/ScentTimeline';
 import {
   AnimatedPercent,
@@ -457,7 +457,7 @@ export function MoleculePanel({
                               </span>
                             ) : null}
                             {typeof item.confidence === 'number' ? (
-                              <span className="text-[10px] font-mono text-sage">{item.confidence}% guven</span>
+                              <span className="text-[10px] font-mono text-sage">{item.confidence}% güven</span>
                             ) : null}
                           </div>
                         </div>
@@ -527,12 +527,12 @@ export function MoleculePanel({
                 ) : null}
               </div>
               <p className="mt-2 text-[12px] leading-relaxed text-cream/86">
-                {molecule.presenceCopy || molecule.evidenceReason || 'Bu molekul kompozisyon sinyalleriyle destekleniyor.'}
+                {molecule.presenceCopy || molecule.evidenceReason || 'Bu molekül kompozisyon sinyalleriyle destekleniyor.'}
               </p>
             </div>
 
             <div className="rounded-2xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-center">
-              <p className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">Guven</p>
+              <p className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">Güven</p>
               <p className="mt-2 text-[1.25rem] font-semibold leading-none text-cream">
                 <AnimatedPercent value={molecule.confidence ?? 0} />
               </p>

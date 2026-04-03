@@ -72,7 +72,7 @@ export const UI = {
   wearEmptyTitle: 'Henüz kayıt yok',
   wearEmptyBody: 'Analiz geçmişin arttıkça kişisel koku rutinin burada şekillenecek.',
 
-  packagesHero: 'Koku keşfini ihtiyacına göre ücretsiz başlat, Pro ile derinleştir.',
+  packagesHero: 'Koku keşfini ücretsiz başlat, Pro ile derinleştir.',
   packagesFreeTitle: 'Ücretsiz',
   packagesFreePrice: '0 TL',
   packagesFreeTag: 'Başlangıç seviyesi',

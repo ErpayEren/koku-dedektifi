@@ -23,7 +23,7 @@ export function ShareAnalysisModal({
     <>
       <button
         type="button"
-        aria-label="Paylaşım paneli arkaplanını kapat"
+        aria-label="Paylaşım paneli arka planını kapat"
         className="fixed inset-0 z-40 bg-black/65 backdrop-blur-md"
         onClick={onClose}
       />
@@ -35,7 +35,8 @@ export function ShareAnalysisModal({
               <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-gold/80">Paylaşım Kartı</p>
               <h3 className="mt-3 text-[1.9rem] font-semibold leading-[1.02] text-cream">Sonucu paylaş</h3>
               <p className="mt-3 text-[13px] leading-relaxed text-cream/78">
-                Instagram story oranında hazırlanmış analiz kartını paylaşabilir, linki kopyalayabilir ya da PNG indirebilirsin.
+                Instagram story oranında hazırlanmış analiz kartını paylaşabilir, linki kopyalayabilir ya da PNG
+                indirebilirsin.
               </p>
             </div>
             <button

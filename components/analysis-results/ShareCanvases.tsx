@@ -2,8 +2,8 @@
 
 import type { RefObject } from 'react';
 import { MoleculeVisual } from '@/components/MoleculeVisual';
-import type { AnalysisResult } from '@/lib/client/types';
 import type { MoleculeData } from '@/components/MoleculeCard';
+import type { AnalysisResult } from '@/lib/client/types';
 import { AnimatedPercent } from './primitives';
 import { clampPercent, moleculeAccent, toList } from './utils';
 

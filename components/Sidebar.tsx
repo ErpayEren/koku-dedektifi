@@ -37,26 +37,26 @@ const NAV: NavGroup[] = [
   {
     section: 'ANALİZ',
     items: [
-      { label: 'Yeni Analiz', href: '/', Icon: Sparkles },
-      { label: 'Koku Geçmişi', href: '/gecmis', Icon: History },
-      { label: 'Karşılaştır', href: '/karsilastir', Icon: GitCompare },
+      { label: UI.navNewAnalysis, href: '/', Icon: Sparkles },
+      { label: UI.navHistory, href: '/gecmis', Icon: History },
+      { label: UI.navCompare, href: '/karsilastir', Icon: GitCompare },
     ],
   },
   {
     section: 'KOLEKSİYON',
     items: [
-      { label: 'Koku Dolabım', href: '/dolap', Icon: Archive },
-      { label: 'Koku Rutinim', href: '/wear', Icon: CalendarDays },
-      { label: 'Katmanlama Lab', href: '/layering', Icon: Layers },
+      { label: UI.navWardrobe, href: '/dolap', Icon: Archive },
+      { label: UI.navWearRoutine, href: '/wear', Icon: CalendarDays },
+      { label: UI.navLayeringLab, href: '/layering', Icon: Layers },
     ],
   },
   {
     section: 'KEŞFET',
     items: [
-      { label: 'Nota Avcısı', href: '/notalar', Icon: Search },
+      { label: UI.navNoteFinder, href: '/notalar', Icon: Search },
       { label: 'Haftalık Molekül', href: '/haftalik-molekul', Icon: FlaskConical },
-      { label: 'Barkod Tara', href: '/barkod', Icon: ScanLine },
-      { label: 'Koku Akışı', href: '/akis', Icon: Wind },
+      { label: UI.navBarcode, href: '/barkod', Icon: ScanLine },
+      { label: UI.navFeed, href: '/akis', Icon: Wind },
     ],
   },
 ];
@@ -155,7 +155,7 @@ export function Sidebar() {
             href="/paketler"
             className="block w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 py-3.5 text-center text-sm font-bold tracking-widest text-black shadow-[0_4px_20px_rgba(217,119,6,0.35)] transition-transform active:scale-[0.98]"
           >
-            {"PRO'YA GEÇ"}
+            PRO&apos;YA GEÇ
           </Link>
         </div>
       </div>

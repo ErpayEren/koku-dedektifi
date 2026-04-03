@@ -21,6 +21,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
+import { UI } from '@/lib/strings';
 
 type IconProps = { size: number; strokeWidth: number };
 type GroupKey = 'analiz' | 'koleksiyon' | 'kesfet' | 'profil';
@@ -49,19 +50,19 @@ const GROUPS: readonly GroupDefinition[] = [
     items: [
       {
         href: '/',
-        label: 'Yeni Analiz',
+        label: UI.navNewAnalysis,
         description: 'Fotoğraf, metin veya nota listesi ile yeni analiz başlat.',
         Icon: Sparkles,
       },
       {
         href: '/gecmis',
-        label: 'Koku Geçmişi',
+        label: UI.navHistory,
         description: 'Önceki analizlerini yeniden aç ve karşılaştır.',
         Icon: History,
       },
       {
         href: '/karsilastir',
-        label: 'Karşılaştır',
+        label: UI.navCompare,
         description: 'İki kokuyu yan yana incele, farklarını gör.',
         Icon: GitCompare,
       },
@@ -75,19 +76,19 @@ const GROUPS: readonly GroupDefinition[] = [
     items: [
       {
         href: '/dolap',
-        label: 'Koku Dolabım',
+        label: UI.navWardrobe,
         description: 'Sahip olduklarını, favorilerini ve isteklerini yönet.',
         Icon: Archive,
       },
       {
         href: '/wear',
-        label: 'Koku Rutinim',
+        label: UI.navWearRoutine,
         description: 'Günlük kullanım alışkanlığını ve özetlerini izle.',
         Icon: CalendarDays,
       },
       {
         href: '/layering',
-        label: 'Katmanlama Lab',
+        label: UI.navLayeringLab,
         description: 'İki parfümün birlikte vereceği etkiyi keşfet.',
         Icon: Layers,
       },
@@ -101,7 +102,7 @@ const GROUPS: readonly GroupDefinition[] = [
     items: [
       {
         href: '/notalar',
-        label: 'Nota Avcısı',
+        label: UI.navNoteFinder,
         description: 'Aradığın profile yakın kokuları filtrele ve bul.',
         Icon: Search,
       },
@@ -113,13 +114,13 @@ const GROUPS: readonly GroupDefinition[] = [
       },
       {
         href: '/barkod',
-        label: 'Barkod Tara',
+        label: UI.navBarcode,
         description: 'Barkod üzerinden hızlı ürün araması yap.',
         Icon: ScanLine,
       },
       {
         href: '/akis',
-        label: 'Koku Akışı',
+        label: UI.navFeed,
         description: 'Topluluk hareketlerini ve son etkinlikleri gör.',
         Icon: Wind,
       },

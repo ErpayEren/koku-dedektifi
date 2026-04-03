@@ -87,15 +87,15 @@ export function Sidebar() {
   const usageLabel = entitlement.dailyAnalysisLimit >= 9999 ? '∞' : String(entitlement.dailyAnalysisLimit);
 
   return (
-    <aside className="order-2 z-20 hidden w-full min-w-0 border-t border-white/[.06] py-4 md:order-1 md:flex md:w-64 md:min-w-[280px] md:shrink-0 md:self-start md:sticky md:top-0 md:h-screen md:border-r md:border-t-0 md:py-0 lg:w-80">
-      <div className="flex min-h-full w-full flex-col rounded-2xl border border-white/[0.07] bg-white/[0.03] backdrop-blur-sm md:h-screen md:rounded-none md:border-0 md:bg-transparent md:backdrop-blur-0">
+    <aside className="order-2 z-20 hidden w-full min-w-0 border-t border-white/[.06] py-4 md:order-1 md:flex md:w-64 md:min-w-[280px] md:shrink-0 md:self-start md:border-r md:border-t-0 md:py-0 lg:w-80">
+      <div className="flex w-full flex-col rounded-2xl border border-white/[0.07] bg-white/[0.03] backdrop-blur-sm md:sticky md:top-0 md:h-screen md:rounded-none md:border-0 md:bg-transparent md:backdrop-blur-0">
         <div className="flex h-[92px] shrink-0 items-center gap-3 px-5 md:px-6">
           <Logo size="sidebar" />
         </div>
 
         <div className="mx-0 h-px w-full shrink-0 bg-white/[.08]" />
 
-        <nav className="scrollbar-none flex-1 overflow-y-auto py-4 pb-10" role="navigation" aria-label="Ana menü">
+        <nav className="scrollbar-none flex-1 overflow-y-auto py-4 pb-12" role="navigation" aria-label="Ana menü">
           {NAV.map((category, groupIndex) => (
             <div key={category.section}>
               <p
@@ -156,7 +156,7 @@ export function Sidebar() {
             href="/paketler"
             className="block w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 py-3.5 text-center text-sm font-bold tracking-widest text-black shadow-[0_4px_20px_rgba(217,119,6,0.35)] transition-transform active:scale-[0.98]"
           >
-            PRO&apos;YA GEÇ
+            {UI.navUpgrade.toUpperCase()}
           </Link>
         </div>
       </div>

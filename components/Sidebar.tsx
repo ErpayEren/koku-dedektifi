@@ -37,7 +37,8 @@ const EXPANDED_WIDTH = 304;
 const COLLAPSED_WIDTH = 88;
 const RAIL_BREAKPOINT = 1280;
 const RAIL_SCROLL_THRESHOLD = 120;
-const COLLAPSE_DELAY_MS = 180;
+const HOVER_COLLAPSE_DELAY_MS = 260;
+const SCROLL_SETTLE_COLLAPSE_MS = 220;
 
 const NAV: NavGroup[] = [
   {
@@ -79,7 +80,8 @@ export function Sidebar() {
   const placeholderRef = useRef<HTMLElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
-  const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverCollapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [todayUsage, setTodayUsage] = useState(0);
   const [panelLeft, setPanelLeft] = useState(0);
@@ -89,7 +91,7 @@ export function Sidebar() {
   const [scrollFade, setScrollFade] = useState({ top: false, bottom: true });
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
     setTodayUsage(getTodayCount());
   }, [pathname, entitlement.tier]);
 
@@ -136,10 +138,22 @@ export function Sidebar() {
       }
 
       const passed = window.scrollY > RAIL_SCROLL_THRESHOLD;
-      setScrolledPastThreshold(passed);
       if (!passed) {
+        if (scrollSettleTimerRef.current) {
+          clearTimeout(scrollSettleTimerRef.current);
+        }
         setHoverExpanded(false);
+        setScrolledPastThreshold(false);
+        return;
       }
+
+      if (scrollSettleTimerRef.current) {
+        clearTimeout(scrollSettleTimerRef.current);
+      }
+
+      scrollSettleTimerRef.current = setTimeout(() => {
+        setScrolledPastThreshold(true);
+      }, SCROLL_SETTLE_COLLAPSE_MS);
     };
 
     handleScroll();
@@ -174,8 +188,11 @@ export function Sidebar() {
 
   useEffect(() => {
     return () => {
-      if (collapseTimerRef.current) {
-        clearTimeout(collapseTimerRef.current);
+      if (hoverCollapseTimerRef.current) {
+        clearTimeout(hoverCollapseTimerRef.current);
+      }
+      if (scrollSettleTimerRef.current) {
+        clearTimeout(scrollSettleTimerRef.current);
       }
     };
   }, []);
@@ -194,20 +211,20 @@ export function Sidebar() {
 
   const openRail = () => {
     if (!canRailCollapse || !scrolledPastThreshold) return;
-    if (collapseTimerRef.current) {
-      clearTimeout(collapseTimerRef.current);
+    if (hoverCollapseTimerRef.current) {
+      clearTimeout(hoverCollapseTimerRef.current);
     }
     setHoverExpanded(true);
   };
 
   const scheduleCollapse = () => {
     if (!canRailCollapse || !scrolledPastThreshold) return;
-    if (collapseTimerRef.current) {
-      clearTimeout(collapseTimerRef.current);
+    if (hoverCollapseTimerRef.current) {
+      clearTimeout(hoverCollapseTimerRef.current);
     }
-    collapseTimerRef.current = setTimeout(() => {
+    hoverCollapseTimerRef.current = setTimeout(() => {
       setHoverExpanded(false);
-    }, COLLAPSE_DELAY_MS);
+    }, HOVER_COLLAPSE_DELAY_MS);
   };
 
   const handleBlurCapture = (event: FocusEvent<HTMLDivElement>) => {
@@ -221,7 +238,9 @@ export function Sidebar() {
     <aside
       ref={placeholderRef}
       style={{ '--sidebar-width': `${sidebarWidth}px`, willChange: 'width' } as CSSProperties}
-      className="order-2 z-20 hidden w-full min-w-0 border-t border-white/[.06] py-4 md:order-1 md:flex md:w-[var(--sidebar-width)] md:min-w-[var(--sidebar-width)] md:shrink-0 md:self-start md:border-t-0 md:py-0 md:transition-[width,min-width] md:duration-[760ms] md:ease-[cubic-bezier(0.16,1,0.3,1)]"
+      className={`order-2 z-20 hidden w-full min-w-0 border-t border-white/[.06] py-4 md:order-1 md:flex md:w-[var(--sidebar-width)] md:min-w-[var(--sidebar-width)] md:shrink-0 md:self-start md:border-t-0 md:py-0 md:transition-[width,min-width] md:ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        collapsed ? 'md:duration-[980ms]' : 'md:duration-[620ms]'
+      }`}
     >
       <div
         ref={panelRef}
@@ -229,27 +248,27 @@ export function Sidebar() {
         onMouseLeave={scheduleCollapse}
         onFocusCapture={openRail}
         onBlurCapture={handleBlurCapture}
-        className={`flex w-full flex-col rounded-2xl border border-white/[0.07] bg-[rgba(12,12,18,0.92)] backdrop-blur-md md:fixed md:top-0 md:h-screen md:w-[var(--sidebar-width)] md:rounded-none md:border-y-0 md:border-l-0 md:border-r md:border-white/[.06] md:transition-[width,box-shadow] md:duration-[760ms] md:ease-[cubic-bezier(0.16,1,0.3,1)] ${
-          collapsed ? 'md:shadow-[inset_-1px_0_0_rgba(255,255,255,0.03)]' : ''
+        className={`flex w-full flex-col rounded-2xl border border-white/[0.07] bg-[rgba(12,12,18,0.92)] backdrop-blur-md md:fixed md:top-0 md:h-screen md:w-[var(--sidebar-width)] md:rounded-none md:border-y-0 md:border-l-0 md:border-r md:border-white/[.06] md:transition-[width,box-shadow] md:ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          collapsed ? 'md:duration-[980ms] md:shadow-[inset_-1px_0_0_rgba(255,255,255,0.03)]' : 'md:duration-[620ms]'
         }`}
         style={{ left: panelLeft, willChange: 'width' } as CSSProperties}
       >
         <div
-          className={`flex h-[92px] shrink-0 items-center transition-[padding,gap] duration-[680ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-            collapsed ? 'justify-center px-0' : 'gap-3 px-5 md:px-6'
+          className={`flex h-[92px] shrink-0 items-center transition-[padding,gap] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            collapsed ? 'justify-center px-0 duration-[820ms]' : 'gap-3 px-5 md:px-6 duration-[540ms]'
           }`}
         >
           <Link
             href="/"
-            className={`group inline-flex items-center no-underline transition-[gap] duration-[680ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-              collapsed ? 'justify-center gap-0' : 'gap-3'
+            className={`group inline-flex items-center no-underline transition-[gap] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+              collapsed ? 'justify-center gap-0 duration-[820ms]' : 'gap-3 duration-[540ms]'
             }`}
             aria-label="Koku Dedektifi ana sayfa"
           >
             <LogoMark size={collapsed ? 54 : 72} />
             <span
-              className={`overflow-hidden whitespace-nowrap font-display italic leading-[0.96] tracking-[-0.02em] text-[24px] transition-[max-width,transform] duration-[460ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                collapsed ? 'max-w-0 -translate-x-2 delay-0' : 'max-w-[180px] translate-x-0 delay-[120ms]'
+              className={`overflow-hidden whitespace-nowrap font-display italic leading-[0.96] tracking-[-0.02em] text-[24px] transition-[max-width,transform] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                collapsed ? 'max-w-0 -translate-x-2 duration-[560ms] delay-[80ms]' : 'max-w-[180px] translate-x-0 duration-[620ms] delay-[120ms]'
               }`}
             >
               <span className="text-cream">Koku </span>
@@ -274,12 +293,12 @@ export function Sidebar() {
             {NAV.map((group, groupIndex) => (
               <div key={group.section} className={groupIndex === 0 ? '' : collapsed ? 'mt-4' : 'mt-0'}>
                 <p
-                  className={`overflow-hidden text-[10px] font-medium tracking-[0.2em] text-white/30 transition-[max-height,margin,padding] duration-[380ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                  className={`overflow-hidden text-[10px] font-medium tracking-[0.2em] text-white/30 transition-[max-height,margin,padding] ease-[cubic-bezier(0.16,1,0.3,1)] ${
                     collapsed
-                      ? 'mb-0 mt-0 max-h-0 px-0'
+                      ? 'mb-0 mt-0 max-h-0 px-0 duration-[420ms]'
                       : groupIndex === 0
-                        ? 'mb-1 mt-0 max-h-6 px-4'
-                        : 'mb-1 mt-6 max-h-6 px-4'
+                        ? 'mb-1 mt-0 max-h-6 px-4 duration-[520ms]'
+                        : 'mb-1 mt-6 max-h-6 px-4 duration-[520ms]'
                   }`}
                 >
                   {group.section}
@@ -296,8 +315,8 @@ export function Sidebar() {
                       title={collapsed ? item.label : undefined}
                       aria-label={collapsed ? item.label : undefined}
                       aria-current={isActive ? 'page' : undefined}
-                      className={`group relative flex items-center rounded-2xl transition-all duration-[420ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                        collapsed ? 'mx-3 my-1.5 min-h-[54px] justify-center px-0' : 'mx-2 min-h-[48px] gap-3 px-4 py-3'
+                      className={`group relative flex items-center rounded-2xl transition-all ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                        collapsed ? 'mx-3 my-1.5 min-h-[54px] justify-center px-0 duration-[760ms]' : 'mx-2 min-h-[48px] gap-3 px-4 py-3 duration-[420ms]'
                       } ${
                         isActive
                           ? collapsed
@@ -309,7 +328,9 @@ export function Sidebar() {
                       }`}
                     >
                       <span
-                        className={`flex items-center justify-center rounded-xl transition-all duration-[420ms] ${
+                        className={`flex items-center justify-center rounded-xl transition-all ${
+                          collapsed ? 'duration-[760ms]' : 'duration-[420ms]'
+                        } ${
                           collapsed
                             ? isActive
                               ? 'h-11 w-11 border border-amber-500/18 bg-amber-500/[0.07] text-amber-300'
@@ -321,8 +342,8 @@ export function Sidebar() {
                       </span>
 
                       <span
-                        className={`overflow-hidden whitespace-nowrap text-sm font-medium transition-[max-width,transform] duration-[360ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                          collapsed ? 'max-w-0 -translate-x-1 delay-0' : 'max-w-[160px] translate-x-0 delay-[90ms]'
+                        className={`overflow-hidden whitespace-nowrap text-sm font-medium transition-[max-width,transform] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                          collapsed ? 'max-w-0 -translate-x-1 duration-[460ms] delay-[60ms]' : 'max-w-[160px] translate-x-0 duration-[540ms] delay-[80ms]'
                         }`}
                       >
                         {item.label}
@@ -344,8 +365,8 @@ export function Sidebar() {
         </div>
 
         <div
-          className={`shrink-0 border-t border-white/[.08] transition-[padding] duration-[680ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-            collapsed ? 'px-3 pb-6 pt-4' : 'px-4 pb-8 pt-4'
+          className={`shrink-0 border-t border-white/[.08] transition-[padding] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            collapsed ? 'px-3 pb-6 pt-4 duration-[820ms]' : 'px-4 pb-8 pt-4 duration-[540ms]'
           }`}
         >
           {collapsed ? (

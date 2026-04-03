@@ -75,8 +75,10 @@ export function Sidebar() {
   const path = usePathname();
   const entitlement = useBillingEntitlement();
   const placeholderRef = useRef<HTMLElement | null>(null);
+  const navRef = useRef<HTMLElement | null>(null);
   const [todayUsage, setTodayUsage] = useState(0);
   const [desktopFrame, setDesktopFrame] = useState<DesktopFrame>({ left: 0, width: 0 });
+  const [scrollFade, setScrollFade] = useState({ top: false, bottom: true });
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -111,6 +113,28 @@ export function Sidebar() {
     };
   }, []);
 
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return undefined;
+
+    const updateFade = () => {
+      const { scrollTop, scrollHeight, clientHeight } = nav;
+      setScrollFade({
+        top: scrollTop > 6,
+        bottom: scrollTop + clientHeight < scrollHeight - 6,
+      });
+    };
+
+    updateFade();
+    nav.addEventListener('scroll', updateFade, { passive: true });
+    window.addEventListener('resize', updateFade);
+
+    return () => {
+      nav.removeEventListener('scroll', updateFade);
+      window.removeEventListener('resize', updateFade);
+    };
+  }, [path]);
+
   const usagePct = useMemo(() => {
     if (entitlement.dailyAnalysisLimit >= 9999) {
       return Math.min(100, todayUsage * 8);
@@ -134,9 +158,23 @@ export function Sidebar() {
           <Logo size="sidebar" />
         </div>
 
-        <div className="mx-0 h-px w-full shrink-0 bg-white/[.08]" />
-
-        <nav className="scrollbar-none flex-1 overflow-y-auto py-4 pb-12" role="navigation" aria-label="Ana menü">
+        <div className="relative flex-1 overflow-hidden">
+          <div
+            className={`pointer-events-none absolute inset-x-0 top-0 z-10 h-12 bg-gradient-to-b from-[rgba(12,12,18,0.92)] via-[rgba(12,12,18,0.65)] to-transparent transition-opacity duration-300 ${
+              scrollFade.top ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+          <div
+            className={`pointer-events-none absolute inset-x-0 bottom-0 z-10 h-16 bg-gradient-to-t from-[rgba(12,12,18,0.96)] via-[rgba(12,12,18,0.72)] to-transparent transition-opacity duration-300 ${
+              scrollFade.bottom ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+          <nav
+            ref={navRef}
+            className="scrollbar-none h-full overflow-y-auto py-4 pb-12"
+            role="navigation"
+            aria-label="Ana menü"
+          >
           {NAV.map((category, groupIndex) => (
             <div key={category.section}>
               <p
@@ -171,7 +209,8 @@ export function Sidebar() {
               })}
             </div>
           ))}
-        </nav>
+          </nav>
+        </div>
 
         <div className="shrink-0 border-t border-white/[.08] px-4 pb-8 pt-4">
           <div className="mb-3 flex items-center justify-between px-1">

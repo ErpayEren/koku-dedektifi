@@ -12,7 +12,7 @@ export function TopBar({ title }: { title?: string }) {
   return (
     <header
       className="flex h-[92px] items-center justify-between px-4 sm:px-5 md:px-12
-                 border-b border-white/[.06] sticky top-0 bg-bg/85 backdrop-blur-xl z-10"
+                 sticky top-0 bg-bg/85 backdrop-blur-xl z-10"
     >
       <div className="md:hidden">
         <Logo size="sm" />

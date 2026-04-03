@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import type { Route } from 'next';
 import { usePathname } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type FocusEvent } from 'react';
 import {
   Archive,
   CalendarDays,
@@ -19,8 +19,7 @@ import {
 } from 'lucide-react';
 import { getHistory } from '@/lib/client/storage';
 import { useBillingEntitlement } from '@/lib/client/useBillingEntitlement';
-import { UI } from '@/lib/strings';
-import { Logo } from './ui/Logo';
+import { LogoMark } from './ui/LogoMark';
 
 interface NavItem {
   label: string;
@@ -33,35 +32,36 @@ interface NavGroup {
   items: NavItem[];
 }
 
-interface DesktopFrame {
-  left: number;
-  width: number;
-}
+const EXPANDED_WIDTH = 304;
+const COLLAPSED_WIDTH = 88;
+const RAIL_BREAKPOINT = 1280;
+const RAIL_SCROLL_THRESHOLD = 120;
+const COLLAPSE_DELAY_MS = 160;
 
 const NAV: NavGroup[] = [
   {
     section: 'ANALİZ',
     items: [
-      { label: UI.navNewAnalysis, href: '/', Icon: Sparkles },
-      { label: UI.navHistory, href: '/gecmis', Icon: History },
-      { label: UI.navCompare, href: '/karsilastir', Icon: GitCompare },
+      { label: 'Yeni Analiz', href: '/', Icon: Sparkles },
+      { label: 'Koku Geçmişi', href: '/gecmis', Icon: History },
+      { label: 'Karşılaştır', href: '/karsilastir', Icon: GitCompare },
     ],
   },
   {
     section: 'KOLEKSİYON',
     items: [
-      { label: UI.navWardrobe, href: '/dolap', Icon: Archive },
-      { label: UI.navWearRoutine, href: '/wear', Icon: CalendarDays },
-      { label: UI.navLayeringLab, href: '/layering', Icon: Layers },
+      { label: 'Koku Dolabım', href: '/dolap', Icon: Archive },
+      { label: 'Koku Rutinim', href: '/wear', Icon: CalendarDays },
+      { label: 'Katmanlama Lab', href: '/layering', Icon: Layers },
     ],
   },
   {
     section: 'KEŞFET',
     items: [
-      { label: UI.navNoteFinder, href: '/notalar', Icon: Search },
+      { label: 'Nota Avcısı', href: '/notalar', Icon: Search },
       { label: 'Haftalık Molekül', href: '/haftalik-molekul', Icon: FlaskConical },
-      { label: UI.navBarcode, href: '/barkod', Icon: ScanLine },
-      { label: UI.navFeed, href: '/akis', Icon: Wind },
+      { label: 'Barkod Tara', href: '/barkod', Icon: ScanLine },
+      { label: 'Koku Akışı', href: '/akis', Icon: Wind },
     ],
   },
 ];
@@ -72,46 +72,81 @@ function getTodayCount(): number {
 }
 
 export function Sidebar() {
-  const path = usePathname();
+  const pathname = usePathname();
   const entitlement = useBillingEntitlement();
   const placeholderRef = useRef<HTMLElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
+  const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [todayUsage, setTodayUsage] = useState(0);
-  const [desktopFrame, setDesktopFrame] = useState<DesktopFrame>({ left: 0, width: 0 });
+  const [panelLeft, setPanelLeft] = useState(0);
+  const [canRailCollapse, setCanRailCollapse] = useState(false);
+  const [scrolledPastThreshold, setScrolledPastThreshold] = useState(false);
+  const [hoverExpanded, setHoverExpanded] = useState(false);
   const [scrollFade, setScrollFade] = useState({ top: false, bottom: true });
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     setTodayUsage(getTodayCount());
-  }, [path]);
+  }, [pathname]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
 
     const measure = () => {
-      const node = placeholderRef.current;
-      if (!node) return;
-      const rect = node.getBoundingClientRect();
-      setDesktopFrame({
-        left: rect.left,
-        width: rect.width,
-      });
+      const rect = placeholderRef.current?.getBoundingClientRect();
+      setPanelLeft(rect?.left ?? 0);
     };
 
-    measure();
+    const handleResize = () => {
+      const railEnabled = window.innerWidth >= RAIL_BREAKPOINT;
+      setCanRailCollapse(railEnabled);
+      if (!railEnabled) {
+        setScrolledPastThreshold(false);
+        setHoverExpanded(false);
+      }
+      measure();
+    };
+
+    handleResize();
 
     const observer = new ResizeObserver(() => measure());
     if (placeholderRef.current) {
       observer.observe(placeholderRef.current);
     }
 
-    window.addEventListener('resize', measure);
+    window.addEventListener('resize', handleResize);
 
     return () => {
       observer.disconnect();
-      window.removeEventListener('resize', measure);
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handleScroll = () => {
+      if (!canRailCollapse) {
+        setScrolledPastThreshold(false);
+        return;
+      }
+
+      const passed = window.scrollY > RAIL_SCROLL_THRESHOLD;
+      setScrolledPastThreshold(passed);
+      if (!passed) {
+        setHoverExpanded(false);
+      }
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [canRailCollapse]);
 
   useEffect(() => {
     const nav = navRef.current;
@@ -133,7 +168,19 @@ export function Sidebar() {
       nav.removeEventListener('scroll', updateFade);
       window.removeEventListener('resize', updateFade);
     };
-  }, [path]);
+  }, [pathname, canRailCollapse]);
+
+  useEffect(() => {
+    return () => {
+      if (collapseTimerRef.current) {
+        clearTimeout(collapseTimerRef.current);
+      }
+    };
+  }, []);
+
+  const collapsed = canRailCollapse && scrolledPastThreshold && !hoverExpanded;
+  const sidebarWidth = collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH;
+  const usageLabel = entitlement.dailyAnalysisLimit >= 9999 ? '∞' : String(entitlement.dailyAnalysisLimit);
 
   const usagePct = useMemo(() => {
     if (entitlement.dailyAnalysisLimit >= 9999) {
@@ -143,101 +190,214 @@ export function Sidebar() {
     return Math.min(100, Math.round((todayUsage / Math.max(1, entitlement.dailyAnalysisLimit)) * 100));
   }, [entitlement.dailyAnalysisLimit, todayUsage]);
 
-  const usageLabel = entitlement.dailyAnalysisLimit >= 9999 ? '∞' : String(entitlement.dailyAnalysisLimit);
+  const openRail = () => {
+    if (!canRailCollapse || !scrolledPastThreshold) return;
+    if (collapseTimerRef.current) {
+      clearTimeout(collapseTimerRef.current);
+    }
+    setHoverExpanded(true);
+  };
+
+  const scheduleCollapse = () => {
+    if (!canRailCollapse || !scrolledPastThreshold) return;
+    if (collapseTimerRef.current) {
+      clearTimeout(collapseTimerRef.current);
+    }
+    collapseTimerRef.current = setTimeout(() => {
+      setHoverExpanded(false);
+    }, COLLAPSE_DELAY_MS);
+  };
+
+  const handleBlurCapture = (event: FocusEvent<HTMLDivElement>) => {
+    const nextTarget = event.relatedTarget as Node | null;
+    if (!panelRef.current?.contains(nextTarget)) {
+      scheduleCollapse();
+    }
+  };
 
   return (
     <aside
       ref={placeholderRef}
-      className="order-2 z-20 hidden w-full min-w-0 border-t border-white/[.06] py-4 md:order-1 md:flex md:w-64 md:min-w-[280px] md:shrink-0 md:self-start md:border-t-0 md:py-0 lg:w-80"
+      style={{ '--sidebar-width': `${sidebarWidth}px` } as CSSProperties}
+      className="order-2 z-20 hidden w-full min-w-0 border-t border-white/[.06] py-4 md:order-1 md:flex md:w-[var(--sidebar-width)] md:min-w-[var(--sidebar-width)] md:shrink-0 md:self-start md:border-t-0 md:py-0 md:transition-[width,min-width] md:duration-500 md:ease-[cubic-bezier(0.22,1,0.36,1)]"
     >
       <div
-        className="flex w-full flex-col rounded-2xl border border-white/[0.07] bg-white/[0.03] backdrop-blur-sm md:fixed md:top-0 md:h-screen md:rounded-none md:border-r md:border-white/[.06] md:border-l-0 md:border-t-0 md:border-b-0 md:bg-[rgba(12,12,18,0.9)] md:backdrop-blur-md"
-        style={desktopFrame.width > 0 ? { left: desktopFrame.left, width: desktopFrame.width } : undefined}
+        ref={panelRef}
+        onMouseEnter={openRail}
+        onMouseLeave={scheduleCollapse}
+        onFocusCapture={openRail}
+        onBlurCapture={handleBlurCapture}
+        className={`flex w-full flex-col rounded-2xl border border-white/[0.07] bg-[rgba(12,12,18,0.88)] backdrop-blur-md md:fixed md:top-0 md:h-screen md:w-[var(--sidebar-width)] md:rounded-none md:border-y-0 md:border-l-0 md:border-r md:border-white/[.06] md:transition-[width,background-color,border-color,box-shadow] md:duration-500 md:ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          collapsed
+            ? 'md:bg-[rgba(12,12,18,0.94)] md:shadow-[inset_-1px_0_0_rgba(255,255,255,0.03)]'
+            : 'md:bg-[rgba(12,12,18,0.90)]'
+        }`}
+        style={{ left: panelLeft } as CSSProperties}
       >
-        <div className="flex h-[92px] shrink-0 items-center gap-3 px-5 md:px-6">
-          <Logo size="sidebar" />
+        <div
+          className={`flex h-[92px] shrink-0 items-center transition-[padding,gap] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            collapsed ? 'justify-center px-0' : 'gap-3 px-5 md:px-6'
+          }`}
+        >
+          <Link
+            href="/"
+            className={`group inline-flex items-center no-underline transition-[gap] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              collapsed ? 'justify-center gap-0' : 'gap-3'
+            }`}
+            aria-label="Koku Dedektifi ana sayfa"
+          >
+            <LogoMark size={collapsed ? 54 : 72} />
+            <span
+              className={`overflow-hidden whitespace-nowrap font-display italic leading-[0.96] tracking-[-0.02em] text-[24px] transition-[max-width,opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                collapsed ? 'max-w-0 -translate-x-2 opacity-0' : 'max-w-[180px] translate-x-0 opacity-100'
+              }`}
+            >
+              <span className="text-cream">Koku </span>
+              <span className="text-gold">Dedektifi</span>
+            </span>
+          </Link>
         </div>
 
         <div className="relative flex-1 overflow-hidden">
           <div
-            className={`pointer-events-none absolute inset-x-0 top-0 z-10 h-12 bg-gradient-to-b from-[rgba(12,12,18,0.92)] via-[rgba(12,12,18,0.65)] to-transparent transition-opacity duration-300 ${
+            className={`pointer-events-none absolute inset-x-0 top-0 z-10 h-14 bg-[linear-gradient(180deg,rgba(12,12,18,0.98)_0%,rgba(12,12,18,0.84)_48%,rgba(12,12,18,0)_100%)] transition-opacity duration-300 ${
               scrollFade.top ? 'opacity-100' : 'opacity-0'
             }`}
           />
           <div
-            className={`pointer-events-none absolute inset-x-0 bottom-0 z-10 h-16 bg-gradient-to-t from-[rgba(12,12,18,0.96)] via-[rgba(12,12,18,0.72)] to-transparent transition-opacity duration-300 ${
+            className={`pointer-events-none absolute inset-x-0 bottom-0 z-10 h-20 bg-[linear-gradient(0deg,rgba(12,12,18,0.98)_0%,rgba(12,12,18,0.85)_42%,rgba(12,12,18,0.32)_70%,rgba(12,12,18,0)_100%)] transition-opacity duration-300 ${
               scrollFade.bottom ? 'opacity-100' : 'opacity-0'
             }`}
           />
-          <nav
-            ref={navRef}
-            className="scrollbar-none h-full overflow-y-auto py-4 pb-12"
-            role="navigation"
-            aria-label="Ana menü"
-          >
-          {NAV.map((category, groupIndex) => (
-            <div key={category.section}>
-              <p
-                className={`px-4 text-[10px] font-medium tracking-[0.2em] text-white/30 ${
-                  groupIndex === 0 ? 'mb-1 mt-0' : 'mb-1 mt-6'
-                }`}
-              >
-                {category.section}
-              </p>
 
-              {category.items.map((item) => {
-                const isActive = path === item.href;
-                const Icon = item.Icon;
+          <nav ref={navRef} className="scrollbar-none h-full overflow-y-auto py-4 pb-12" role="navigation" aria-label="Ana menü">
+            {NAV.map((group, groupIndex) => (
+              <div key={group.section} className={groupIndex === 0 ? '' : collapsed ? 'mt-4' : 'mt-0'}>
+                <p
+                  className={`overflow-hidden text-[10px] font-medium tracking-[0.2em] text-white/30 transition-[max-height,opacity,margin,padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                    collapsed
+                      ? 'mb-0 mt-0 max-h-0 px-0 opacity-0'
+                      : groupIndex === 0
+                        ? 'mb-1 mt-0 max-h-6 px-4 opacity-100'
+                        : 'mb-1 mt-6 max-h-6 px-4 opacity-100'
+                  }`}
+                >
+                  {group.section}
+                </p>
 
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`mx-2 flex min-h-[48px] items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 ${
-                      isActive
-                        ? 'bg-amber-500/10 text-amber-400'
-                        : 'text-white/60 hover:bg-white/5 hover:text-white/90 active:bg-white/8'
-                    }`}
-                  >
-                    <span className={`h-4 w-4 shrink-0 ${isActive ? 'text-amber-400' : 'text-white/40'}`}>
-                      <Icon className="h-4 w-4" strokeWidth={1.85} />
-                    </span>
-                    <span className="text-sm font-medium">{item.label}</span>
-                    {isActive ? <div className="ml-auto h-4 w-1 rounded-full bg-amber-400" /> : null}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
+                {group.items.map((item) => {
+                  const isActive = pathname === item.href;
+                  const Icon = item.Icon;
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      title={collapsed ? item.label : undefined}
+                      aria-label={collapsed ? item.label : undefined}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={`group relative flex items-center rounded-2xl transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                        collapsed ? 'mx-3 my-1.5 min-h-[54px] justify-center px-0' : 'mx-2 min-h-[48px] gap-3 px-4 py-3'
+                      } ${
+                        isActive
+                          ? collapsed
+                            ? 'bg-amber-500/[0.08] text-amber-300 shadow-[0_0_16px_rgba(217,119,6,0.10)]'
+                            : 'bg-amber-500/10 text-amber-400'
+                          : collapsed
+                            ? 'text-white/56 hover:bg-white/[0.04] hover:text-white/90'
+                            : 'text-white/60 hover:bg-white/5 hover:text-white/90 active:bg-white/8'
+                      }`}
+                    >
+                      <span
+                        className={`flex items-center justify-center rounded-xl transition-all duration-300 ${
+                          collapsed
+                            ? isActive
+                              ? 'h-11 w-11 border border-amber-500/22 bg-amber-500/[0.09] text-amber-300'
+                              : 'h-11 w-11 border border-white/[0.05] bg-white/[0.02] text-white/44 group-hover:border-white/[0.10] group-hover:bg-white/[0.04] group-hover:text-white/82'
+                            : `h-4 w-4 shrink-0 ${isActive ? 'text-amber-400' : 'text-white/40'}`
+                        }`}
+                      >
+                        <Icon className={collapsed ? 'h-[18px] w-[18px]' : 'h-4 w-4'} strokeWidth={1.85} />
+                      </span>
+
+                      <span
+                        className={`overflow-hidden whitespace-nowrap text-sm font-medium transition-[max-width,opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                          collapsed ? 'max-w-0 -translate-x-1 opacity-0' : 'max-w-[160px] translate-x-0 opacity-100'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+
+                      {isActive ? (
+                        collapsed ? (
+                          <div className="absolute right-[8px] top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-amber-400/85" />
+                        ) : (
+                          <div className="ml-auto h-4 w-1 rounded-full bg-amber-400" />
+                        )
+                      ) : null}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
         </div>
 
-        <div className="shrink-0 border-t border-white/[.08] px-4 pb-8 pt-4">
-          <div className="mb-3 flex items-center justify-between px-1">
-            <span className="text-[11px] tracking-wide text-white/40">{UI.navDailyLimit}</span>
-            <span className="text-[11px] font-medium text-amber-400">
-              {todayUsage}/{usageLabel}
-            </span>
-          </div>
+        <div
+          className={`shrink-0 border-t border-white/[.08] transition-[padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            collapsed ? 'px-3 pb-6 pt-4' : 'px-4 pb-8 pt-4'
+          }`}
+        >
+          {collapsed ? (
+            <div className="flex flex-col items-center gap-4">
+              <Link
+                href="/paketler"
+                title="Pro'ya Geç"
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-amber-500/25 bg-amber-500/[0.12] px-3 text-[11px] font-semibold tracking-[0.18em] text-amber-300 shadow-[0_0_18px_rgba(217,119,6,0.16)] transition-all duration-300 hover:border-amber-400/35 hover:bg-amber-500/[0.16]"
+              >
+                PRO
+              </Link>
 
-          <div className="mb-4 h-px bg-white/[.08]" />
+              <div className="h-11 w-[6px] overflow-hidden rounded-full bg-white/[0.08]">
+                <div
+                  className="w-full rounded-full bg-gradient-to-b from-amber-400 to-amber-600 transition-all duration-500"
+                  style={{ height: `${Math.max(14, usagePct)}%`, marginTop: `${100 - Math.max(14, usagePct)}%` }}
+                />
+              </div>
 
-          <div className="mb-4 h-[3px] overflow-hidden rounded-full bg-white/[.08]">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${usagePct}%`,
-                background: usagePct >= 80 ? 'var(--danger)' : 'linear-gradient(90deg, #d97706 0%, #f59e0b 100%)',
-              }}
-            />
-          </div>
+              <span className="text-[10px] font-medium tracking-wide text-white/34">
+                {todayUsage}/{usageLabel}
+              </span>
+            </div>
+          ) : (
+            <>
+              <div className="mb-3 flex items-center justify-between px-1">
+                <span className="text-[11px] tracking-wide text-white/40">Günlük analiz</span>
+                <span className="text-[11px] font-medium text-amber-400">
+                  {todayUsage}/{usageLabel}
+                </span>
+              </div>
 
-          <Link
-            href="/paketler"
-            className="block w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 py-3.5 text-center text-sm font-bold tracking-widest text-black shadow-[0_4px_20px_rgba(217,119,6,0.35)] transition-transform active:scale-[0.98]"
-          >
-            {UI.navUpgrade.toUpperCase()}
-          </Link>
+              <div className="mb-4 h-px bg-white/[.08]" />
+
+              <div className="mb-4 h-[3px] overflow-hidden rounded-full bg-white/[.08]">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${usagePct}%`,
+                    background: usagePct >= 80 ? 'var(--danger)' : 'linear-gradient(90deg, #d97706 0%, #f59e0b 100%)',
+                  }}
+                />
+              </div>
+
+              <Link
+                href="/paketler"
+                className="block w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 py-3.5 text-center text-sm font-bold tracking-widest text-black shadow-[0_4px_20px_rgba(217,119,6,0.35)] transition-transform active:scale-[0.98]"
+              >
+                PRO&apos;YA GEÇ
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </aside>

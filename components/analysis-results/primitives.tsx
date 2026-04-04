@@ -141,8 +141,8 @@ export function SignalTelemetry({
     {
       label: 'Yayılım',
       value: projection,
-      tone: '#2dd4bf',
-      glow: '0 0 8px rgba(45,212,191,0.6)',
+      tone: '#2f8f87',
+      glow: '0 0 8px rgba(47,143,135,0.55)',
       note: projection >= 80 ? 'Güçlü' : projection >= 60 ? 'Orta' : 'Yakın ten',
     },
     {

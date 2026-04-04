@@ -42,7 +42,7 @@ export const AnalysisResults = memo(function AnalysisResults({
     <section className="anim-up-2 px-5 pb-8 md:px-12">
       <SectionDivider label="Analiz Sonucu" />
 
-      <div ref={model.shareCardRef} className="mb-4 grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
+      <div ref={model.shareCardRef} className="mb-4 grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
         <OverviewPanel
           result={model.activeResult}
           confidence={model.confidence}
@@ -61,15 +61,11 @@ export const AnalysisResults = memo(function AnalysisResults({
         <DetailPanel
           result={model.activeResult}
           heartNotes={model.heartNotes}
-          season={model.season}
-          occasionList={model.occasionList}
-          onboardingSummary={model.preferenceMatch.summary}
-          hasOnboardingPreferences={Boolean(model.onboardingPreferences)}
           style={model.cardMotion(1)}
         />
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
         <MoleculePanel
           molecule={model.molecule}
           moleculeData={model.moleculeData}

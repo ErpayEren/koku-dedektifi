@@ -41,8 +41,8 @@ const NOTE_COLORS: Record<MoleculeData['note'], string> = {
 };
 
 const NOTE_LABELS: Record<MoleculeData['note'], string> = {
-  top: 'Ust nota izi',
-  heart: 'Kalp notasi izi',
+  top: 'Üst nota izi',
+  heart: 'Kalp notası izi',
   base: 'Derin iz',
 };
 
@@ -77,7 +77,7 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
         className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
         role="dialog"
         aria-modal="true"
-        aria-label={`${molecule.name} molekul detayi`}
+        aria-label={`${molecule.name} molekül detayı`}
       >
         <div
           className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-[720px] flex-col overflow-y-auto rounded-[30px] border anim-up sm:max-h-[calc(100vh-3rem)]"
@@ -117,98 +117,74 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
                 {NOTE_LABELS[molecule.note]}
               </span>
               <span className="rounded-full border border-white/[.08] px-3 py-1 text-[10px] font-mono uppercase tracking-[.12em] text-muted">
-                {molecule.verified ? 'Dogrulanmis yapi' : 'Nota izi'}
+                {molecule.verified ? 'Doğrulanmış yapı' : 'Nota izi'}
               </span>
-              {molecule.casNumber ? (
-                <span className="rounded-full border border-white/[.08] px-3 py-1 text-[10px] font-mono uppercase tracking-[.12em] text-muted">
-                  CAS {molecule.casNumber}
+              {molecule.evidenceLabel ? (
+                <span
+                  className="rounded-full px-3 py-1 text-[10px] font-mono uppercase tracking-[.12em]"
+                  style={{
+                    color: molecule.evidenceAccent || color,
+                    background: `${molecule.evidenceAccent || color}15`,
+                    border: `1px solid ${molecule.evidenceAccent || color}30`,
+                  }}
+                >
+                  {molecule.evidenceLabel}
                 </span>
               ) : null}
             </div>
 
             {total > 1 ? (
               <div className="mb-4 grid grid-cols-[44px_minmax(0,1fr)_44px] items-start gap-3">
-                <button onClick={prev} className="icon-btn mt-2 justify-self-start" aria-label="Onceki molekul">
+                <button onClick={prev} className="icon-btn mt-2 justify-self-start" aria-label="Önceki molekül">
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M7.5 2 4 6l3.5 4" />
                   </svg>
                 </button>
                 <div className="min-w-0 text-center">
-                  <h3 className="break-words text-[clamp(1.9rem,5vw,3.4rem)] font-semibold leading-[0.94] text-cream">
+                  <h3 className="mx-auto max-w-[11ch] break-words text-[clamp(2.1rem,5vw,3.15rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-cream">
                     {molecule.name}
                   </h3>
                   <p className="mt-2 break-words text-[13px] font-mono text-gold/85">
-                    {molecule.formula || 'Formul dogrulamasi bekleniyor'}
+                    {molecule.formula || 'Formül doğrulaması bekleniyor'}
+                    {molecule.casNumber ? ` · CAS ${molecule.casNumber}` : ''}
                   </p>
                   <p className="mt-3 text-[12px] uppercase tracking-[.12em] text-muted">{molecule.type}</p>
                 </div>
-                <button onClick={next} className="icon-btn mt-2 justify-self-end" aria-label="Sonraki molekul">
+                <button onClick={next} className="icon-btn mt-2 justify-self-end" aria-label="Sonraki molekül">
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M4.5 2 8 6l-3.5 4" />
                   </svg>
                 </button>
               </div>
             ) : (
-              <div className="mb-4">
-                <h3 className="break-words text-[clamp(1.9rem,5vw,3.4rem)] font-semibold leading-[0.94] text-cream">
+              <div className="mb-4 text-center">
+                <h3 className="mx-auto max-w-[11ch] break-words text-[clamp(2.1rem,5vw,3.15rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-cream">
                   {molecule.name}
                 </h3>
                 <p className="mt-2 break-words text-[13px] font-mono text-gold/85">
-                  {molecule.formula || 'Formul dogrulamasi bekleniyor'}
+                  {molecule.formula || 'Formül doğrulaması bekleniyor'}
+                  {molecule.casNumber ? ` · CAS ${molecule.casNumber}` : ''}
                 </p>
                 <p className="mt-3 text-[12px] uppercase tracking-[.12em] text-muted">{molecule.type}</p>
               </div>
             )}
 
-            {molecule.explanation ? (
-              <div className="mb-4 rounded-2xl border border-white/[.08] bg-[var(--bg-raise)] px-3.5 py-3">
-                <p className="text-[10px] font-mono uppercase tracking-[.12em] text-gold/80">Bu molekul neden onemli?</p>
-                <p className="mt-2 text-[13px] leading-relaxed text-cream/92">{molecule.explanation}</p>
+            {molecule.matchedNotes && molecule.matchedNotes.length > 0 ? (
+              <div className="mb-4 flex flex-wrap justify-center gap-2">
+                {molecule.matchedNotes.slice(0, 3).map((note) => (
+                  <span
+                    key={`${molecule.name}-${note}`}
+                    className="rounded-full border border-white/[.08] bg-[var(--bg-raise)] px-3 py-1.5 text-[11px] font-mono text-cream/90"
+                  >
+                    {note}
+                  </span>
+                ))}
               </div>
             ) : null}
 
-            <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(180px,220px)]">
-              <div className="rounded-2xl border border-white/[.08] bg-black/10 px-3.5 py-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  {molecule.evidenceLabel ? (
-                    <span
-                      className="rounded-full px-3 py-1 text-[10px] font-mono uppercase tracking-[.12em]"
-                      style={{
-                        color: molecule.evidenceAccent || color,
-                        background: `${molecule.evidenceAccent || color}15`,
-                        border: `1px solid ${molecule.evidenceAccent || color}30`,
-                      }}
-                    >
-                      {molecule.evidenceLabel}
-                    </span>
-                  ) : null}
-                  {molecule.matchedNotes && molecule.matchedNotes.length > 0 ? (
-                    <span className="rounded-full border border-white/[.08] px-3 py-1 text-[10px] font-mono uppercase tracking-[.12em] text-muted">
-                      {molecule.matchedNotes.slice(0, 2).join(' • ')}
-                    </span>
-                  ) : null}
-                </div>
-                <p className="mt-2 text-[12px] leading-relaxed text-cream/86">
-                  {molecule.presenceCopy || molecule.evidenceReason || 'Bu molekul kompozisyon sinyalleriyle destekleniyor.'}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/[.08] bg-black/10 px-3.5 py-3 text-center">
-                <p className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">Kanit seviyesi</p>
-                <p className="mt-2 text-[1rem] font-semibold leading-snug text-cream">
-                  {molecule.evidenceLabel || 'Henuz Eslesmedi'}
-                </p>
-                <p className="mt-2 text-[11px] leading-relaxed text-muted">
-                  {molecule.linkedFragrances?.length
-                    ? `Bu molekul su parfumlerde bulunur: ${molecule.linkedFragrances.slice(0, 2).join(', ')}`
-                    : 'Bu molekul icin savunulabilir parfum baglantisi bulunmuyor.'}
-                </p>
-              </div>
-            </div>
-
             <div className="mb-4">
               <div className="mb-2 flex items-center justify-between gap-3">
-                <span className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">Iz gucu</span>
+                <span className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">İz gücü</span>
                 <span className="text-[12px] font-mono" style={{ color }}>
                   {molecule.traceStrengthLabel || 'Belirgin iz'}
                 </span>
@@ -218,31 +194,24 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {molecule.origin.map((origin) => (
-                <span
-                  key={origin}
-                  className="rounded-full border border-white/[.08] bg-[var(--bg-raise)] px-3 py-1.5 text-[11px] font-mono text-cream/90"
-                >
-                  {origin}
-                </span>
-              ))}
-              {molecule.profileTags?.map((tag) => (
-                <span
-                  key={`${molecule.name}-${tag}`}
-                  className="rounded-full border border-sage/25 bg-sage/10 px-3 py-1.5 text-[11px] font-mono text-sage"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-
-            {molecule.funFact ? (
-              <div className="mt-4 rounded-2xl border border-white/[.08] bg-black/10 px-3.5 py-3">
-                <p className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">Biliyor muydun?</p>
-                <p className="mt-2 text-[13px] leading-relaxed text-cream/88">{molecule.funFact}</p>
+            {molecule.explanation ? (
+              <div className="rounded-2xl border border-white/[.08] bg-[var(--bg-raise)] px-3.5 py-3">
+                <p className="text-[10px] font-mono uppercase tracking-[.12em] text-gold">Molekül yorumu</p>
+                <p className="mt-2 text-[13px] leading-relaxed text-cream/92">{molecule.explanation}</p>
               </div>
             ) : null}
+
+            <div className="mt-4 flex items-center justify-center gap-2">
+              {molecules.map((item, dotIndex) => (
+                <button
+                  key={`${item.name}-${dotIndex}`}
+                  type="button"
+                  onClick={() => setIdx(dotIndex)}
+                  className={`h-2 rounded-full transition-all ${dotIndex === idx ? 'w-8 bg-gold' : 'w-2 bg-white/[.2]'}`}
+                  aria-label={`${item.name} molekülüne geç`}
+                />
+              ))}
+            </div>
 
             {molecule.slug ? (
               <div className="mt-4 flex items-center justify-end">
@@ -250,22 +219,10 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
                   href={`/molekuller/${molecule.slug}`}
                   className="inline-flex items-center gap-2 rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)]/15 px-3.5 py-2 text-[10px] font-mono uppercase tracking-[.14em] text-gold transition-colors hover:bg-[var(--gold-dim)]/25"
                 >
-                  Detay sayfasini ac
+                  Detay sayfasını aç
                 </Link>
               </div>
             ) : null}
-
-            <div className="mt-6 flex items-center justify-center gap-2">
-              {molecules.map((item, dotIndex) => (
-                <button
-                  key={`${item.name}-${dotIndex}`}
-                  type="button"
-                  onClick={() => setIdx(dotIndex)}
-                  className={`h-2 rounded-full transition-all ${dotIndex === idx ? 'w-8 bg-gold' : 'w-2 bg-white/[.2]'}`}
-                  aria-label={`${item.name} molekulune gec`}
-                />
-              ))}
-            </div>
           </div>
         </div>
       </div>

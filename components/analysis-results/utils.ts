@@ -31,17 +31,17 @@ export const FAMILY_GLOW: Record<string, string> = {
 };
 
 export const ANALYSIS_STEPS = [
-  'Koku profili cozumlemesi yapiliyor...',
+  'Koku profili çözümleniyor...',
   'Nota piramidi kuruluyor...',
-  'Molekuler izler eslestiriliyor...',
-  'Benzer profiller taraniyor...',
+  'Moleküler izler eşleştiriliyor...',
+  'Benzer profiller taranıyor...',
 ] as const;
 
 export const WHEEL_AXES = [
   { label: 'Tazelik', short: 'F', color: 'var(--sage)' },
-  { label: 'Tatlilik', short: 'T', color: '#d58ebb' },
-  { label: 'Sicaklik', short: 'S', color: 'var(--gold)' },
-  { label: 'Yogunluk', short: 'Y', color: '#8ab8c0' },
+  { label: 'Tatlılık', short: 'T', color: '#d58ebb' },
+  { label: 'Sıcaklık', short: 'S', color: 'var(--gold)' },
+  { label: 'Yoğunluk', short: 'Y', color: '#8ab8c0' },
 ] as const;
 
 export function moleculeAccent(index: number): string {
@@ -91,10 +91,10 @@ export function sanitizeMolecules(value: unknown): MoleculeItem[] {
   if (!Array.isArray(value)) return [];
   const sanitized: MoleculeItem[] = [];
   value.forEach((item) => {
-    if (!item || typeof item !== 'object') return null;
+    if (!item || typeof item !== 'object') return;
     const row = item as Record<string, unknown>;
     const name = typeof row.name === 'string' ? row.name.trim() : '';
-    if (!name) return null;
+    if (!name) return;
     sanitized.push({
       name,
       smiles: typeof row.smiles === 'string' ? row.smiles : '',
@@ -174,7 +174,7 @@ function buildMoleculeExplanation(
     return `Bu molekül ${linkedFragrances.slice(0, 2).join(', ')} parfümlerinde savunulabilir bir iz bırakıyor.`;
   }
 
-  const roleLabel = note === 'top' ? 'ilk acilisi' : note === 'heart' ? 'kalp notalarini' : 'kalan izi';
+  const roleLabel = note === 'top' ? 'ilk açılışı' : note === 'heart' ? 'kalp notalarını' : 'kalan izi';
   const profileText = profileTags.length > 0 ? profileTags.slice(0, 2).join(' • ').toLowerCase() : '';
   const familyText = families.trim();
 
@@ -194,13 +194,21 @@ export function resolveEvidenceTone(level: MoleculeEvidenceLevel): { label: stri
     case 'signature_molecule':
       return { label: 'İmza Molekül', reason: 'Küratörlü katalogda imza iz olarak yer alıyor.', accent: '#a78bfa' };
     case 'verified_component':
-      return { label: 'Doğrulanmış Bileşen', reason: 'Küratörlü kaynakta savunulabilir bileşen olarak yer alıyor.', accent: 'var(--gold)' };
+      return {
+        label: 'Doğrulanmış Bileşen',
+        reason: 'Küratörlü kaynakta savunulabilir bileşen olarak yer alıyor.',
+        accent: 'var(--gold)',
+      };
     case 'accord_component':
       return { label: 'Muhtemel Akor Bileşeni', reason: 'Birden fazla nota izinin ortak akorunda beliriyor.', accent: 'var(--sage)' };
     case 'note_match':
       return { label: 'Nota Eşleşmesi', reason: 'Nota ve molekül haritası tarafından destekleniyor.', accent: '#d8b06d' };
     case 'unmatched':
-      return { label: 'Henüz Eşleşmedi', reason: 'Bu molekül için savunulabilir parfüm bağlantısı kurulmadı.', accent: 'rgba(255,255,255,.45)' };
+      return {
+        label: 'Henüz Eşleşmedi',
+        reason: 'Bu molekül için savunulabilir parfüm bağlantısı kurulmadı.',
+        accent: 'rgba(255,255,255,.45)',
+      };
     default:
       return { label: 'Nota Eşleşmesi', reason: 'Nota ve molekül haritası tarafından destekleniyor.', accent: '#d8b06d' };
   }
@@ -361,7 +369,7 @@ export function resolvePreferenceMatch(
   prefs: OnboardingPreferences | null,
 ): { score: number; summary: string } {
   if (!prefs) {
-    return { score: 0, summary: 'Kisisel tercih profili henuz kurulmedi.' };
+    return { score: 0, summary: 'Kişisel tercih profili henüz kurulmadı.' };
   }
 
   let score = 0;
@@ -376,8 +384,8 @@ export function resolvePreferenceMatch(
   const family = result.family.toLowerCase();
   const stanceMatchers: Record<string, string[]> = {
     Sakin: ['sakin', 'temiz', 'soft', 'minimal', 'fresh'],
-    Carpici: ['carpici', 'guclu', 'yogun', 'gece', 'oryantal'],
-    Sofistike: ['sofistike', 'zarif', 'odunsu', 'amber', 'sik'],
+    Carpici: ['çarpıcı', 'guclu', 'güçlü', 'yoğun', 'yogun', 'gece', 'oryantal'],
+    Sofistike: ['sofistike', 'zarif', 'odunsu', 'amber', 'şık', 'sik'],
   };
 
   if (prefs.stance) {
@@ -385,7 +393,7 @@ export function resolvePreferenceMatch(
     const stanceHit = stanceMatchers[matcherKey].some((item) => vibe.includes(item) || family.includes(item));
     if (stanceHit) {
       score += 14;
-      matches.push(`${prefs.stance} tavrini destekliyor`);
+      matches.push(`${prefs.stance} tavrını destekliyor`);
     }
   }
 
@@ -395,12 +403,12 @@ export function resolvePreferenceMatch(
       prefs.intensity === 'Hafif' ? intensity <= 42 : prefs.intensity === 'Orta' ? intensity >= 35 && intensity <= 72 : intensity >= 65;
     if (wantedBand) {
       score += 16;
-      matches.push(`${prefs.intensity.toLowerCase()} yogunluk beklentine yakin`);
+      matches.push(`${prefs.intensity.toLowerCase()} yoğunluk beklentine yakın`);
     }
   }
 
   return {
     score,
-    summary: matches.length > 0 ? matches.join(' • ') : 'Koku karakteri tercihlerine kismen yakin gorunuyor.',
+    summary: matches.length > 0 ? matches.join(' • ') : 'Koku karakteri tercihlerine kısmen yakın görünüyor.',
   };
 }

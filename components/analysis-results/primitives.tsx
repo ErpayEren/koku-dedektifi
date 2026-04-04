@@ -4,15 +4,6 @@ import { useEffect, useState } from 'react';
 import { animate, useMotionValue, useSpring } from 'framer-motion';
 import { clampPercent } from './utils';
 
-export function PyramidRow({ label, items }: { label: string; items: string[] }) {
-  return (
-    <div className="rounded-xl border border-white/[.06] p-3.5">
-      <p className="mb-1.5 text-[10px] font-mono uppercase tracking-[.1em] text-muted">{label}</p>
-      <p className="leading-relaxed text-cream/95">{items.length > 0 ? items.join(' / ') : 'Veri sınırlı'}</p>
-    </div>
-  );
-}
-
 export function InfoLine({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-white/[.05] pb-2">
@@ -47,7 +38,7 @@ export function ConfidenceRing({ pct }: { pct: number }) {
           Veri
         </text>
       </svg>
-      <span className="text-[8px] font-mono tracking-[.1em] uppercase text-[var(--muted)]">Veri dayanağı</span>
+      <span className="text-[8px] font-mono uppercase tracking-[.1em] text-[var(--muted)]">Veri dayanağı</span>
       <span className="rounded-full border border-[var(--gold-line)]/35 bg-[var(--gold-dim)]/10 px-2 py-0.5 text-[8px] font-mono uppercase tracking-[.12em] text-gold/85">
         {qualitativeLabel}
       </span>
@@ -62,7 +53,7 @@ export function SimilarityArc({ pct }: { pct: number }) {
   const color = pct >= 90 ? 'var(--gold)' : pct >= 75 ? 'var(--sage)' : 'var(--muted)';
 
   return (
-    <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+    <div className="flex shrink-0 flex-col items-center gap-0.5">
       <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
         <circle cx="18" cy="18" r={r} stroke="var(--border-md)" strokeWidth="2" />
         <circle
@@ -79,7 +70,7 @@ export function SimilarityArc({ pct }: { pct: number }) {
           {pct}
         </text>
       </svg>
-      <span className="text-[7px] font-mono text-[var(--hint)] tracking-wider">%</span>
+      <span className="text-[7px] font-mono tracking-wider text-[var(--hint)]">%</span>
     </div>
   );
 }

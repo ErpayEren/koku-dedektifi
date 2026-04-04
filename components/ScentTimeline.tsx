@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import type { AnalysisTimeline } from '@/lib/client/types';
 
 type TimelineStageId = 't0' | 't1' | 't2' | 't3';
-type PyramidTier = 'ÜST' | 'KALP' | 'ALT';
 
 interface TimelineStage {
   key: TimelineStageId;
@@ -12,11 +11,6 @@ interface TimelineStage {
   timeRange: string;
   notes: string[];
   description: string;
-}
-
-interface PyramidCard {
-  label: PyramidTier;
-  notes: string[];
 }
 
 interface StageTone {
@@ -125,15 +119,9 @@ function buildDescriptions(
 }
 
 function progressGradientForStage(stage: TimelineStageId): string {
-  if (stage === 't0') {
-    return 'linear-gradient(90deg, #C9A96E 0%, #E4C790 100%)';
-  }
-  if (stage === 't1') {
-    return 'linear-gradient(90deg, #C9A96E 0%, #B996EF 46%, #A78BFA 100%)';
-  }
-  if (stage === 't2') {
-    return 'linear-gradient(90deg, #C9A96E 0%, #A78BFA 42%, #7EB8A4 100%)';
-  }
+  if (stage === 't0') return 'linear-gradient(90deg, #C9A96E 0%, #E4C790 100%)';
+  if (stage === 't1') return 'linear-gradient(90deg, #C9A96E 0%, #B996EF 46%, #A78BFA 100%)';
+  if (stage === 't2') return 'linear-gradient(90deg, #C9A96E 0%, #A78BFA 42%, #7EB8A4 100%)';
   return 'linear-gradient(90deg, #C9A96E 0%, #A78BFA 34%, #7EB8A4 68%, #8A8480 100%)';
 }
 
@@ -167,15 +155,6 @@ export function ScentTimeline({ topNotes, heartNotes, baseNotes, timeline }: Sce
     ];
   }, [baseNotes, heartNotes, timeline, topNotes]);
 
-  const pyramidCards = useMemo<PyramidCard[]>(
-    () => [
-      { label: 'ÜST', notes: uniqueNotes(topNotes, 6) },
-      { label: 'KALP', notes: uniqueNotes(heartNotes, 6) },
-      { label: 'ALT', notes: uniqueNotes(baseNotes, 6) },
-    ],
-    [baseNotes, heartNotes, topNotes],
-  );
-
   useEffect(() => {
     setActiveStep(0);
   }, [timeline, topNotes, heartNotes, baseNotes]);
@@ -185,20 +164,22 @@ export function ScentTimeline({ topNotes, heartNotes, baseNotes, timeline }: Sce
   const progressPercent = steps.length > 0 ? ((activeStep + 1) / steps.length) * 100 : 0;
 
   return (
-    <div className="flex flex-col">
-      <div className="mb-6 flex items-center gap-3">
+    <div className="flex h-full flex-col">
+      <div className="mb-5 flex items-center gap-3">
         <span className="h-px w-8 bg-[var(--gold-line)]" />
-        <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--muted)]">Koku Gelişimi</p>
+        <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-gold">Koku Piramidi</p>
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-5 flex flex-wrap gap-2">
         {steps.map((step, index) => (
           <button
             key={step.key}
             type="button"
             onClick={() => setActiveStep(index)}
             className={`cursor-pointer rounded-full border px-4 py-2 text-xs tracking-widest transition-all duration-200 ${
-              activeStep === index ? 'text-white' : 'border-white/15 bg-white/5 text-white/50 hover:border-white/30 hover:text-white/80'
+              activeStep === index
+                ? 'text-white'
+                : 'border-white/15 bg-white/5 text-white/50 hover:border-white/30 hover:text-white/80'
             }`}
             style={
               activeStep === index
@@ -215,21 +196,7 @@ export function ScentTimeline({ topNotes, heartNotes, baseNotes, timeline }: Sce
         ))}
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-        {pyramidCards.map((tier) => (
-          <div
-            key={tier.label}
-            className="min-w-0 rounded-xl border border-white/8 bg-white/4 p-4"
-          >
-            <p className="mb-2 text-[10px] tracking-widest text-purple-400">{tier.label}</p>
-            <p className="break-words text-sm leading-relaxed text-white/80">
-              {tier.notes.length > 0 ? tier.notes.join(' • ') : 'Veri sınırlı'}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <div className="mb-6 flex flex-col gap-4 items-start md:flex-row">
+      <div className="mb-5 flex flex-col items-start gap-4 md:flex-row">
         <div className="min-w-0 flex-1">
           <p className="mb-2 text-xs tracking-widest" style={{ color: activeTone.text }}>
             {activeStepData.label}
@@ -257,7 +224,7 @@ export function ScentTimeline({ topNotes, heartNotes, baseNotes, timeline }: Sce
         </div>
       </div>
 
-      <div className="relative mb-6 h-1 w-full overflow-hidden rounded-full bg-white/8">
+      <div className="relative mb-5 h-1 w-full overflow-hidden rounded-full bg-white/8">
         <div className="absolute inset-0 rounded-full bg-[linear-gradient(90deg,rgba(201,169,110,.12)_0%,rgba(167,139,250,.1)_40%,rgba(126,184,164,.1)_72%,rgba(138,132,128,.1)_100%)]" />
         {[25, 50, 75].map((stop) => (
           <div
@@ -310,7 +277,10 @@ export function ScentTimeline({ topNotes, heartNotes, baseNotes, timeline }: Sce
             <div className="mb-2 flex items-center justify-between">
               <span
                 className="text-[11px] font-medium tracking-widest"
-                style={{ color: activeStep === index ? STAGE_TONES[step.key].text : STAGE_TONES[step.key].text, opacity: activeStep === index ? 1 : 0.72 }}
+                style={{
+                  color: STAGE_TONES[step.key].text,
+                  opacity: activeStep === index ? 1 : 0.72,
+                }}
               >
                 {step.label}
               </span>
@@ -322,11 +292,7 @@ export function ScentTimeline({ topNotes, heartNotes, baseNotes, timeline }: Sce
               </span>
             </div>
 
-            <p
-              className={`text-sm leading-relaxed ${
-                activeStep === index ? 'font-medium text-white' : 'text-white/50'
-              }`}
-            >
+            <p className={`text-sm leading-relaxed ${activeStep === index ? 'font-medium text-white' : 'text-white/50'}`}>
               {step.notes.length > 0 ? step.notes.join(', ') : 'Veri sınırlı'}
             </p>
           </div>

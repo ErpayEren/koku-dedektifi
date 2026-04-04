@@ -34,7 +34,7 @@ export const UI = {
   notesPlaceholder: 'Notaları virgülle ayırarak gir',
   notesHelper: 'Örnek: bergamot, sedir, vanilya, paçuli',
   analyzeBtn: 'Kokuyu Analiz Et',
-  analyzing: 'Yapay zekâ analiz ediyor...',
+  analyzing: 'Yapay zeka analiz ediyor...',
   analysisSteps: 'Profil çözümleme, nota piramidi ve molekül katmanı oluşturuluyor.',
 
   chipSectionLabel: 'Popüler aramalar',

@@ -156,9 +156,7 @@ export function useAnalysisResultsModel({ result, isAnalyzing }: UseAnalysisResu
   };
   const wheelValues = [scores.freshness, scores.sweetness, scores.warmth, clampPercent(activeResult?.intensity, 65)];
   const confidence = activeResult ? resolveConfidence(activeResult) : 0;
-  const preferenceMatch = activeResult
-    ? resolvePreferenceMatch(activeResult, onboardingPreferences)
-    : { score: 0, summary: '' };
+  const preferenceMatch = activeResult ? resolvePreferenceMatch(activeResult, onboardingPreferences) : { score: 0, summary: '' };
   const heartNotes = activeResult?.pyramid?.middle ?? [];
   const glowColor = activeResult ? FAMILY_GLOW[activeResult.family] ?? 'rgba(201,169,110,.06)' : 'rgba(201,169,110,.06)';
   const projectionScore = resolveMetricScore(activeResult?.technical ?? [], /yayilim|projection|sillage/, 68);

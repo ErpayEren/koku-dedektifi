@@ -134,8 +134,8 @@ export function SignalTelemetry({
     {
       label: 'Kalıcılık',
       value: longevity,
-      tone: '#fbbf24',
-      glow: '0 0 8px rgba(251,191,36,0.6)',
+      tone: '#d6a43b',
+      glow: '0 0 7px rgba(214,164,59,0.38)',
       note: longevity >= 80 ? 'Çok kalıcı' : longevity >= 60 ? 'Dengeli' : 'Hafif',
     },
     {

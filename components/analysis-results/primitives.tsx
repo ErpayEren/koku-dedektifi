@@ -223,6 +223,46 @@ export function MetricPill({ label, value, tone }: { label: string; value: numbe
   );
 }
 
+export function WheelMetricRail({
+  label,
+  value,
+  tone,
+  note,
+}: {
+  label: string;
+  value: number;
+  tone: string;
+  note: string;
+}) {
+  return (
+    <div className="rounded-[18px] border border-white/[.07] bg-white/[.025] px-4 py-4">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-mono uppercase tracking-[.14em] text-muted">{label}</p>
+          <p className="mt-2 text-sm text-cream/90">{note}</p>
+        </div>
+        <div
+          className="inline-flex h-8 min-w-[44px] items-center justify-center rounded-full border px-3 text-[12px] font-semibold text-cream"
+          style={{ borderColor: `${tone}45`, background: `${tone}14` }}
+        >
+          {value}
+        </div>
+      </div>
+
+      <div className="relative h-2 overflow-hidden rounded-full bg-white/[.08]">
+        <div
+          className="absolute inset-y-0 left-0 rounded-full transition-all duration-700"
+          style={{
+            width: `${value}%`,
+            background: `linear-gradient(90deg, ${tone} 0%, color-mix(in srgb, ${tone} 80%, white 20%) 100%)`,
+            boxShadow: `0 0 12px color-mix(in srgb, ${tone} 30%, transparent)`,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function AnimatedPercent({ value }: { value: number }) {
   const motionValue = useMotionValue(0);
   const spring = useSpring(motionValue, { stiffness: 120, damping: 20 });

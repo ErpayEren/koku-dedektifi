@@ -141,7 +141,7 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
                   </svg>
                 </button>
                 <div className="min-w-0 text-center">
-                  <h3 className="mx-auto max-w-[11ch] break-words text-[clamp(2.1rem,5vw,3.15rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-cream">
+                  <h3 className="mx-auto max-w-[14ch] break-words text-[clamp(1.95rem,4.7vw,3rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-cream">
                     {molecule.name}
                   </h3>
                   <p className="mt-2 break-words text-[13px] font-mono text-gold/85">
@@ -158,7 +158,7 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
               </div>
             ) : (
               <div className="mb-4 text-center">
-                <h3 className="mx-auto max-w-[11ch] break-words text-[clamp(2.1rem,5vw,3.15rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-cream">
+                <h3 className="mx-auto max-w-[14ch] break-words text-[clamp(1.95rem,4.7vw,3rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-cream">
                   {molecule.name}
                 </h3>
                 <p className="mt-2 break-words text-[13px] font-mono text-gold/85">

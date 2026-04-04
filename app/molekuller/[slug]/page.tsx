@@ -117,28 +117,9 @@ export default async function MoleculeDetailPage({ params }: MoleculeDetailPageP
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {molecule.profile_tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-medium text-cream/85"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
                     <span className={`rounded-full border px-3 py-1.5 text-[10px] font-mono uppercase tracking-[.12em] ${evidenceTone(molecule.primary_evidence_level)}`}>
                       {molecule.primary_evidence_label}
                     </span>
-                    {molecule.families.map((family) => (
-                      <span
-                        key={family}
-                        className="rounded-full border border-sage/30 bg-sage/10 px-3 py-1.5 text-[10px] font-mono uppercase tracking-[.12em] text-sage"
-                      >
-                        {family}
-                      </span>
-                    ))}
                     <span
                       className={`rounded-full border px-3 py-1.5 text-[10px] font-mono uppercase tracking-[.12em] ${roleBadgeTone(
                         molecule.longevity_contribution,
@@ -146,9 +127,25 @@ export default async function MoleculeDetailPage({ params }: MoleculeDetailPageP
                     >
                       {roleLabel(molecule.longevity_contribution)}
                     </span>
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-mono uppercase tracking-[.12em] text-muted">
-                      {molecule.source_type}
-                    </span>
+                    {molecule.families.slice(0, 2).map((family) => (
+                      <span
+                        key={family}
+                        className="rounded-full border border-sage/30 bg-sage/10 px-3 py-1.5 text-[10px] font-mono uppercase tracking-[.12em] text-sage"
+                      >
+                        {family}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {molecule.profile_tags.slice(0, 4).map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-medium text-cream/85"
+                      >
+                        {tag}
+                      </span>
+                    ))}
                   </div>
                 </Card>
 

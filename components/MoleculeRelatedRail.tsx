@@ -48,24 +48,16 @@ export function MoleculeRelatedRail({ molecules }: MoleculeRelatedRailProps) {
             </div>
 
             <h3 className="mt-3 text-[1.2rem] font-semibold leading-tight text-cream">{molecule.name}</h3>
-            <p className="mt-2 text-[12px] leading-relaxed text-muted">{molecule.odor_description}</p>
+            <p className="mt-2 line-clamp-2 text-[12px] leading-relaxed text-muted">{molecule.odor_description}</p>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {molecule.profile_tags.slice(0, 2).map((tag) => (
-                <span
-                  key={`${molecule.slug}-${tag}`}
-                  className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[.12em] text-cream/80"
-                >
-                  {tag}
-                </span>
-              ))}
+            <div className="mt-4 rounded-2xl border border-white/8 bg-black/10 px-3 py-3">
+              <p className="text-[10px] font-mono uppercase tracking-[.14em] text-muted">Bağlı parfümler</p>
+              <p className="mt-2 text-[13px] leading-relaxed text-cream/86">
+                {molecule.linked_fragrance_names.length > 0
+                  ? molecule.linked_fragrance_names.slice(0, 2).join(', ')
+                  : 'Henüz savunulabilir parfüm bağlantısı görünmüyor.'}
+              </p>
             </div>
-
-            <p className="mt-3 text-[12px] leading-relaxed text-cream/78">
-              {molecule.linked_fragrance_names.length > 0
-                ? `Bu molekül şu parfümlerde bulunur: ${molecule.linked_fragrance_names.slice(0, 2).join(', ')}`
-                : 'İkonik molekül olarak görünür; henüz savunulabilir parfüm bağı yok.'}
-            </p>
           </Link>
         ))}
 

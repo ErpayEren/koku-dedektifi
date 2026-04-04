@@ -243,7 +243,11 @@ export function ScentTimeline({ topNotes, heartNotes, baseNotes, timeline }: Sce
         />
         <div
           className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full transition-all duration-500"
-          style={{ left: `calc(${progressPercent}% - 6px)`, background: activeTone.accent, boxShadow: activeTone.dotShadow }}
+          style={{
+            left: `calc(${progressPercent}% - 6px)`,
+            background: activeTone.accent,
+            boxShadow: activeTone.dotShadow,
+          }}
         />
       </div>
 

@@ -13,11 +13,11 @@ import { UI } from '@/lib/strings';
 import {
   AnimatedPercent,
   ConfidenceRing,
-  MetricPill,
   RadarWheel,
   SceneCell,
   SignalTelemetry,
   SimilarityArc,
+  WheelMetricRail,
 } from './primitives';
 import { WHEEL_AXES, clampPercent, toList } from './utils';
 
@@ -261,28 +261,45 @@ interface WheelPanelProps extends PanelMotionProps {
 }
 
 export function WheelPanel({ wheelValues, scores, intensity, style }: WheelPanelProps) {
+  const metricRows = [
+    { label: 'Tazelik', value: scores.freshness, tone: 'var(--sage)', note: scores.freshness >= 70 ? 'Canlı ve ferah' : 'Daha sakin ve yumuşak' },
+    { label: 'Tatlılık', value: scores.sweetness, tone: '#d58ebb', note: scores.sweetness >= 60 ? 'Tatlı akor belirgin' : 'Tatlılık geri planda' },
+    { label: 'Sıcaklık', value: scores.warmth, tone: '#d3a36a', note: scores.warmth >= 60 ? 'Sıcak ve sarmalayıcı' : 'Daha serin karakter' },
+    { label: 'Yoğunluk', value: clampPercent(intensity, 65), tone: '#8ab8c0', note: intensity >= 70 ? 'Dolu ve hissedilir' : 'Daha havadar yoğunluk' },
+  ];
+
   return (
-    <Card className="h-full p-6 content-auto-panel" style={style}>
+    <Card className="flex h-full flex-col p-6 content-auto-panel" style={style}>
       <CardTitle>{UI.wheel}</CardTitle>
-      <div className="flex items-center justify-center py-2">
-        <RadarWheel values={wheelValues} />
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        {WHEEL_AXES.map((axis) => (
-          <div
-            key={axis.label}
-            className="flex items-center gap-2 rounded-full border border-white/[.07] px-3 py-2 text-[10px] font-mono uppercase tracking-[.08em] text-muted"
-          >
-            <span className="h-2.5 w-2.5 rounded-full" style={{ background: axis.color }} />
-            <span>{axis.label}</span>
+      <div className="mt-4 grid flex-1 grid-cols-1 gap-5 xl:grid-cols-[176px_minmax(0,1fr)] xl:items-start">
+        <div className="flex flex-col items-center">
+          <div className="flex items-center justify-center py-2">
+            <RadarWheel values={wheelValues} />
           </div>
-        ))}
-      </div>
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <MetricPill label="Tazelik" value={scores.freshness} tone="var(--sage)" />
-        <MetricPill label="Tatlılık" value={scores.sweetness} tone="#d58ebb" />
-        <MetricPill label="Sıcaklık" value={scores.warmth} tone="#d3a36a" />
-        <MetricPill label="Yoğunluk" value={clampPercent(intensity, 65)} tone="#8ab8c0" />
+          <div className="mt-3 grid w-full grid-cols-2 gap-2">
+            {WHEEL_AXES.map((axis) => (
+              <div
+                key={axis.label}
+                className="flex items-center gap-2 rounded-full border border-white/[.07] px-3 py-2 text-[10px] font-mono uppercase tracking-[.08em] text-muted"
+              >
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: axis.color }} />
+                <span>{axis.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3">
+          {metricRows.map((metric) => (
+            <WheelMetricRail
+              key={metric.label}
+              label={metric.label}
+              value={metric.value}
+              tone={metric.tone}
+              note={metric.note}
+            />
+          ))}
+        </div>
       </div>
     </Card>
   );
@@ -345,12 +362,12 @@ export function MoleculePanel({
               {molecule.slug ? (
                 <Link
                   href={`/molekuller/${molecule.slug}`}
-                  className="mx-auto block max-w-[11ch] break-words text-[clamp(2.1rem,3.2vw,2.9rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-cream transition-colors hover:text-gold"
+                  className="mx-auto block max-w-[14ch] break-words text-[clamp(1.85rem,2.8vw,2.55rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-cream transition-colors hover:text-gold"
                 >
                   {molecule.name}
                 </Link>
               ) : (
-                <p className="mx-auto max-w-[11ch] break-words text-[clamp(2.1rem,3.2vw,2.9rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-cream">
+                <p className="mx-auto max-w-[14ch] break-words text-[clamp(1.85rem,2.8vw,2.55rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-cream">
                   {molecule.name}
                 </p>
               )}
@@ -505,7 +522,7 @@ export function MoleculePanel({
                 disabled={moleculeShareBusy}
                 className="rounded-full border border-white/[.08] bg-black/20 px-3.5 py-2 text-[10px] font-mono uppercase tracking-[.08em] text-muted transition-colors hover:border-[var(--gold-line)] hover:text-cream disabled:opacity-50"
               >
-                {moleculeShareBusy ? 'Hazırlanıyor' : 'Bu Molekülleri Paylaş'}
+                {moleculeShareBusy ? 'Hazırlanıyor' : 'Bu molekülleri paylaş'}
               </button>
             </div>
           </div>

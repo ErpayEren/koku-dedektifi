@@ -148,8 +148,8 @@ export function SignalTelemetry({
     {
       label: 'Uyum Skoru',
       value: fit,
-      tone: '#fbbf24',
-      glow: '0 0 8px rgba(251,191,36,0.6)',
+      tone: '#a78bfa',
+      glow: '0 0 8px rgba(167,139,250,0.6)',
       note: fit >= 85 ? 'Çok yüksek' : fit >= 70 ? 'Yüksek' : 'Seçici',
     },
   ];

@@ -141,15 +141,15 @@ export function SignalTelemetry({
     {
       label: 'Yayılım',
       value: projection,
-      tone: '#4f7cff',
-      glow: '0 0 8px rgba(79,124,255,0.5)',
+      tone: '#4a86f5',
+      glow: '0 0 7px rgba(74,134,245,0.38)',
       note: projection >= 80 ? 'Güçlü' : projection >= 60 ? 'Orta' : 'Yakın ten',
     },
     {
       label: 'Uyum Skoru',
       value: fit,
-      tone: '#a78bfa',
-      glow: '0 0 8px rgba(167,139,250,0.6)',
+      tone: '#9377d6',
+      glow: '0 0 7px rgba(147,119,214,0.34)',
       note: fit >= 85 ? 'Çok yüksek' : fit >= 70 ? 'Yüksek' : 'Seçici',
     },
   ];

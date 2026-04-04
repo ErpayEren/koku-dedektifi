@@ -15,7 +15,6 @@ import {
   ConfidenceRing,
   InfoLine,
   MetricPill,
-  PyramidRow,
   RadarWheel,
   SceneCell,
   SignalTelemetry,
@@ -181,21 +180,12 @@ export function DetailPanel({
 }: DetailPanelProps) {
   return (
     <Card className="self-start p-6 content-auto-panel" style={style}>
-      <CardTitle>{UI.pyramid}</CardTitle>
-      <div className="space-y-4">
-        <PyramidRow label={UI.topNote} items={toList(result.pyramid?.top, 6)} />
-        <PyramidRow label={UI.heartNote} items={toList(heartNotes, 8)} />
-        <PyramidRow label={UI.baseNote} items={toList(result.pyramid?.base, 8)} />
-      </div>
-
-      <div className="mt-6 border-t border-white/[.06] pt-6">
-        <ScentTimeline
-          topNotes={toList(result.pyramid?.top, 6)}
-          heartNotes={toList(heartNotes, 8)}
-          baseNotes={toList(result.pyramid?.base, 8)}
-          timeline={result.timeline}
-        />
-      </div>
+      <ScentTimeline
+        topNotes={toList(result.pyramid?.top, 6)}
+        heartNotes={toList(heartNotes, 8)}
+        baseNotes={toList(result.pyramid?.base, 8)}
+        timeline={result.timeline}
+      />
 
       <div className="mt-6 border-t border-white/[.06] pt-5">
         <CardTitle>{UI.suitability}</CardTitle>

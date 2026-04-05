@@ -20,6 +20,7 @@ import {
 import { getHistory } from '@/lib/client/storage';
 import { useBillingEntitlement } from '@/lib/client/useBillingEntitlement';
 import { useInstantProUpgrade } from '@/lib/client/useInstantProUpgrade';
+import { useUserStore } from '@/lib/store/userStore';
 import { LogoMark } from './ui/LogoMark';
 
 interface NavItem {
@@ -37,8 +38,8 @@ const EXPANDED_WIDTH = 304;
 const COLLAPSED_WIDTH = 88;
 const RAIL_BREAKPOINT = 1280;
 const RAIL_SCROLL_THRESHOLD = 120;
-const HOVER_COLLAPSE_DELAY_MS = 260;
-const SCROLL_SETTLE_COLLAPSE_MS = 220;
+const HOVER_COLLAPSE_DELAY_MS = 340;
+const SCROLL_SETTLE_COLLAPSE_MS = 320;
 
 const NAV: NavGroup[] = [
   {
@@ -77,6 +78,8 @@ export function Sidebar() {
   const pathname = usePathname();
   const entitlement = useBillingEntitlement();
   const { activate, busy: upgradeBusy } = useInstantProUpgrade();
+  const isPro = useUserStore((state) => state.isPro);
+
   const placeholderRef = useRef<HTMLElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
@@ -239,7 +242,7 @@ export function Sidebar() {
       ref={placeholderRef}
       style={{ '--sidebar-width': `${sidebarWidth}px`, willChange: 'width' } as CSSProperties}
       className={`order-2 z-20 hidden w-full min-w-0 border-t border-white/[.06] py-4 md:order-1 md:flex md:w-[var(--sidebar-width)] md:min-w-[var(--sidebar-width)] md:shrink-0 md:self-start md:border-t-0 md:py-0 md:transition-[width,min-width] md:ease-[cubic-bezier(0.16,1,0.3,1)] ${
-        collapsed ? 'md:duration-[980ms]' : 'md:duration-[620ms]'
+        collapsed ? 'md:duration-[1180ms]' : 'md:duration-[680ms]'
       }`}
     >
       <div
@@ -249,26 +252,30 @@ export function Sidebar() {
         onFocusCapture={openRail}
         onBlurCapture={handleBlurCapture}
         className={`flex w-full flex-col rounded-2xl border border-white/[0.07] bg-[rgba(12,12,18,0.92)] backdrop-blur-md md:fixed md:top-0 md:h-screen md:w-[var(--sidebar-width)] md:rounded-none md:border-y-0 md:border-l-0 md:border-r md:border-white/[.06] md:transition-[width,box-shadow] md:ease-[cubic-bezier(0.16,1,0.3,1)] ${
-          collapsed ? 'md:duration-[980ms] md:shadow-[inset_-1px_0_0_rgba(255,255,255,0.03)]' : 'md:duration-[620ms]'
+          collapsed
+            ? 'md:duration-[1180ms] md:shadow-[inset_-1px_0_0_rgba(255,255,255,0.03)]'
+            : 'md:duration-[680ms]'
         }`}
         style={{ left: panelLeft, willChange: 'width' } as CSSProperties}
       >
         <div
           className={`flex h-[92px] shrink-0 items-center transition-[padding,gap] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-            collapsed ? 'justify-center px-0 duration-[820ms]' : 'gap-3 px-5 md:px-6 duration-[540ms]'
+            collapsed ? 'justify-center px-0 duration-[980ms]' : 'gap-3 px-5 md:px-6 duration-[620ms]'
           }`}
         >
           <Link
             href="/"
             className={`group inline-flex items-center no-underline transition-[gap] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-              collapsed ? 'justify-center gap-0 duration-[820ms]' : 'gap-3 duration-[540ms]'
+              collapsed ? 'justify-center gap-0 duration-[980ms]' : 'gap-3 duration-[620ms]'
             }`}
             aria-label="Koku Dedektifi ana sayfa"
           >
             <LogoMark size={collapsed ? 54 : 72} />
             <span
               className={`overflow-hidden whitespace-nowrap font-display italic leading-[0.96] tracking-[-0.02em] text-[24px] transition-[max-width,transform] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                collapsed ? 'max-w-0 -translate-x-2 duration-[560ms] delay-[80ms]' : 'max-w-[180px] translate-x-0 duration-[620ms] delay-[120ms]'
+                collapsed
+                  ? 'max-w-0 -translate-x-2 duration-[760ms] delay-[140ms]'
+                  : 'max-w-[180px] translate-x-0 duration-[720ms] delay-[140ms]'
               }`}
             >
               <span className="text-cream">Koku </span>
@@ -295,10 +302,10 @@ export function Sidebar() {
                 <p
                   className={`overflow-hidden text-[10px] font-medium tracking-[0.2em] text-white/30 transition-[max-height,margin,padding] ease-[cubic-bezier(0.16,1,0.3,1)] ${
                     collapsed
-                      ? 'mb-0 mt-0 max-h-0 px-0 duration-[420ms]'
+                      ? 'mb-0 mt-0 max-h-0 px-0 duration-[520ms]'
                       : groupIndex === 0
-                        ? 'mb-1 mt-0 max-h-6 px-4 duration-[520ms]'
-                        : 'mb-1 mt-6 max-h-6 px-4 duration-[520ms]'
+                        ? 'mb-1 mt-0 max-h-6 px-4 duration-[620ms]'
+                        : 'mb-1 mt-6 max-h-6 px-4 duration-[620ms]'
                   }`}
                 >
                   {group.section}
@@ -316,7 +323,9 @@ export function Sidebar() {
                       aria-label={collapsed ? item.label : undefined}
                       aria-current={isActive ? 'page' : undefined}
                       className={`group relative flex items-center rounded-2xl transition-all ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                        collapsed ? 'mx-3 my-1.5 min-h-[54px] justify-center px-0 duration-[760ms]' : 'mx-2 min-h-[48px] gap-3 px-4 py-3 duration-[420ms]'
+                        collapsed
+                          ? 'mx-3 my-1.5 min-h-[54px] justify-center px-0 duration-[920ms]'
+                          : 'mx-2 min-h-[48px] gap-3 px-4 py-3 duration-[460ms]'
                       } ${
                         isActive
                           ? collapsed
@@ -329,7 +338,7 @@ export function Sidebar() {
                     >
                       <span
                         className={`flex items-center justify-center rounded-xl transition-all ${
-                          collapsed ? 'duration-[760ms]' : 'duration-[420ms]'
+                          collapsed ? 'duration-[920ms]' : 'duration-[460ms]'
                         } ${
                           collapsed
                             ? isActive
@@ -343,7 +352,9 @@ export function Sidebar() {
 
                       <span
                         className={`overflow-hidden whitespace-nowrap text-sm font-medium transition-[max-width,transform] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                          collapsed ? 'max-w-0 -translate-x-1 duration-[460ms] delay-[60ms]' : 'max-w-[160px] translate-x-0 duration-[540ms] delay-[80ms]'
+                          collapsed
+                            ? 'max-w-0 -translate-x-1 duration-[620ms] delay-[120ms]'
+                            : 'max-w-[160px] translate-x-0 duration-[620ms] delay-[100ms]'
                         }`}
                       >
                         {item.label}
@@ -366,19 +377,25 @@ export function Sidebar() {
 
         <div
           className={`shrink-0 border-t border-white/[.08] transition-[padding] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-            collapsed ? 'px-3 pb-6 pt-4 duration-[820ms]' : 'px-4 pb-8 pt-4 duration-[540ms]'
+            collapsed ? 'px-3 pb-6 pt-4 duration-[980ms]' : 'px-4 pb-8 pt-4 duration-[620ms]'
           }`}
         >
           {collapsed ? (
             <div className="flex flex-col items-center gap-4">
               <button
                 type="button"
-                title="Pro'yu aç"
-                onClick={() => void activate()}
-                disabled={upgradeBusy}
-                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-amber-500/25 bg-amber-500/[0.12] px-3 text-[11px] font-semibold tracking-[0.18em] text-amber-300 shadow-[0_0_18px_rgba(217,119,6,0.16)] transition-all duration-300 hover:border-amber-400/35 hover:bg-amber-500/[0.16] disabled:opacity-60"
+                title={isPro ? 'Pro aktif' : "Pro'yu aç"}
+                onClick={() => {
+                  if (!isPro) void activate();
+                }}
+                disabled={upgradeBusy || isPro}
+                className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-3 text-[11px] font-semibold tracking-[0.18em] shadow-[0_0_18px_rgba(217,119,6,0.16)] transition-all duration-300 disabled:opacity-60 ${
+                  isPro
+                    ? 'border border-emerald-500/28 bg-emerald-500/12 text-emerald-300'
+                    : 'border border-amber-500/25 bg-amber-500/[0.12] text-amber-300 hover:border-amber-400/35 hover:bg-amber-500/[0.16]'
+                }`}
               >
-                {upgradeBusy ? '...' : 'PRO'}
+                {upgradeBusy ? '...' : isPro ? 'PRO ✓' : 'PRO'}
               </button>
 
               <div className="h-11 w-[6px] overflow-hidden rounded-full bg-white/[0.08]">
@@ -415,11 +432,17 @@ export function Sidebar() {
 
               <button
                 type="button"
-                onClick={() => void activate()}
-                disabled={upgradeBusy}
-                className="block w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 py-3.5 text-center text-sm font-bold tracking-widest text-black shadow-[0_4px_20px_rgba(217,119,6,0.35)] transition-transform active:scale-[0.98] disabled:opacity-60"
+                onClick={() => {
+                  if (!isPro) void activate();
+                }}
+                disabled={upgradeBusy || isPro}
+                className={`block w-full rounded-xl py-3.5 text-center text-sm font-bold tracking-widest shadow-[0_4px_20px_rgba(217,119,6,0.35)] transition-transform active:scale-[0.98] disabled:opacity-60 ${
+                  isPro
+                    ? 'border border-emerald-500/25 bg-emerald-500/12 text-emerald-300'
+                    : 'bg-gradient-to-r from-amber-600 to-amber-500 text-black'
+                }`}
               >
-                {upgradeBusy ? 'PRO AÇILIYOR...' : "PRO'YA GEÇ"}
+                {upgradeBusy ? 'PRO AÇILIYOR...' : isPro ? 'PRO AKTİF ✓' : "PRO'YA GEÇ"}
               </button>
             </>
           )}

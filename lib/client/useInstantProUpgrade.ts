@@ -1,9 +1,12 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import type { Route } from 'next';
+import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
+import { useUserStore } from '@/lib/store/userStore';
 
 export const BILLING_UPDATED_EVENT = 'kd:billing-entitlement-updated';
+export const FLASH_NOTICE_KEY = 'kd:flash-notice';
 
 interface BillingEntitlementPayload {
   entitlement?: {
@@ -17,6 +20,7 @@ interface BillingEntitlementPayload {
 
 export function useInstantProUpgrade() {
   const router = useRouter();
+  const pathname = usePathname();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -41,7 +45,8 @@ export function useInstantProUpgrade() {
       const payload = (await response.json().catch(() => null)) as BillingEntitlementPayload | null;
 
       if (response.status === 401) {
-        router.push('/hesap');
+        const redirectTarget = pathname && pathname !== '/hesap' ? `?redirect=${encodeURIComponent(pathname)}` : '';
+        router.push(`/hesap${redirectTarget}` as Route);
         return false;
       }
 
@@ -54,6 +59,12 @@ export function useInstantProUpgrade() {
           detail: payload.entitlement,
         }),
       );
+      useUserStore.getState().setPro(true);
+
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(FLASH_NOTICE_KEY, 'Pro aktif! Tüm özellikler açıldı.');
+      }
+
       router.refresh();
       return true;
     } catch (requestError) {
@@ -62,7 +73,7 @@ export function useInstantProUpgrade() {
     } finally {
       setBusy(false);
     }
-  }, [busy, router]);
+  }, [busy, pathname, router]);
 
   return {
     activate,

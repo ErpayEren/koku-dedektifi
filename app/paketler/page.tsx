@@ -1,11 +1,13 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
 import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
 import { useInstantProUpgrade } from '@/lib/client/useInstantProUpgrade';
+import { useUserStore } from '@/lib/store/userStore';
 
 interface BillingPlan {
   id: string;
@@ -45,7 +47,7 @@ const PLAN_COPY: Record<'free' | 'pro', { name: string; features: string[]; note
   },
   pro: {
     name: 'Pro',
-    note: 'Aylık premium erişim',
+    note: 'Tüm ürün katmanı açık',
     features: [
       'Sınırsız analiz',
       'Tam molekül analizi ve detay sayfaları',
@@ -151,20 +153,22 @@ function PlanCard({
           plan.id !== 'pro'
             ? 'border border-white/[.08] bg-white/[.04] text-muted'
             : isActive
-              ? 'border border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold'
+              ? 'border border-emerald-500/25 bg-emerald-500/12 text-emerald-300'
               : isBusy
                 ? 'border border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold'
                 : 'bg-gold text-bg hover:bg-[#d8b676]'
         }`}
       >
-        {plan.id !== 'pro' ? 'Ücretsiz Başla' : isActive ? 'Pro Aktif' : isBusy ? 'PRO AÇILIYOR...' : "Pro'ya Geç"}
+        {plan.id !== 'pro' ? 'Ücretsiz Başla' : isActive ? 'Pro Aktif ✓' : isBusy ? 'Aktif ediliyor...' : "Pro'ya Geç"}
       </button>
     </Card>
   );
 }
 
 export default function PricingPage() {
+  const router = useRouter();
   const { activate, busy, error: upgradeError, clearError } = useInstantProUpgrade();
+  const isPro = useUserStore((state) => state.isPro);
   const [data, setData] = useState<BillingResponse | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -189,10 +193,15 @@ export default function PricingPage() {
   }, []);
 
   const plans = useMemo(() => normalizePlans(data?.plans), [data?.plans]);
-  const activeTier = data?.entitlement?.tier === 'pro' ? 'pro' : 'free';
+  const activeTier = isPro || data?.entitlement?.tier === 'pro' ? 'pro' : 'free';
 
   async function activatePlan(planId: string): Promise<void> {
     if (planId !== 'pro') return;
+    if (!data?.user) {
+      router.push('/hesap?redirect=/paketler');
+      return;
+    }
+
     setBusyPlanId(planId);
     setError('');
     setNotice('');
@@ -216,7 +225,8 @@ export default function PricingPage() {
             }
           : current,
       );
-      setNotice('Pro hesabın aktif edildi.');
+      setNotice('Pro aktif! Tüm özellikler açıldı.');
+      router.push('/?upgraded=1');
     } finally {
       setBusyPlanId('');
     }
@@ -239,8 +249,8 @@ export default function PricingPage() {
           </h1>
 
           <p className="mt-4 max-w-[620px] text-[13px] leading-relaxed text-muted">
-            Ücretsiz katman hızlı analiz ve temel nota okuması sunar. Şimdilik ürünleştirme akışını hızlandırmak için
-            &nbsp;&ldquo;Pro&apos;ya Geç&rdquo; butonu hesabını doğrudan Pro yapar.
+            Ücretsiz katman hızlı analiz ve temel nota okuması sunar. Ürün olgunlaşana kadar{' '}
+            <span className="text-cream">&quot;Pro&apos;ya Geç&quot;</span> tek tıkla hesabını Pro yapar.
           </p>
 
           <div className="mt-6 rounded-2xl border border-white/[.08] bg-black/10 px-4 py-3 text-[12px] text-muted">
@@ -250,7 +260,7 @@ export default function PricingPage() {
                 <span className="text-gold">{activeTier === 'pro' ? 'Pro' : 'Ücretsiz'}</span>
               </>
             ) : (
-              "Giriş yapmadan paketleri inceleyebilirsin. Pro aktivasyonu için önce hesabına giriş yapman gerekir."
+              'Giriş yapmadan paketleri inceleyebilirsin. Pro aktivasyonu için önce hesabına giriş yapman gerekir.'
             )}
           </div>
 
@@ -268,7 +278,13 @@ export default function PricingPage() {
 
           <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2">
             {plans.map((plan) => (
-              <PlanCard key={plan.id} activeTier={activeTier} busyPlanId={busy || busyPlanId === plan.id ? plan.id : ''} onActivate={activatePlan} plan={plan} />
+              <PlanCard
+                key={plan.id}
+                activeTier={activeTier}
+                busyPlanId={busy || busyPlanId === plan.id ? plan.id : ''}
+                onActivate={activatePlan}
+                plan={plan}
+              />
             ))}
           </div>
         </div>

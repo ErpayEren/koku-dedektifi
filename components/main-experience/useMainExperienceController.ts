@@ -1,11 +1,14 @@
 'use client';
 
+import type { Route } from 'next';
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError, analyzeImage, analyzeNotes, analyzeText, readableError } from '@/lib/client/api';
-import { getWardrobe, pushFeed, saveHistoryRow, findHistoryById, upsertWardrobe } from '@/lib/client/storage';
+import { FLASH_NOTICE_KEY } from '@/lib/client/useInstantProUpgrade';
+import { findHistoryById, getWardrobe, pushFeed, saveHistoryRow, upsertWardrobe } from '@/lib/client/storage';
 import type { AnalysisResult, InputMode, WardrobeItem } from '@/lib/client/types';
-import { useBillingEntitlement } from '@/lib/client/useBillingEntitlement';
+import { useProGate } from '@/hooks/useProGate';
+import { useUserStore } from '@/lib/store/userStore';
 
 function toWardrobeItem(result: AnalysisResult): WardrobeItem {
   const key = result.name.toLowerCase().replace(/\s+/g, '-');
@@ -33,24 +36,18 @@ function replaceModeInUrl(nextMode: InputMode): void {
   window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
 }
 
-interface UpgradeState {
-  open: boolean;
-  title: string;
-  body: string;
-  featureBullets: string[];
-}
-
-const DEFAULT_UPGRADE_STATE: UpgradeState = {
-  open: false,
-  title: '',
-  body: '',
-  featureBullets: [],
-};
-
 export function useMainExperienceController() {
   const router = useRouter();
   const [, startTransition] = useTransition();
-  const entitlement = useBillingEntitlement();
+  const { requirePro } = useProGate();
+  const { dailyUsed, dailyLimit, wardrobeCount, wardrobeLimit, incrementUsage } = useUserStore((state) => ({
+    dailyUsed: state.dailyUsed,
+    dailyLimit: state.dailyLimit,
+    wardrobeCount: state.wardrobeCount,
+    wardrobeLimit: state.wardrobeLimit,
+    incrementUsage: state.incrementUsage,
+  }));
+
   const [mode, setMode] = useState<InputMode>('photo');
   const [textValue, setTextValue] = useState('');
   const [notesValue, setNotesValue] = useState('');
@@ -59,9 +56,6 @@ export function useMainExperienceController() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
-  const [upgradeState, setUpgradeState] = useState<UpgradeState>(DEFAULT_UPGRADE_STATE);
-
-  const wardrobeCount = getWardrobe().length;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -84,6 +78,12 @@ export function useMainExperienceController() {
         setError('');
       }
     }
+
+    const flashNotice = window.sessionStorage.getItem(FLASH_NOTICE_KEY);
+    if (flashNotice) {
+      setNotice(flashNotice);
+      window.sessionStorage.removeItem(FLASH_NOTICE_KEY);
+    }
   }, []);
 
   useEffect(() => {
@@ -92,14 +92,12 @@ export function useMainExperienceController() {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
-  function openUpgradePrompt(input: Omit<UpgradeState, 'open'>): void {
-    setUpgradeState({
-      open: true,
-      ...input,
-    });
-  }
-
   const runAnalyze = useCallback(async (): Promise<void> => {
+    if (dailyLimit !== Number.POSITIVE_INFINITY && dailyUsed >= dailyLimit) {
+      requirePro('Sınırsız günlük analiz');
+      return;
+    }
+
     setError('');
     setNotice('');
     setIsAnalyzing(true);
@@ -118,6 +116,7 @@ export function useMainExperienceController() {
 
       setResult(analysis);
       saveHistoryRow(analysis);
+      incrementUsage();
       pushFeed({
         event: 'analysis',
         detail: 'Yeni analiz tamamlandı',
@@ -126,17 +125,7 @@ export function useMainExperienceController() {
       setNotice('Analiz tamamlandı.');
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
-        openUpgradePrompt({
-          title: 'Bugünkü limitine ulaştın',
-          body:
-            'Ücretsiz katmanda bugünkü moleküler analiz hakkını kullandın. Keşfetmeye devam etmek için Pro ile tam derinlik açılabilir.',
-          featureBullets: [
-            'Sınırsız analiz',
-            'Tam molekül analizi ve detay sayfaları',
-            'Top 10 benzer parfüm önerisi',
-            'Parfümör gözüyle derin rapor',
-          ],
-        });
+        requirePro('Sınırsız günlük analiz');
         setError('');
       } else {
         setError(readableError(err));
@@ -144,15 +133,20 @@ export function useMainExperienceController() {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [imagePreview, mode, notesValue, textValue]);
+  }, [dailyLimit, dailyUsed, imagePreview, incrementUsage, mode, notesValue, requirePro, textValue]);
 
   const onAnalyzeSimilar = useCallback(
     async (name: string): Promise<void> => {
+      if (dailyLimit !== Number.POSITIVE_INFINITY && dailyUsed >= dailyLimit) {
+        requirePro('Sınırsız günlük analiz');
+        return;
+      }
+
       startTransition(() => {
         setTextValue(name);
         setMode('text');
         replaceModeInUrl('text');
-        setNotice(`“${name}” için yeniden analiz çalıştırılıyor...`);
+        setNotice(`"${name}" için yeniden analiz çalıştırılıyor...`);
       });
       setIsAnalyzing(true);
       setError('');
@@ -161,6 +155,7 @@ export function useMainExperienceController() {
         const analysis = await analyzeText(name);
         setResult(analysis);
         saveHistoryRow(analysis);
+        incrementUsage();
         pushFeed({
           event: 'analysis',
           detail: 'Benzer profil analizi',
@@ -168,11 +163,7 @@ export function useMainExperienceController() {
         });
       } catch (err) {
         if (err instanceof ApiError && err.status === 429) {
-          openUpgradePrompt({
-            title: 'Bugünkü limitine ulaştın',
-            body: 'Benzer profil akışını sürdürmek için bugünkü ücretsiz kotan doldu. Pro ile keşfe kesintisiz devam edebilirsin.',
-            featureBullets: ['Sınırsız analiz', 'Benzer parfümlerde ilk 10 sonuç', 'Tam molekül görünürlüğü'],
-          });
+          requirePro('Sınırsız günlük analiz');
         } else {
           setError(readableError(err));
         }
@@ -180,7 +171,7 @@ export function useMainExperienceController() {
         setIsAnalyzing(false);
       }
     },
-    [startTransition],
+    [dailyLimit, dailyUsed, incrementUsage, requirePro, startTransition],
   );
 
   const handleModeChange = useCallback(
@@ -240,12 +231,8 @@ export function useMainExperienceController() {
 
     const item = toWardrobeItem(result);
     const alreadySaved = getWardrobe().some((row) => row.key === item.key);
-    if (!alreadySaved && entitlement.wardrobeLimit !== null && wardrobeCount >= entitlement.wardrobeLimit) {
-      openUpgradePrompt({
-        title: 'Dolap limiti doldu',
-        body: 'Ücretsiz dolapta en fazla 5 parfüm saklanabiliyor. Sınırsız koleksiyon için Pro katmanına geçebilirsin.',
-        featureBullets: ['Sınırsız dolap', 'Cihazlar arası senkronizasyon', 'Koku profili kişiselleştirme'],
-      });
+    if (!alreadySaved && wardrobeLimit !== Number.POSITIVE_INFINITY && wardrobeCount >= wardrobeLimit) {
+      requirePro('Sınırsız dolap');
       return;
     }
 
@@ -256,7 +243,7 @@ export function useMainExperienceController() {
       perfume: result.name,
     });
     setNotice('Sonuç dolaba eklendi.');
-  }, [entitlement.wardrobeLimit, result, router, wardrobeCount]);
+  }, [requirePro, result, router, wardrobeCount, wardrobeLimit]);
 
   const compareNow = useCallback((): void => {
     if (!result) {
@@ -264,7 +251,7 @@ export function useMainExperienceController() {
       return;
     }
 
-    router.push(`/karsilastir?left=${encodeURIComponent(result.name)}`);
+    router.push(`/karsilastir?left=${encodeURIComponent(result.name)}` as Route);
   }, [result, router]);
 
   const openLayering = useCallback((): void => {
@@ -273,7 +260,7 @@ export function useMainExperienceController() {
       return;
     }
 
-    router.push(`/layering?left=${encodeURIComponent(result.name)}`);
+    router.push(`/layering?left=${encodeURIComponent(result.name)}` as Route);
   }, [result, router]);
 
   const saveResultFile = useCallback(async (): Promise<void> => {
@@ -303,7 +290,6 @@ export function useMainExperienceController() {
     isAnalyzing,
     notice,
     error,
-    upgradeState,
     setTextValue,
     setNotesValue,
     handleModeChange,
@@ -315,6 +301,5 @@ export function useMainExperienceController() {
     compareNow,
     openLayering,
     saveResultFile,
-    closeUpgradePrompt: () => setUpgradeState(DEFAULT_UPGRADE_STATE),
   };
 }

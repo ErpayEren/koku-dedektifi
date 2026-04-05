@@ -1,21 +1,26 @@
 'use client';
 
 import { useInstantProUpgrade } from '@/lib/client/useInstantProUpgrade';
+import { useUserStore } from '@/lib/store/userStore';
 
 export function ProBadge() {
   const { activate, busy } = useInstantProUpgrade();
+  const isPro = useUserStore((state) => state.isPro);
 
   return (
     <button
       type="button"
-      onClick={() => void activate()}
-      disabled={busy}
-      className="text-[9px] font-mono tracking-[.12em] uppercase
-                 px-2.5 py-1 border border-[var(--gold-line)] rounded-[6px]
-                 text-gold bg-[var(--gold-dim)] hover:bg-gold/20
-                 transition-colors disabled:opacity-60"
+      onClick={() => {
+        if (!isPro) void activate();
+      }}
+      disabled={busy || isPro}
+      className={`rounded-[6px] border px-2.5 py-1 text-[9px] font-mono uppercase tracking-[.12em] transition-colors disabled:opacity-60 ${
+        isPro
+          ? 'border-emerald-500/30 bg-emerald-500/12 text-emerald-300'
+          : 'border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold hover:bg-gold/20'
+      }`}
     >
-      {busy ? '...' : 'Pro'}
+      {busy ? '...' : isPro ? 'Pro ✓' : 'Pro'}
     </button>
   );
 }

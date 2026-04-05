@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useProGate } from '@/hooks/useProGate';
 import type { PublicMolecule } from '@/lib/catalog-public';
 import { fadeUp, scaleIn, staggerChildren } from '@/lib/animations';
 import { MoleculeVisual } from './MoleculeVisual';
@@ -57,6 +58,7 @@ function fragranceCoverageLabel(count: number): string {
 }
 
 export function MoleculeExplorerClient({ molecules }: MoleculeExplorerClientProps) {
+  const { isPro, requirePro } = useProGate();
   const [query, setQuery] = useState('');
   const [family, setFamily] = useState('all');
   const [intensity, setIntensity] = useState<IntensityFilter>('all');
@@ -100,7 +102,18 @@ export function MoleculeExplorerClient({ molecules }: MoleculeExplorerClientProp
               <input
                 data-testid="molecule-search-input"
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  if (!nextValue.trim()) {
+                    setQuery('');
+                    return;
+                  }
+                  if (!isPro && !query.trim()) {
+                    requirePro('Nota Avcısı araması');
+                    return;
+                  }
+                  setQuery(nextValue);
+                }}
                 placeholder="Ambroxide, rose, amber..."
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-3 text-sm text-cream outline-none transition-colors focus:border-[var(--gold-line)]"
               />
@@ -151,7 +164,9 @@ export function MoleculeExplorerClient({ molecules }: MoleculeExplorerClientProp
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <CardTitle>Molekül kataloğu</CardTitle>
-              <p className="mt-2 text-sm text-muted">Savunulabilir bağ kurulan molekülleri koku ailesi, rol ve kaynak tipine göre keşfet.</p>
+              <p className="mt-2 text-sm text-muted">
+                Savunulabilir bağ kurulan molekülleri koku ailesi, rol ve kaynak tipine göre keşfet.
+              </p>
             </div>
             <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.12em] text-gold">
               <span data-testid="molecule-results-count">{filtered.length}</span> sonuç
@@ -195,7 +210,9 @@ export function MoleculeExplorerClient({ molecules }: MoleculeExplorerClientProp
                       </div>
 
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] ${evidenceTone(molecule.primary_evidence_level)}`}>
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] ${evidenceTone(molecule.primary_evidence_level)}`}
+                        >
                           {molecule.primary_evidence_label}
                         </span>
                         <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-gold">

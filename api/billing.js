@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const { MAX_BODY_BYTES, cleanString, setCorsHeaders, setSecurityHeaders } = require('../lib/server/config');
-const { readAuthSession } = require('../lib/server/auth-session');
+const { readAuthSession, hydrateRuntimeUserCache } = require('../lib/server/auth-session');
 const {
   billingStore,
   checkoutKey,
@@ -12,6 +12,7 @@ const {
   readEntitlementForUser,
   writeEntitlementForUser,
 } = require('../lib/server/billing-store');
+const { hasSupabaseAuthUsersConfig, updateSupabaseUser } = require('../lib/server/supabase-auth-users');
 
 const BILLING_MAX_BODY_BYTES = Math.min(MAX_BODY_BYTES, 20 * 1024);
 
@@ -317,12 +318,34 @@ async function handleInstantUpgrade(res, auth, body) {
     return res.status(400).json({ error: 'Geçersiz plan seçimi.' });
   }
 
+  const activatedAt = new Date().toISOString();
   const entitlement = await writeEntitlementForUser(auth.user.id, {
     tier: plan.id,
     status: 'active',
     source: 'instant-upgrade',
     cancelAtPeriodEnd: false,
+    updatedAt: activatedAt,
   });
+
+  const nextUser = {
+    ...auth.user,
+    profile: {
+      ...(auth.user.profile || {}),
+      isPro: true,
+      proActivatedAt: activatedAt,
+    },
+    updatedAt: activatedAt,
+  };
+
+  try {
+    if (hasSupabaseAuthUsersConfig()) {
+      await updateSupabaseUser(nextUser);
+    }
+  } catch (error) {
+    console.warn('[billing] Supabase Pro sync skipped.', error?.message || error);
+  }
+
+  await hydrateRuntimeUserCache(nextUser);
 
   return res.status(200).json({ ok: true, entitlement });
 }

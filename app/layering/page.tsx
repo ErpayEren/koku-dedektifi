@@ -7,6 +7,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
+import { useProGate } from '@/hooks/useProGate';
 import { runLayering, readableError } from '@/lib/client/api';
 import { getHistory } from '@/lib/client/storage';
 import { UI } from '@/lib/strings';
@@ -51,7 +52,7 @@ function Picker({ label, value, options, onChange }: PickerProps) {
         onClick={() => setOpen((prev) => !prev)}
         className="flex w-full items-center justify-between rounded-xl border border-white/[.08] bg-[#15131a] p-3 text-cream outline-none focus:border-[var(--gold-line)]"
       >
-        <span className="truncate">{value || 'Sec...'}</span>
+        <span className="truncate">{value || 'Seç...'}</span>
         <span className="text-muted">▾</span>
       </button>
 
@@ -79,6 +80,7 @@ function Picker({ label, value, options, onChange }: PickerProps) {
 }
 
 export default function LayeringPage() {
+  const { requirePro } = useProGate();
   const historyRows = useMemo(() => getHistory(), []);
   const nameOptions = useMemo(
     () => Array.from(new Set([...historyRows.map((item) => item.name), ...FALLBACK])),
@@ -100,10 +102,11 @@ export default function LayeringPage() {
   }, []);
 
   async function run(): Promise<void> {
+    if (!requirePro('Katmanlama analizi')) return;
     if (!left || !right) return;
 
     if (left === right) {
-      setError('Katmanlama icin iki farkli parfum secmelisin.');
+      setError('Katmanlama için iki farklı parfüm seçmelisin.');
       return;
     }
 
@@ -134,8 +137,7 @@ export default function LayeringPage() {
             <Card className="h-fit p-5 md:p-6 hover-lift">
               <CardTitle>{UI.layeringLab}</CardTitle>
               <p className="mb-5 text-[13px] text-muted">
-                Dolabından iki parfüm seç. Sistem ortak notaları ve karakter uyumunu hesaplayıp tek bir blend
-                profili çıkarır.
+                Dolabından iki parfüm seç. Sistem ortak notaları ve karakter uyumunu hesaplayıp tek bir blend profili çıkarır.
               </p>
 
               <div className="space-y-4">
@@ -153,7 +155,7 @@ export default function LayeringPage() {
                     : 'bg-gold text-bg hover:bg-[#d8b676]'
                 }`}
               >
-                {loading ? 'Hesaplaniyor...' : UI.analyzeLayering}
+                {loading ? 'Hesaplanıyor...' : UI.analyzeLayering}
               </button>
               {error ? <p className="mt-4 text-[12px] text-[#f1a2a2]">{error}</p> : null}
             </Card>
@@ -199,7 +201,7 @@ export default function LayeringPage() {
                     href={`/?mode=text&q=${encodeURIComponent(result.name)}`}
                     className="mt-4 inline-flex text-[11px] font-mono uppercase tracking-[.08em] text-gold no-underline transition-colors hover:text-cream"
                   >
-                    Bu blendi ana analizde ac →
+                    Bu blendi ana analizde aç →
                   </Link>
                 </div>
               )}

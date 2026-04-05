@@ -6,6 +6,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
+import { useProGate } from '@/hooks/useProGate';
 import { lookupBarcode, readableError } from '@/lib/client/api';
 import { UI } from '@/lib/strings';
 
@@ -42,6 +43,7 @@ declare global {
 }
 
 export default function BarkodPage() {
+  const { requirePro } = useProGate();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -80,6 +82,7 @@ export default function BarkodPage() {
   }
 
   async function runLookup(nextCode?: string): Promise<void> {
+    if (!requirePro('Barkod arama')) return;
     const finalCode = (nextCode || code).replace(/[^0-9]/g, '');
     if (finalCode.length < 8) return;
 
@@ -99,16 +102,17 @@ export default function BarkodPage() {
   }
 
   async function startCamera(): Promise<void> {
+    if (!requirePro('Barkod kamerası')) return;
     setCameraError('');
     setError('');
 
     const Detector = window.BarcodeDetector;
     if (!Detector) {
-      setCameraError('Kameraniz bu tarayicida desteklenmiyor.');
+      setCameraError('Kameranız bu tarayıcıda desteklenmiyor.');
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraError('Kameraniz bu tarayicida desteklenmiyor.');
+      setCameraError('Kameranız bu tarayıcıda desteklenmiyor.');
       return;
     }
 
@@ -163,7 +167,7 @@ export default function BarkodPage() {
     <AppShell>
       <ErrorBoundary>
         <TopBar title={UI.barcodeScanner} />
-        <div className="px-5 md:px-12 py-8">
+        <div className="px-5 py-8 md:px-12">
           <div className="mx-auto grid max-w-[940px] grid-cols-1 gap-5 md:grid-cols-[380px_1fr]">
             <Card className="h-fit p-5 md:p-6 hover-lift">
               <CardTitle>{UI.barcodeScanner}</CardTitle>
@@ -187,7 +191,7 @@ export default function BarkodPage() {
                       : 'bg-gold text-bg hover:bg-[#d8b676]'
                   }`}
                 >
-                  {loading ? 'Sorgulaniyor...' : UI.barcodeSearch}
+                  {loading ? 'Sorgulanıyor...' : UI.barcodeSearch}
                 </button>
 
                 <button
@@ -195,7 +199,7 @@ export default function BarkodPage() {
                   onClick={() => void (cameraOpen ? Promise.resolve(stopCamera()) : startCamera())}
                   className="flex-1 rounded-xl border border-[var(--gold-line)] bg-[var(--gold-dim)] px-4 py-3 text-[11px] font-mono uppercase tracking-[.1em] text-gold transition-colors hover:bg-gold hover:text-bg"
                 >
-                  {cameraOpen ? 'Kamerayi Kapat' : 'Kamerayi Ac'}
+                  {cameraOpen ? 'Kamerayı Kapat' : 'Kamerayı Aç'}
                 </button>
               </div>
 
@@ -219,7 +223,7 @@ export default function BarkodPage() {
                 <div className="anim-up">
                   <p className="text-[2rem] font-semibold leading-[1.05] text-cream">{result.perfume}</p>
                   <p className="mt-2 text-[12px] text-muted">
-                    {result.family || 'Aromatik'} • {result.occasion || 'Genel kullanim'}
+                    {result.family || 'Aromatik'} · {result.occasion || 'Genel kullanım'}
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {result.season.map((season) => (
@@ -233,7 +237,7 @@ export default function BarkodPage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-[13px] text-muted">{result.message || 'Bu barkod katalogda bulunamadi.'}</p>
+                <p className="text-[13px] text-muted">{result.message || 'Bu barkod katalogda bulunamadı.'}</p>
               )}
             </Card>
           </div>

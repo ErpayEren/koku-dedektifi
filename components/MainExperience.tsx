@@ -24,10 +24,6 @@ const MoleculePreviewStrip = dynamic(
   },
 );
 
-const UpgradePromptModal = dynamic(
-  () => import('./UpgradePromptModal').then((module) => module.UpgradePromptModal),
-);
-
 interface MainExperienceProps {
   featuredMolecules: MoleculePreviewEntry[];
 }
@@ -73,14 +69,6 @@ export function MainExperience({ featuredMolecules }: MainExperienceProps) {
       />
 
       <LegalFooter />
-
-      <UpgradePromptModal
-        open={controller.upgradeState.open}
-        title={controller.upgradeState.title}
-        body={controller.upgradeState.body}
-        featureBullets={controller.upgradeState.featureBullets}
-        onClose={controller.closeUpgradePrompt}
-      />
     </>
   );
 }

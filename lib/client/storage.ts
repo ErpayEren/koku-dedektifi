@@ -7,7 +7,18 @@ const KEYS = {
   onboarding: 'kd:onboarding:v1',
 } as const;
 
+export const CLIENT_DATA_CHANGED_EVENT = 'kd:client-data-changed';
+
 const pendingWrites = new Map<string, number>();
+
+function emitClientDataChanged(kind: 'history' | 'wardrobe' | 'feed'): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent(CLIENT_DATA_CHANGED_EVENT, {
+      detail: { kind },
+    }),
+  );
+}
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
@@ -47,10 +58,12 @@ export function saveHistoryRow(row: AnalysisResult): void {
   const list = getHistory().filter((item) => item.id !== row.id);
   list.unshift(row);
   writeJson(KEYS.history, list.slice(0, 40));
+  emitClientDataChanged('history');
 }
 
 export function clearHistory(): void {
   writeJson(KEYS.history, []);
+  emitClientDataChanged('history');
 }
 
 export function findHistoryById(id: string): AnalysisResult | null {
@@ -68,15 +81,18 @@ export function upsertWardrobe(item: WardrobeItem): void {
   const list = getWardrobe().filter((row) => row.key !== item.key);
   list.unshift(item);
   debouncedWrite(KEYS.wardrobe, list.slice(0, 300));
+  emitClientDataChanged('wardrobe');
 }
 
 export function removeWardrobe(key: string): void {
   const list = getWardrobe().filter((item) => item.key !== key);
   writeJson(KEYS.wardrobe, list);
+  emitClientDataChanged('wardrobe');
 }
 
 export function setWardrobe(rows: WardrobeItem[]): void {
   debouncedWrite(KEYS.wardrobe, rows.slice(0, 300));
+  emitClientDataChanged('wardrobe');
 }
 
 export function getFeed(): FeedItem[] {
@@ -93,10 +109,12 @@ export function pushFeed(event: Omit<FeedItem, 'id' | 'ts'>): void {
   };
   rows.unshift(item);
   debouncedWrite(KEYS.feed, rows.slice(0, 120));
+  emitClientDataChanged('feed');
 }
 
 export function clearFeed(): void {
   writeJson(KEYS.feed, []);
+  emitClientDataChanged('feed');
 }
 
 export function getOnboardingPreferences(): OnboardingPreferences | null {
@@ -119,12 +137,12 @@ export function hasCompletedOnboarding(): boolean {
 }
 
 export function getAuthToken(): string {
-  // HTTP-only cookie tabanlı session kullanılıyor.
-  // Token client tarafında okunmuyor.
+  // HTTP-only cookie tabanli session kullaniliyor.
+  // Token client tarafinda okunmuyor.
   return '';
 }
 
 export function setAuthToken(token: string): void {
-  // Artık kullanılmıyor; session cookie'leri server tarafında ayarlanıyor.
+  // Artik kullanilmiyor; session cookie'leri server tarafinda ayarlaniyor.
   void token;
 }

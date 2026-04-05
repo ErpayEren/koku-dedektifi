@@ -1,5 +1,7 @@
 'use client';
 
+import type { Route } from 'next';
+import { useRouter } from 'next/navigation';
 import { Award, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
@@ -58,6 +60,7 @@ function mergeWardrobeRows(localRows: WardrobeItem[], serverRows: WardrobeItem[]
 }
 
 export default function HesapPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -68,12 +71,12 @@ export default function HesapPage() {
   const [sessionReady, setSessionReady] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [redirectTarget, setRedirectTarget] = useState('');
   const [user, setUser] = useState<Profile | null>(null);
 
   const isLoggedIn = useMemo(() => Boolean(user), [user]);
   const historyCount = getHistory().length;
   const badgeState = useMemo(() => resolveScentBadge(historyCount), [historyCount]);
-
   async function syncWardrobeFromServer(): Promise<void> {
     try {
       const response = await fetch('/api/wardrobe', {
@@ -104,6 +107,12 @@ export default function HesapPage() {
   }
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const nextRedirect = new URLSearchParams(window.location.search).get('redirect') || '';
+    setRedirectTarget(nextRedirect);
+  }, []);
+
+  useEffect(() => {
     void (async () => {
       try {
         const response = await authAction<{ user: Profile }>({}, 'GET');
@@ -129,6 +138,9 @@ export default function HesapPage() {
       });
       hydrateProfile(response.user);
       setNotice('Kayıt başarılı.');
+      if (redirectTarget.startsWith('/')) {
+        router.push(redirectTarget as Route);
+      }
     } catch (err) {
       setError(readableError(err));
     } finally {
@@ -149,6 +161,9 @@ export default function HesapPage() {
       hydrateProfile(response.user);
       await syncWardrobeFromServer();
       setNotice('Giriş başarılı.');
+      if (redirectTarget.startsWith('/')) {
+        router.push(redirectTarget as Route);
+      }
     } catch (err) {
       setError(readableError(err));
     } finally {

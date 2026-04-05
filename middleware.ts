@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis/cloudflare';
 
 let redisClient: Redis | null = null;
+const INTERNAL_AUTH_HEADER = 'x-kd-internal-auth-check';
+const AUTH_ONLY_ROUTES = new Set(['/dolap', '/wear', '/gecmis']);
+const PRO_ONLY_ROUTES = new Map<string, string>([
+  ['/karsilastir', 'Karşılaştır'],
+  ['/layering', 'Katmanlama Lab'],
+  ['/notalar', 'Nota Avcısı'],
+]);
 
 function resolveRedisEnv(): { url: string; token: string } {
   const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
@@ -48,9 +55,63 @@ async function isRateLimited(key: string, max: number, windowMs: number): Promis
   return counter > max;
 }
 
+function getRedirectTarget(req: NextRequest): string {
+  return `${req.nextUrl.pathname}${req.nextUrl.search}`;
+}
+
+function redirectToProfile(req: NextRequest): NextResponse {
+  const url = req.nextUrl.clone();
+  url.pathname = '/profil';
+  url.searchParams.set('redirect', getRedirectTarget(req));
+  return NextResponse.redirect(url);
+}
+
+function redirectToPlans(req: NextRequest, featureName: string): NextResponse {
+  const url = req.nextUrl.clone();
+  url.pathname = '/paketler';
+  url.searchParams.set('feature', featureName);
+  url.searchParams.set('redirect', getRedirectTarget(req));
+  return NextResponse.redirect(url);
+}
+
+interface AuthUserPayload {
+  id: string;
+  email: string;
+  name: string;
+  isPro?: boolean;
+  proActivatedAt?: string | null;
+}
+
+async function fetchAuthUser(req: NextRequest): Promise<AuthUserPayload | null> {
+  const cookie = req.headers.get('cookie') || '';
+  if (!cookie.includes('kd_token=')) return null;
+
+  try {
+    const response = await fetch(new URL('/api/auth', req.url), {
+      method: 'GET',
+      headers: {
+        cookie,
+        [INTERNAL_AUTH_HEADER]: '1',
+        accept: 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) return null;
+    const payload = (await response.json().catch(() => null)) as { user?: AuthUserPayload } | null;
+    return payload?.user ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const opsPassword = process.env.OPS_PASSWORD;
+
+  if (req.headers.get(INTERNAL_AUTH_HEADER) === '1') {
+    return NextResponse.next();
+  }
 
   if (!opsPassword) {
     throw new Error('OPS_PASSWORD env must be set');
@@ -86,6 +147,15 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith('/api/barcode') ||
     pathname.startsWith('/api/layering');
 
+  if (AUTH_ONLY_ROUTES.has(pathname) || PRO_ONLY_ROUTES.has(pathname)) {
+    const user = await fetchAuthUser(req);
+    if (!user) return redirectToProfile(req);
+
+    if (PRO_ONLY_ROUTES.has(pathname) && !user.isPro) {
+      return redirectToPlans(req, PRO_ONLY_ROUTES.get(pathname) || 'Pro Özellik');
+    }
+  }
+
   if (isApiRoute) {
     const ip =
       req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
@@ -116,6 +186,12 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
+    '/dolap',
+    '/wear',
+    '/gecmis',
+    '/karsilastir',
+    '/layering',
+    '/notalar',
     '/ops.html',
     '/ops/:path*',
     '/api/analyze/:path*',

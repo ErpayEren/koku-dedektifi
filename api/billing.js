@@ -329,6 +329,8 @@ async function handleInstantUpgrade(res, auth, body) {
 
   const nextUser = {
     ...auth.user,
+    isPro: true,
+    proActivatedAt: activatedAt,
     profile: {
       ...(auth.user.profile || {}),
       isPro: true,

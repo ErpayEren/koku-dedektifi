@@ -41,6 +41,10 @@ function getClientIP(req) {
   );
 }
 
+function isInternalAuthCheck(req) {
+  return cleanString(req.headers['x-kd-internal-auth-check']) === '1';
+}
+
 function parseBody(req) {
   let body = req.body;
   if (typeof body === 'string') {
@@ -267,11 +271,13 @@ async function handler(req, res) {
   }
 
   const ip = getClientIP(req);
-  const rate = await sessionStore.checkRateLimit(`auth:${ip}`);
-  if (!rate.allowed) {
-    const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
-    res.setHeader('Retry-After', retryAfter);
-    return res.status(429).json({ error: 'Cok fazla auth istegi', retryAfter });
+  if (!isInternalAuthCheck(req)) {
+    const rate = await sessionStore.checkRateLimit(`auth:${ip}`);
+    if (!rate.allowed) {
+      const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
+      res.setHeader('Retry-After', retryAfter);
+      return res.status(429).json({ error: 'Cok fazla auth istegi', retryAfter });
+    }
   }
 
   if (req.method === 'GET') {

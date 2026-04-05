@@ -198,7 +198,7 @@ export default function PricingPage() {
   async function activatePlan(planId: string): Promise<void> {
     if (planId !== 'pro') return;
     if (!data?.user) {
-      router.push('/hesap?redirect=/paketler');
+      router.push('/profil?redirect=/paketler');
       return;
     }
 

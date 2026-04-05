@@ -45,8 +45,8 @@ export function useInstantProUpgrade() {
       const payload = (await response.json().catch(() => null)) as BillingEntitlementPayload | null;
 
       if (response.status === 401) {
-        const redirectTarget = pathname && pathname !== '/hesap' ? `?redirect=${encodeURIComponent(pathname)}` : '';
-        router.push(`/hesap${redirectTarget}` as Route);
+        const redirectTarget = pathname && pathname !== '/profil' ? `?redirect=${encodeURIComponent(pathname)}` : '';
+        router.push(`/profil${redirectTarget}` as Route);
         return false;
       }
 

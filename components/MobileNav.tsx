@@ -133,7 +133,7 @@ const GROUPS: readonly GroupDefinition[] = [
     Icon: ProfileIcon,
     items: [
       {
-        href: '/hesap',
+        href: '/profil',
         label: 'Hesap',
         description: 'Giriş, tercih ve kişisel profil ayarlarını yönet.',
         Icon: UserRound,

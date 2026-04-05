@@ -5,6 +5,7 @@ import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
 import { getPublicFragrancesForMolecule } from '@/lib/catalog-public';
+import { getStaticMoleculeProfile } from '@/lib/data/molecules';
 import { getWeeklyMolecule } from '@/lib/weekly-molecule';
 
 export default function WeeklyMoleculePage() {
@@ -25,6 +26,7 @@ export default function WeeklyMoleculePage() {
   }
 
   const fragrances = getPublicFragrancesForMolecule(molecule.slug);
+  const staticProfile = getStaticMoleculeProfile(molecule.slug);
 
   return (
     <AppShell>
@@ -61,7 +63,7 @@ export default function WeeklyMoleculePage() {
               <MoleculeVisual
                 name={molecule.name}
                 smiles={molecule.smiles}
-                formula={molecule.iupac_name}
+                formula={staticProfile?.formula || molecule.iupac_name}
                 className="min-h-[320px]"
               />
             </div>
@@ -72,16 +74,17 @@ export default function WeeklyMoleculePage() {
               <CardTitle>Koku Profili</CardTitle>
               <div className="mt-4 space-y-3 text-[14px] text-cream/88">
                 <p>
-                  <span className="text-muted">Yoğunluk:</span> {molecule.odor_intensity}
+                  <span className="text-muted">Yoğunluk:</span> {staticProfile?.intensity || molecule.odor_intensity}
                 </p>
                 <p>
-                  <span className="text-muted">Doğal kaynak:</span> {molecule.natural_source}
+                  <span className="text-muted">Doğal kaynak:</span> {staticProfile?.naturalSource || molecule.natural_source}
                 </p>
                 <p>
-                  <span className="text-muted">Tipik kullanım:</span> %{molecule.usage_percentage_typical}
+                  <span className="text-muted">Tipik kullanım:</span>{' '}
+                  {staticProfile?.typicalConcentration || (molecule.usage_percentage_typical ? `%${molecule.usage_percentage_typical}` : 'Veri yok')}
                 </p>
                 <p>
-                  <span className="text-muted">Kompozisyon rolü:</span> {molecule.longevity_contribution}
+                  <span className="text-muted">Kompozisyon rolü:</span> {staticProfile?.compositionRole || molecule.longevity_contribution}
                 </p>
               </div>
             </Card>
@@ -89,15 +92,17 @@ export default function WeeklyMoleculePage() {
             <Card className="p-5 sm:p-6">
               <CardTitle>Bu Molekülü İçeren Parfümler</CardTitle>
               <div className="mt-4 flex flex-wrap gap-3">
-                {fragrances.slice(0, 6).map((fragrance) => (
-                  <Link
-                    key={fragrance.id}
-                    href={`/?mode=text&q=${encodeURIComponent(`${fragrance.brand} ${fragrance.name}`)}`}
-                    className="rounded-[18px] border border-white/8 bg-white/[.03] px-4 py-3 text-[13px] text-cream transition-colors hover:border-[var(--gold-line)] hover:bg-white/[.05]"
-                  >
-                    {fragrance.brand} · {fragrance.name}
-                  </Link>
-                ))}
+                {(staticProfile?.fragrances || fragrances.slice(0, 6).map((fragrance) => `${fragrance.brand} · ${fragrance.name}`))
+                  .slice(0, 6)
+                  .map((fragrance) => (
+                    <Link
+                      key={fragrance}
+                      href={`/?mode=text&q=${encodeURIComponent(fragrance.replace(' · ', ' '))}`}
+                      className="rounded-[18px] border border-white/8 bg-white/[.03] px-4 py-3 text-[13px] text-cream transition-colors hover:border-[var(--gold-line)] hover:bg-white/[.05]"
+                    >
+                      {fragrance}
+                    </Link>
+                  ))}
               </div>
             </Card>
           </div>

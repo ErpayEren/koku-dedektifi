@@ -13,6 +13,7 @@ const routeMap = {
   'error-log': () => require('../api_internal/error-log'),
   'wardrobe-health': () => require('../api_internal/wardrobe-health'),
   'feed-health': () => require('../api_internal/feed-health'),
+  'community-hub': () => require('../api_internal/community-hub'),
 };
 
 function pickRoute(req) {

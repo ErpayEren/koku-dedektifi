@@ -1,100 +1,167 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Archive, BarChart3, Sparkles } from 'lucide-react';
+import { BarChart3, Sparkles, TrendingUp } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { clearFeed, getFeed, pushFeed } from '@/lib/client/storage';
-import { UI } from '@/lib/strings';
+import { clearFeed, getFeed } from '@/lib/client/storage';
 
-type VoteType = 'strong' | 'balanced' | 'light';
+interface TrendItem {
+  name: string;
+  count: number;
+  family?: string;
+}
 
-const VOTE_STORAGE_KEY = 'kd:community:vote:v1';
+interface PollTotal {
+  perfumeName: string;
+  votes: number;
+}
 
-function toVoteLabel(type: VoteType): string {
-  if (type === 'strong') return 'Güçlü + Yayılımlı';
-  if (type === 'balanced') return 'Dengeli';
-  return 'Hafif';
+interface CommunityHubResponse {
+  weekKey: string;
+  trends: TrendItem[];
+  poll: {
+    options: string[];
+    totals: PollTotal[];
+    userVote: string | null;
+    source?: string;
+  };
 }
 
 export default function AkisPage() {
   const [feed, setFeed] = useState(() => getFeed());
-  const [selectedVote, setSelectedVote] = useState<VoteType | null>(null);
+  const [hub, setHub] = useState<CommunityHubResponse | null>(null);
+  const [error, setError] = useState('');
+  const [loadingVote, setLoadingVote] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const saved = window.localStorage.getItem(VOTE_STORAGE_KEY);
-    if (saved === 'strong' || saved === 'balanced' || saved === 'light') {
-      setSelectedVote(saved);
-    }
+    void loadHub();
   }, []);
 
-  const voteCount = useMemo(() => feed.filter((item) => item.event === 'vote').length, [feed]);
+  const totalVotes = useMemo(
+    () => (hub?.poll.totals || []).reduce((sum, item) => sum + item.votes, 0),
+    [hub],
+  );
 
-  function handleVote(type: VoteType): void {
-    if (selectedVote) return;
-
-    pushFeed({
-      event: 'vote',
-      detail: `Topluluk oyu: ${toVoteLabel(type)}`,
-      perfume: 'Genel profil',
-    });
-
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(VOTE_STORAGE_KEY, type);
+  async function loadHub(): Promise<void> {
+    try {
+      const response = await fetch('/api/community-hub', { credentials: 'include' });
+      if (!response.ok) {
+        setError('Topluluk verisi şu an yüklenemedi.');
+        return;
+      }
+      const payload = (await response.json()) as CommunityHubResponse;
+      setHub(payload);
+      setError('');
+    } catch {
+      setHub(null);
+      setError('Topluluk verisi şu an yüklenemedi.');
     }
+  }
 
-    setSelectedVote(type);
-    setFeed(getFeed());
+  async function handleVote(perfumeName: string): Promise<void> {
+    if (hub?.poll.userVote || loadingVote) return;
+    setLoadingVote(true);
+    try {
+      const response = await fetch('/api/community-hub', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ perfumeName }),
+      });
+      if (!response.ok) {
+        setError('Oy kaydedilirken bir sorun oluştu.');
+        return;
+      }
+      const payload = (await response.json()) as CommunityHubResponse;
+      setHub(payload);
+      setError('');
+    } finally {
+      setLoadingVote(false);
+    }
   }
 
   return (
     <AppShell>
-      <TopBar title={UI.feed} />
+      <TopBar title="Koku Akışı" />
 
       <div className="px-5 py-8 md:px-12">
-        <Card className="mb-5 p-5 md:p-6 hover-lift">
-          <CardTitle>{UI.communityPulse}</CardTitle>
-          <p className="mb-3 text-[13px] text-muted">
-            Topluluk sinyalini tek oyla güncelleyebilirsin. Aynı cihazda bir kez oy kullanılabilir.
-          </p>
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_.9fr]">
+          <Card className="p-5 md:p-6 hover-lift">
+            <CardTitle>Günün trendi</CardTitle>
+            {hub?.trends?.length ? (
+              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                {hub.trends.map((trend, index) => (
+                  <div key={trend.name} className="rounded-[22px] border border-white/8 bg-white/[.03] p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full border border-amber-500/20 bg-amber-500/15 text-amber-400">
+                        <TrendingUp className="h-4 w-4" strokeWidth={1.8} />
+                      </span>
+                      <span className="text-[11px] font-mono uppercase tracking-[.12em] text-gold">#{index + 1}</span>
+                    </div>
+                    <p className="text-[1.1rem] font-semibold leading-tight text-cream">{trend.name}</p>
+                    <p className="mt-2 text-[12px] text-muted">
+                      {trend.family || 'Profil'} · {trend.count} analiz
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-muted">Bugünün trend verisi henüz birikmedi.</p>
+            )}
+          </Card>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            {(['strong', 'balanced', 'light'] as VoteType[]).map((type) => {
-              const active = selectedVote === type;
-              return (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => handleVote(type)}
-                  disabled={Boolean(selectedVote)}
-                  className={`min-w-[80px] flex-1 rounded-full border py-2.5 text-center text-xs font-semibold tracking-wide transition-all duration-200 ${
-                    active
-                      ? 'border-amber-500 bg-amber-500/15 text-amber-400'
-                      : 'border-white/15 bg-white/5 text-white/60 active:bg-white/10'
-                  } ${selectedVote && !active ? 'cursor-not-allowed opacity-55' : ''}`}
-                >
-                  {toVoteLabel(type)}
-                </button>
-              );
-            })}
-          </div>
+          <Card className="p-5 md:p-6 hover-lift">
+            <CardTitle>Bu hafta hangi koku öne çıktı?</CardTitle>
+            <p className="mt-2 text-[13px] text-muted">
+              Aynı kullanıcı her hafta bir kez oy kullanabilir.
+            </p>
 
-          <p className="mt-3 text-[11px] text-muted">
-            Toplam oy: {voteCount}
-            {selectedVote ? ` • Senin oyun: ${toVoteLabel(selectedVote)}` : ''}
-          </p>
-        </Card>
+            <div className="mt-4 flex flex-col gap-3">
+              {(hub?.poll.options || []).map((option) => {
+                const active = hub?.poll.userVote === option;
+                const voteCount = hub?.poll.totals.find((item) => item.perfumeName === option)?.votes || 0;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => void handleVote(option)}
+                    disabled={Boolean(hub?.poll.userVote) || loadingVote}
+                    className={`rounded-xl border px-4 py-3 text-left transition-all ${
+                      active
+                        ? 'border-amber-500/40 bg-amber-500/10 text-amber-400'
+                        : 'border-white/8 bg-white/[.03] text-cream hover:border-white/15'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span>{option}</span>
+                      <span className="text-[11px] text-muted">{voteCount} oy</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="mt-3 text-[11px] text-muted">
+              Toplam oy: {totalVotes}
+              {hub?.poll.source ? ` · Kaynak: ${hub.poll.source}` : ''}
+            </p>
+            {error ? <p className="mt-2 text-[12px] text-[#f1a2a2]">{error}</p> : null}
+          </Card>
+        </div>
 
         {feed.length === 0 ? (
-          <Card className="p-4">
-            <EmptyState title={UI.emptyCommunity} subtitle={UI.emptyCommunitySub} />
+          <Card className="mt-5 p-4">
+            <EmptyState
+              title="Henüz topluluk sinyali yok"
+              subtitle="Bu koku için ilk geri bildirimi sen bırak."
+            />
           </Card>
         ) : (
-          <Card className="p-5 md:p-6 hover-lift">
+          <Card className="mt-5 p-5 md:p-6 hover-lift">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="h-px w-5 bg-amber-500/60" />
@@ -104,10 +171,6 @@ export default function AkisPage() {
                 type="button"
                 onClick={() => {
                   clearFeed();
-                  if (typeof window !== 'undefined') {
-                    window.localStorage.removeItem(VOTE_STORAGE_KEY);
-                  }
-                  setSelectedVote(null);
                   setFeed([]);
                 }}
                 className="px-2 py-1 text-xs text-white/30 transition-colors hover:text-white/60"
@@ -118,10 +181,7 @@ export default function AkisPage() {
 
             <div className="space-y-3">
               {feed.map((item) => (
-                <div
-                  key={item.id}
-                  className="mb-2 flex items-start gap-3 rounded-xl border border-white/8 bg-white/3 p-4"
-                >
+                <div key={item.id} className="mb-2 flex items-start gap-3 rounded-xl border border-white/8 bg-white/3 p-4">
                   <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-amber-500/20 bg-amber-500/15">
                     <ActivityIcon event={item.event} />
                   </div>
@@ -150,5 +210,5 @@ function ActivityIcon({ event }: { event: string }) {
     return <Sparkles className="h-3.5 w-3.5 text-amber-400" strokeWidth={1.8} />;
   }
 
-  return <Archive className="h-3.5 w-3.5 text-amber-400" strokeWidth={1.8} />;
+  return <TrendingUp className="h-3.5 w-3.5 text-amber-400" strokeWidth={1.8} />;
 }

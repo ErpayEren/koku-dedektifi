@@ -1,14 +1,17 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 import { AppShell } from '@/components/AppShell';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { AnalysisResults } from '@/components/AnalysisResults';
 import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
+import { analyzeText, lookupBarcode, readableError } from '@/lib/client/api';
+import type { AnalysisResult } from '@/lib/client/types';
 import { useProGate } from '@/hooks/useProGate';
-import { lookupBarcode, readableError } from '@/lib/client/api';
-import { UI } from '@/lib/strings';
+import { useUserStore } from '@/lib/store/userStore';
 
 interface BarcodeLookupResult {
   found: boolean;
@@ -19,144 +22,109 @@ interface BarcodeLookupResult {
   message: string;
 }
 
-interface BarcodeDetectionResult {
-  rawValue?: string;
-}
-
-interface BarcodeDetectorOptions {
-  formats?: string[];
-}
-
-interface BarcodeDetectorInstance {
-  detect: (source: ImageBitmapSource) => Promise<BarcodeDetectionResult[]>;
-}
-
-interface BarcodeDetectorConstructor {
-  new (options?: BarcodeDetectorOptions): BarcodeDetectorInstance;
-  getSupportedFormats?: () => Promise<string[]>;
-}
-
-declare global {
-  interface Window {
-    BarcodeDetector?: BarcodeDetectorConstructor;
-  }
-}
-
 export default function BarkodPage() {
   const { requirePro } = useProGate();
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const controlsRef = useRef<{ stop: () => void } | null>(null);
   const [code, setCode] = useState('');
+  const [manualName, setManualName] = useState('');
   const [loading, setLoading] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [error, setError] = useState('');
-  const [result, setResult] = useState<BarcodeLookupResult | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const detectorRef = useRef<BarcodeDetectorInstance | null>(null);
-  const timerRef = useRef<number | null>(null);
-  const scanningRef = useRef(false);
+  const [lookupResult, setLookupResult] = useState<BarcodeLookupResult | null>(null);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const { isPro, dailyLimit, dailyUsed, incrementUsage } = useUserStore((state) => ({
+    isPro: state.isPro,
+    dailyLimit: state.dailyLimit,
+    dailyUsed: state.dailyUsed,
+    incrementUsage: state.incrementUsage,
+  }));
 
   useEffect(() => {
-    return () => {
-      stopCamera();
-    };
+    return () => stopCamera();
   }, []);
 
   function stopCamera(): void {
-    if (timerRef.current !== null) {
-      window.clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-
-    scanningRef.current = false;
+    controlsRef.current?.stop();
+    controlsRef.current = null;
     setCameraOpen(false);
   }
 
+  async function runAnalyzeByName(name: string): Promise<void> {
+    if (dailyLimit !== Number.POSITIVE_INFINITY && dailyUsed >= dailyLimit) {
+      requirePro('Sınırsız günlük analiz');
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setError('');
+    try {
+      const result = await analyzeText(name, isPro);
+      setAnalysis(result);
+      incrementUsage();
+    } catch (errorValue) {
+      setError(readableError(errorValue));
+      setAnalysis(null);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }
+
   async function runLookup(nextCode?: string): Promise<void> {
-    if (!requirePro('Barkod arama')) return;
     const finalCode = (nextCode || code).replace(/[^0-9]/g, '');
     if (finalCode.length < 8) return;
 
     setLoading(true);
     setError('');
+    setLookupResult(null);
+    setAnalysis(null);
 
     try {
       const response = await lookupBarcode(finalCode);
       setCode(finalCode);
-      setResult(response);
+      setLookupResult(response);
+
+      if (response.found && response.perfume) {
+        await runAnalyzeByName(response.perfume);
+      } else {
+        setManualName('');
+      }
     } catch (lookupError) {
       setError(readableError(lookupError));
-      setResult(null);
+      setLookupResult(null);
     } finally {
       setLoading(false);
     }
   }
 
   async function startCamera(): Promise<void> {
-    if (!requirePro('Barkod kamerası')) return;
     setCameraError('');
     setError('');
 
-    const Detector = window.BarcodeDetector;
-    if (!Detector) {
-      setCameraError('Kameranız bu tarayıcıda desteklenmiyor.');
-      return;
-    }
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraError('Kameranız bu tarayıcıda desteklenmiyor.');
+    if (!navigator.mediaDevices?.getUserMedia || !videoRef.current) {
+      setCameraError('Kamera bu tarayıcıda desteklenmiyor.');
       return;
     }
 
     try {
-      const supportedFormats = (await Detector.getSupportedFormats?.().catch(() => [])) || [];
-      const preferredFormats = ['ean_13', 'ean_8', 'code_128', 'qr_code'];
-      const formats = supportedFormats.length
-        ? preferredFormats.filter((format) => supportedFormats.includes(format))
-        : preferredFormats;
-
-      detectorRef.current = new Detector(formats.length ? { formats } : undefined);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment',
-        },
-      });
-
-      streamRef.current = stream;
+      const reader = new BrowserMultiFormatReader();
+      readerRef.current = reader;
       setCameraOpen(true);
+      const controls = await reader.decodeFromVideoDevice(undefined, videoRef.current, (result, scanError) => {
+        if (result?.getText()) {
+          stopCamera();
+          void runLookup(result.getText());
+          return;
+        }
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => null);
-      }
-
-      timerRef.current = window.setInterval(() => {
-        if (scanningRef.current || !videoRef.current || !detectorRef.current) return;
-        if (videoRef.current.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
-
-        scanningRef.current = true;
-        void detectorRef.current
-          .detect(videoRef.current)
-          .then(async (detections) => {
-            const rawValue = detections.find((item) => typeof item.rawValue === 'string' && item.rawValue.trim())?.rawValue?.trim();
-            if (!rawValue) return;
-
-            stopCamera();
-            await runLookup(rawValue);
-          })
-          .catch(() => null)
-          .finally(() => {
-            scanningRef.current = false;
-          });
-      }, 500);
+        if (scanError && !String(scanError).includes('NotFoundException')) {
+          setCameraError(readableError(scanError));
+        }
+      });
+      controlsRef.current = controls;
     } catch (mediaError) {
       stopCamera();
       setCameraError(readableError(mediaError));
@@ -166,12 +134,12 @@ export default function BarkodPage() {
   return (
     <AppShell>
       <ErrorBoundary>
-        <TopBar title={UI.barcodeScanner} />
+        <TopBar title="Barkod Tara" />
         <div className="px-5 py-8 md:px-12">
-          <div className="mx-auto grid max-w-[940px] grid-cols-1 gap-5 md:grid-cols-[380px_1fr]">
+          <div className="mx-auto grid max-w-[1120px] grid-cols-1 gap-5 lg:grid-cols-[380px_1fr]">
             <Card className="h-fit p-5 md:p-6 hover-lift">
-              <CardTitle>{UI.barcodeScanner}</CardTitle>
-              <label className="mb-1.5 block text-[11px] text-muted">{UI.barcodeManual}</label>
+              <CardTitle>Barkod Tara</CardTitle>
+              <label className="mb-1.5 block text-[11px] text-muted">Barkod (manuel)</label>
               <input
                 value={code}
                 onChange={(event) => setCode(event.target.value.replace(/[^0-9]/g, ''))}
@@ -191,7 +159,7 @@ export default function BarkodPage() {
                       : 'bg-gold text-bg hover:bg-[#d8b676]'
                   }`}
                 >
-                  {loading ? 'Sorgulanıyor...' : UI.barcodeSearch}
+                  {loading ? 'Sorgulanıyor...' : 'Barkodu ara'}
                 </button>
 
                 <button
@@ -199,7 +167,7 @@ export default function BarkodPage() {
                   onClick={() => void (cameraOpen ? Promise.resolve(stopCamera()) : startCamera())}
                   className="flex-1 rounded-xl border border-[var(--gold-line)] bg-[var(--gold-dim)] px-4 py-3 text-[11px] font-mono uppercase tracking-[.1em] text-gold transition-colors hover:bg-gold hover:text-bg"
                 >
-                  {cameraOpen ? 'Kamerayı Kapat' : 'Kamerayı Aç'}
+                  {cameraOpen ? 'Kamerayı kapat' : 'Kamerayı aç'}
                 </button>
               </div>
 
@@ -211,22 +179,46 @@ export default function BarkodPage() {
                   <video ref={videoRef} className="aspect-[4/3] w-full object-cover" muted playsInline />
                 </div>
               ) : null}
+
+              {lookupResult && !lookupResult.found ? (
+                <div className="mt-5 rounded-[20px] border border-white/[.08] bg-white/[.03] p-4">
+                  <p className="text-[13px] leading-relaxed text-cream/82">{lookupResult.message}</p>
+                  <input
+                    value={manualName}
+                    onChange={(event) => setManualName(event.target.value)}
+                    className="mt-4 w-full rounded-xl border border-white/[.08] bg-transparent p-3 text-cream outline-none focus:border-[var(--gold-line)]"
+                    placeholder="Parfüm adını manuel gir"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void runAnalyzeByName(manualName.trim())}
+                    disabled={!manualName.trim() || isAnalyzing}
+                    className={`mt-3 w-full rounded-xl py-3 text-[11px] font-mono uppercase tracking-[.1em] transition-colors ${
+                      !manualName.trim() || isAnalyzing
+                        ? 'border border-white/[.08] bg-white/[.06] text-muted'
+                        : 'bg-gold text-bg hover:bg-[#d8b676]'
+                    }`}
+                  >
+                    {isAnalyzing ? 'Analiz ediliyor...' : 'Manuel isimle analiz et'}
+                  </button>
+                </div>
+              ) : null}
             </Card>
 
             <Card className="p-5 md:p-6 hover-lift">
               <CardTitle>Barkod Sonucu</CardTitle>
-              {!result ? (
+              {!lookupResult ? (
                 <p className="text-[13px] text-muted">
-                  Barkod araması tamamlandığında eşleşen parfüm, aile ve kullanım çerçevesi burada görünür.
+                  Barkod araması tamamlandığında eşleşen parfüm bulunursa analiz otomatik başlar. Bulunamazsa manuel girişe yönlendirilirsin.
                 </p>
-              ) : result.found ? (
-                <div className="anim-up">
-                  <p className="text-[2rem] font-semibold leading-[1.05] text-cream">{result.perfume}</p>
+              ) : lookupResult.found ? (
+                <div>
+                  <p className="text-[2rem] font-semibold leading-[1.05] text-cream">{lookupResult.perfume}</p>
                   <p className="mt-2 text-[12px] text-muted">
-                    {result.family || 'Aromatik'} · {result.occasion || 'Genel kullanım'}
+                    {lookupResult.family || 'Aromatik'} · {lookupResult.occasion || 'Genel kullanım'}
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {result.season.map((season) => (
+                    {lookupResult.season.map((season) => (
                       <span
                         key={season}
                         className="rounded-full border border-white/[.08] px-2.5 py-1 text-[10px] font-mono uppercase tracking-[.08em] text-muted"
@@ -237,11 +229,19 @@ export default function BarkodPage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-[13px] text-muted">{result.message || 'Bu barkod katalogda bulunamadı.'}</p>
+                <p className="text-[13px] text-muted">{lookupResult.message}</p>
               )}
             </Card>
           </div>
         </div>
+
+        {analysis || isAnalyzing ? (
+          <AnalysisResults
+            result={analysis}
+            isAnalyzing={isAnalyzing}
+            onAnalyzeSimilar={(name) => void runAnalyzeByName(name)}
+          />
+        ) : null}
       </ErrorBoundary>
     </AppShell>
   );

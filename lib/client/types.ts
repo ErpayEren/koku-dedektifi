@@ -114,10 +114,17 @@ export interface AnalysisResult {
 
 export interface FinderCandidate {
   name: string;
+  brand?: string;
   family: string;
   score: number;
   sweetness: number;
   includeMatches: string[];
+  excludeMatches?: string[];
+  season?: string[];
+  occasion?: string;
+  priceBand?: string;
+  reason?: string;
+  sweetnessDistance?: number | null;
 }
 
 export interface FeedItem {
@@ -131,9 +138,13 @@ export interface FeedItem {
 export interface WardrobeItem {
   key: string;
   name: string;
+  brand?: string;
   family: string;
   status: 'wishlist' | 'owned' | 'tested' | 'rebuy' | 'skip';
   favorite: boolean;
+  rating?: number;
+  notes?: string;
+  iconToken?: string;
   tags: string[];
   updatedAt: string;
   analysis: AnalysisResult | null;

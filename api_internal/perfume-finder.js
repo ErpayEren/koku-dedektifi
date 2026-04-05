@@ -200,8 +200,20 @@ function mapCandidate(perfume, scored) {
   const includeMatchCount = Array.isArray(scored?.includeMatches) ? scored.includeMatches.length : 0;
   const distancePenalty = Number.isFinite(Number(sweetnessDistance)) ? (Number(sweetnessDistance) * 0.22) : 0;
   const weightedScore = (Number(scored?.score || 0) * 100) + (includeMatchCount * 2.6) - distancePenalty;
+  const reasonParts = [];
+  if (Array.isArray(scored?.includeMatches) && scored.includeMatches.length > 0) {
+    reasonParts.push(`Dahil notalarla örtüşüyor: ${scored.includeMatches.slice(0, 3).join(', ')}`);
+  }
+  if (cleanString(perfume.family)) {
+    reasonParts.push(`Aile: ${perfume.family}`);
+  }
+  if (cleanString(perfume.occasion)) {
+    reasonParts.push(`Kullanım: ${perfume.occasion}`);
+  }
+
   return {
     name: perfume.canonicalName,
+    brand: cleanString(perfume.brand || ''),
     family: perfume.family,
     season: perfume.season,
     occasion: perfume.occasion,
@@ -211,6 +223,7 @@ function mapCandidate(perfume, scored) {
     sweetness: scored.sweetness,
     sweetnessDistance,
     score: Math.max(0, Math.min(100, Math.round(weightedScore))),
+    reason: reasonParts.join(' • '),
   };
 }
 

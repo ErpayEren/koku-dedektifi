@@ -25,6 +25,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.100.1",
     "@upstash/redis": "^1.37.0",
+    "@zxing/browser": "^0.1.5",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
     "html-to-image": "^1.11.11",

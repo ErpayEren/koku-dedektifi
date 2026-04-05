@@ -49,6 +49,10 @@
       "destination": "/api/ops?r=analyses"
     },
     {
+      "source": "/api/community-hub",
+      "destination": "/api/ops?r=community-hub"
+    },
+    {
       "source": "/api/feed-health",
       "destination": "/api/ops?r=feed-health"
     },
@@ -65,7 +69,19 @@
       "destination": "/api/labs?r=layering-lab"
     },
     {
+      "source": "/api/layering",
+      "destination": "/api/labs?r=layering-lab"
+    },
+    {
+      "source": "/api/notalar",
+      "destination": "/api/labs?r=perfume-finder"
+    },
+    {
       "source": "/api/barcode-lookup",
+      "destination": "/api/labs?r=barcode-lookup"
+    },
+    {
+      "source": "/api/barcode",
       "destination": "/api/labs?r=barcode-lookup"
     }
   ],

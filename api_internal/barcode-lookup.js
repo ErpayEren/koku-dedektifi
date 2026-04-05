@@ -1,6 +1,5 @@
 const { matchKnownPerfume } = require('../lib/server/perfume-knowledge');
 const { cleanString, setCorsHeaders, setSecurityHeaders } = require('../lib/server/config');
-const { requirePlan } = require('../lib/server/plan-guard');
 
 const BARCODE_MAP = {
   '3348901520196': 'Dior Sauvage Eau de Parfum',
@@ -42,16 +41,10 @@ async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (!['GET', 'POST'].includes(req.method)) return res.status(405).json({ error: 'Method not allowed' });
 
-  try {
-    await requirePlan(req, 'pro');
-  } catch (error) {
-    return res.status(error?.statusCode || 403).json(error?.body || { error: 'Pro plan gerekli.', upgrade: '/paketler' });
-  }
-
   const source = req.method === 'GET' ? req.query : parseBody(req) || {};
   const code = normalizeBarcode(source?.code || source?.barcode || '');
   if (!code || code.length < 8) {
-    return res.status(400).json({ error: 'Geçerli barcode gerekli' });
+    return res.status(400).json({ error: 'Geçerli barkod gerekli.' });
   }
 
   const match = lookupBarcode(code);
@@ -61,7 +54,7 @@ async function handler(req, res) {
       found: false,
       code,
       suggestion: '',
-      message: 'Barcode katalogda yok, manuel aramaya geç.',
+      message: 'Bu barkod veritabanında yok. Parfüm adını manuel girerek analize devam edebilirsin.',
     });
   }
 

@@ -101,9 +101,12 @@ export async function runFinder(input: {
   excludeNotes: string[];
   maxSweetness: number;
   targetSweetness: number;
+  family?: string;
+  season?: string;
+  occasion?: string;
   limit?: number;
 }): Promise<FinderCandidate[]> {
-  const data = await jsonRequest<{ candidates?: FinderCandidate[] }>('/api/labs?r=perfume-finder', {
+  const data = await jsonRequest<{ candidates?: FinderCandidate[] }>('/api/notalar', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -111,6 +114,9 @@ export async function runFinder(input: {
       excludeNotes: input.excludeNotes,
       maxSweetness: input.maxSweetness,
       targetSweetness: input.targetSweetness,
+      family: input.family,
+      season: input.season,
+      occasion: input.occasion,
       limit: input.limit ?? 10,
     }),
   });
@@ -142,7 +148,7 @@ export async function runLayering(input: {
   const data = await jsonRequest<{
     result?: unknown;
     blend?: { compatibility?: number; sharedNotes?: string[] };
-  }>('/api/labs?r=layering-lab', {
+  }>('/api/layering', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ left: input.left, right: input.right }),
@@ -176,7 +182,7 @@ export async function lookupBarcode(code: string): Promise<{
     occasion?: string;
     season?: string[];
     message?: string;
-  }>('/api/labs?r=barcode-lookup', {
+  }>('/api/barcode', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code }),

@@ -1,58 +1,83 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useProGate } from '@/hooks/useProGate';
-import { getWardrobe, removeWardrobe, setWardrobe } from '@/lib/client/storage';
+import { syncWardrobeFromRemote, pushWardrobeToRemote } from '@/lib/client/wardrobe';
 import { useUserStore } from '@/lib/store/userStore';
 import type { WardrobeItem } from '@/lib/client/types';
-import { UI } from '@/lib/strings';
 
 type StatusFilter = 'all' | WardrobeItem['status'];
 
 function statusLabel(value: WardrobeItem['status']): string {
-  if (value === 'owned') return UI.wardrobeOwned;
-  if (value === 'wishlist') return UI.wardrobeWishlist;
-  if (value === 'tested') return UI.wardrobeTried;
-  if (value === 'rebuy') return UI.wardrobeBuyAgain;
-  return UI.wardrobeSkip;
+  if (value === 'owned') return 'Sahibim';
+  if (value === 'wishlist') return 'Wishlist';
+  if (value === 'tested') return 'Denedim';
+  if (value === 'rebuy') return 'Tekrar Alırım';
+  return 'Geçti';
 }
 
 export default function DolapPage() {
+  const router = useRouter();
   const { requirePro } = useProGate();
-  const { isPro, wardrobeLimit } = useUserStore((state) => ({
+  const { isPro, wardrobeLimit, setWardrobeCount } = useUserStore((state) => ({
     isPro: state.isPro,
     wardrobeLimit: state.wardrobeLimit,
+    setWardrobeCount: state.setWardrobeCount,
   }));
-  const [items, setItems] = useState<WardrobeItem[]>(() => getWardrobe());
+  const [items, setItems] = useState<WardrobeItem[]>([]);
   const [filter, setFilter] = useState<StatusFilter>('all');
+  const [savingKey, setSavingKey] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    void (async () => {
+      const rows = await syncWardrobeFromRemote();
+      setItems(rows);
+      setWardrobeCount(rows.length);
+    })();
+  }, [setWardrobeCount]);
 
   const rows = useMemo(
     () => (filter === 'all' ? items : items.filter((item) => item.status === filter)),
     [filter, items],
   );
 
-  function toggleFavorite(key: string): void {
-    const next = items.map((item) => (item.key === key ? { ...item, favorite: !item.favorite } : item));
-    setItems(next);
-    setWardrobe(next);
+  async function updateRows(nextRows: WardrobeItem[], focusKey?: string): Promise<void> {
+    setItems(nextRows);
+    setWardrobeCount(nextRows.length);
+    setSavingKey(focusKey || '');
+    setError('');
+    try {
+      await pushWardrobeToRemote(nextRows);
+    } catch {
+      setError('Dolap değişiklikleri yerelde kaydedildi, sunucu senkronu biraz gecikti.');
+    } finally {
+      setSavingKey('');
+    }
+  }
+
+  function changeItem(key: string, patch: Partial<WardrobeItem>) {
+    const nextRows = items.map((item) => (item.key === key ? { ...item, ...patch, updatedAt: new Date().toISOString() } : item));
+    void updateRows(nextRows, key);
   }
 
   function removeItem(key: string): void {
-    removeWardrobe(key);
-    setItems(getWardrobe());
+    const nextRows = items.filter((item) => item.key !== key);
+    void updateRows(nextRows, key);
   }
 
   return (
     <AppShell>
       <ErrorBoundary>
-        <TopBar title={UI.wardrobe} />
+        <TopBar title="Koku Dolabım" />
         <div className="px-5 py-8 md:px-12">
-          <div className="mb-5 flex items-center justify-between gap-3">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-2">
               {(['all', 'owned', 'wishlist', 'tested', 'rebuy', 'skip'] as StatusFilter[]).map((status) => (
                 <button
@@ -65,7 +90,7 @@ export default function DolapPage() {
                       : 'border-white/[.08] text-muted hover:text-cream'
                   }`}
                 >
-                  {status === 'all' ? UI.wardrobeAll : statusLabel(status as WardrobeItem['status'])}
+                  {status === 'all' ? 'Tümü' : statusLabel(status as WardrobeItem['status'])}
                 </button>
               ))}
             </div>
@@ -84,49 +109,100 @@ export default function DolapPage() {
             </div>
           </div>
 
+          {error ? <p className="mb-4 text-[12px] text-[#f1a2a2]">{error}</p> : null}
+
           {rows.length === 0 ? (
             <Card className="p-4">
-              <EmptyState title={UI.emptyWardrobe} subtitle={UI.emptyWardrobeSub} />
+              <EmptyState
+                title="Dolabın henüz boş"
+                subtitle="Analiz yaptıkça parfümlerini buraya ekleyebilirsin."
+              />
             </Card>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
               {rows.map((item) => (
                 <Card key={item.key} className="hover-lift p-4">
-                  <p className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">
-                    {item.family || 'Koku Profili'}
-                  </p>
-                  <p className="mt-3 text-[1.6rem] font-semibold leading-[1.08] text-cream">{item.name}</p>
-                  <p className="mt-1 text-[11px] text-muted">
-                    {statusLabel(item.status)} · {new Date(item.updatedAt).toLocaleDateString('tr-TR')}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {item.tags.map((tag) => (
-                      <span
-                        key={`${item.key}-${tag}`}
-                        className="rounded-full border border-white/[.08] px-2 py-1 text-[10px] text-muted"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="mt-4 flex items-center gap-2 border-t border-white/[.06] pt-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">{item.family || 'Koku profili'}</p>
+                      <p className="mt-2 text-[1.45rem] font-semibold leading-[1.08] text-cream">{item.name}</p>
+                      {item.brand ? <p className="mt-1 text-[12px] text-muted">{item.brand}</p> : null}
+                    </div>
                     <button
                       type="button"
-                      onClick={() => toggleFavorite(item.key)}
-                      className={`rounded-lg border px-3 py-2 text-[11px] transition-colors ${
+                      onClick={() => changeItem(item.key, { favorite: !item.favorite })}
+                      className={`rounded-full border px-3 py-1.5 text-[10px] font-mono uppercase tracking-[.08em] ${
                         item.favorite
                           ? 'border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold'
-                          : 'border-white/[.08] text-muted hover:text-cream'
+                          : 'border-white/[.08] text-muted'
                       }`}
                     >
-                      {item.favorite ? 'Favori' : 'Favoriye ekle'}
+                      {item.favorite ? 'Favori' : 'Favorile'}
+                    </button>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1.5 block text-[10px] font-mono uppercase tracking-[.12em] text-muted">Kategori</label>
+                      <select
+                        value={item.status}
+                        onChange={(event) => changeItem(item.key, { status: event.target.value as WardrobeItem['status'] })}
+                        className="w-full rounded-xl border border-white/[.08] bg-[#15131a] p-3 text-sm text-cream outline-none focus:border-[var(--gold-line)]"
+                      >
+                        <option value="owned">Sahibim</option>
+                        <option value="wishlist">Wishlist</option>
+                        <option value="tested">Denedim</option>
+                        <option value="rebuy">Tekrar Alırım</option>
+                        <option value="skip">Geçti</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-1.5 block text-[10px] font-mono uppercase tracking-[.12em] text-muted">Puan</label>
+                      <div className="flex items-center gap-1 rounded-xl border border-white/[.08] bg-[#15131a] px-3 py-3">
+                        {Array.from({ length: 5 }).map((_, index) => {
+                          const filled = (item.rating || 0) >= index + 1;
+                          return (
+                            <button
+                              key={`${item.key}-star-${index}`}
+                              type="button"
+                              onClick={() => changeItem(item.key, { rating: index + 1 })}
+                              className={`text-lg leading-none ${filled ? 'text-gold' : 'text-white/18'}`}
+                            >
+                              ★
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <label className="mb-1.5 block text-[10px] font-mono uppercase tracking-[.12em] text-muted">Notlar</label>
+                    <textarea
+                      value={item.notes || ''}
+                      onChange={(event) => changeItem(item.key, { notes: event.target.value })}
+                      rows={3}
+                      className="w-full rounded-xl border border-white/[.08] bg-transparent p-3 text-sm text-cream outline-none focus:border-[var(--gold-line)]"
+                      placeholder="Kalıcılık, imza hissi, tekrar alma notları..."
+                    />
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2 border-t border-white/[.06] pt-3">
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/?mode=text&q=${encodeURIComponent(item.brand ? `${item.brand} ${item.name}` : item.name)}`)}
+                      className="rounded-lg border border-[var(--gold-line)] bg-[var(--gold-dim)]/15 px-3 py-2 text-[11px] text-gold transition-colors hover:bg-[var(--gold-dim)]/35"
+                    >
+                      Analiz Et
                     </button>
                     <button
                       type="button"
                       onClick={() => removeItem(item.key)}
+                      disabled={savingKey === item.key}
                       className="rounded-lg border border-white/[.08] px-3 py-2 text-[11px] text-muted transition-colors hover:text-cream"
                     >
-                      Kaldır
+                      {savingKey === item.key ? 'Kaydediliyor...' : 'Kaldır'}
                     </button>
                   </div>
                 </Card>

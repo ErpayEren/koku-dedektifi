@@ -2,6 +2,7 @@ const { cleanString } = require('../lib/server/supabase-config');
 
 const routeMap = {
   health: () => require('../api_internal/health'),
+  'schema-health': () => require('../api_internal/schema-health'),
   'catalog-health': () => require('../api_internal/catalog-health'),
   'catalog-seed': () => require('../api_internal/catalog-seed'),
   'weekly-molecule': () => require('../api_internal/weekly-molecule'),

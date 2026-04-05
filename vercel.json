@@ -13,6 +13,10 @@
       "destination": "/api/ops?r=health"
     },
     {
+      "source": "/api/schema-health",
+      "destination": "/api/ops?r=schema-health"
+    },
+    {
       "source": "/api/client-config",
       "destination": "/api/ops?r=client-config"
     },

@@ -17,151 +17,20 @@ create index if not exists users_email_idx
 create index if not exists users_is_pro_idx
   on public.users (is_pro);
 
-create or replace function public.sync_users_from_app_users()
-returns trigger
-language plpgsql
-as $$
-declare
-  resolved_is_pro boolean;
-  resolved_pro_activated_at timestamptz;
-begin
-  if tg_op = 'DELETE' then
-    delete from public.users where id = old.id;
-    return old;
-  end if;
-
-  resolved_is_pro := coalesce(
-    new.is_pro,
-    case
-      when lower(coalesce(new.profile_json ->> 'isPro', '')) in ('1', 'true', 'yes', 'on') then true
-      when lower(coalesce(new.profile_json ->> 'isPro', '')) in ('0', 'false', 'no', 'off') then false
-      else false
-    end
-  );
-
-  resolved_pro_activated_at := coalesce(
-    new.pro_activated_at,
-    case
-      when nullif(new.profile_json ->> 'proActivatedAt', '') is not null
-        then (new.profile_json ->> 'proActivatedAt')::timestamptz
-      else null
-    end
-  );
-
-  insert into public.users (
-    id,
-    email,
-    is_pro,
-    pro_activated_at,
-    created_at,
-    updated_at
-  )
-  values (
-    new.id,
-    new.email,
-    resolved_is_pro,
-    resolved_pro_activated_at,
-    coalesce(new.created_at, now()),
-    coalesce(new.updated_at, now())
-  )
-  on conflict (id) do update
-  set email = excluded.email,
-      is_pro = excluded.is_pro,
-      pro_activated_at = excluded.pro_activated_at,
-      created_at = excluded.created_at,
-      updated_at = excluded.updated_at;
-
-  return new;
-end;
-$$;
-
 do $$
 begin
   if exists (
     select 1
-    from information_schema.tables
+    from information_schema.table_constraints
     where table_schema = 'public'
-      and table_name = 'app_users'
+      and table_name = 'users'
+      and constraint_name = 'users_app_users_fk'
   ) then
-    insert into public.users (
-      id,
-      email,
-      is_pro,
-      pro_activated_at,
-      created_at,
-      updated_at
-    )
-    select
-      au.id,
-      au.email,
-      coalesce(
-        au.is_pro,
-        case
-          when lower(coalesce(au.profile_json ->> 'isPro', '')) in ('1', 'true', 'yes', 'on') then true
-          when lower(coalesce(au.profile_json ->> 'isPro', '')) in ('0', 'false', 'no', 'off') then false
-          else false
-        end
-      ),
-      coalesce(
-        au.pro_activated_at,
-        case
-          when nullif(au.profile_json ->> 'proActivatedAt', '') is not null
-            then (au.profile_json ->> 'proActivatedAt')::timestamptz
-          else null
-        end
-      ),
-      coalesce(au.created_at, now()),
-      coalesce(au.updated_at, now())
-    from public.app_users au
-    on conflict (id) do update
-    set email = excluded.email,
-        is_pro = excluded.is_pro,
-        pro_activated_at = excluded.pro_activated_at,
-        created_at = excluded.created_at,
-        updated_at = excluded.updated_at;
+    alter table public.users
+      drop constraint users_app_users_fk;
   end if;
-end $$;
-
-insert into public.users (
-  id,
-  email,
-  is_pro,
-  pro_activated_at,
-  created_at,
-  updated_at
-)
-select distinct
-  analyses_seed.app_user_id,
-  null,
-  false,
-  null,
-  coalesce(analyses_seed.created_at, now()),
-  coalesce(analyses_seed.created_at, now())
-from public.analyses analyses_seed
-where nullif(analyses_seed.scene_data ->> 'app_user_id', '') is not null
-  and not exists (
-    select 1
-    from public.users users_seed
-    where users_seed.id = analyses_seed.scene_data ->> 'app_user_id'
-  )
-on conflict (id) do nothing;
-
-do $$
-begin
-  if exists (
-    select 1
-    from information_schema.tables
-    where table_schema = 'public'
-      and table_name = 'app_users'
-  ) and not exists (
-    select 1
-    from pg_trigger
-    where tgname = 'app_users_sync_public_users'
-  ) then
-    create trigger app_users_sync_public_users
-      after insert or update or delete on public.app_users
-      for each row execute function public.sync_users_from_app_users();
-  end if;
+exception
+  when undefined_object then null;
 end $$;
 
 alter table if exists public.analyses
@@ -170,18 +39,52 @@ alter table if exists public.analyses
   add column if not exists result_json jsonb default '{}'::jsonb,
   add column if not exists app_user_id text;
 
-do $$
-begin
-  update public.analyses
-  set input_text = coalesce(input_text, input_data),
-      input_mode = coalesce(input_mode, input_type),
-      result_json = coalesce(result_json, scene_data -> 'result_json', '{}'::jsonb),
-      app_user_id = coalesce(app_user_id, scene_data ->> 'app_user_id')
-  where input_text is null
-     or input_mode is null
-     or result_json is null
-     or app_user_id is null;
-end $$;
+insert into public.users (
+  id,
+  email,
+  is_pro,
+  pro_activated_at,
+  created_at,
+  updated_at
+)
+select
+  au.id,
+  au.email,
+  coalesce(
+    au.is_pro,
+    case
+      when lower(coalesce(au.profile_json ->> 'isPro', '')) in ('1', 'true', 'yes', 'on') then true
+      when lower(coalesce(au.profile_json ->> 'isPro', '')) in ('0', 'false', 'no', 'off') then false
+      else false
+    end
+  ),
+  coalesce(
+    au.pro_activated_at,
+    case
+      when nullif(au.profile_json ->> 'proActivatedAt', '') is not null
+        then (au.profile_json ->> 'proActivatedAt')::timestamptz
+      else null
+    end
+  ),
+  coalesce(au.created_at, now()),
+  coalesce(au.updated_at, now())
+from public.app_users au
+on conflict (id) do update
+set email = excluded.email,
+    is_pro = excluded.is_pro,
+    pro_activated_at = excluded.pro_activated_at,
+    created_at = excluded.created_at,
+    updated_at = excluded.updated_at;
+
+update public.analyses
+set input_text = coalesce(input_text, input_data),
+    input_mode = coalesce(input_mode, input_type),
+    result_json = coalesce(result_json, scene_data -> 'result_json', '{}'::jsonb),
+    app_user_id = coalesce(app_user_id, scene_data ->> 'app_user_id')
+where input_text is null
+   or input_mode is null
+   or result_json is null
+   or app_user_id is null;
 
 insert into public.users (
   id,
@@ -192,29 +95,24 @@ insert into public.users (
   updated_at
 )
 select distinct
-  nullif(analyses_seed.app_user_id, ''),
+  nullif(a.app_user_id, ''),
   null,
   false,
   null,
-  coalesce(analyses_seed.created_at, now()),
-  coalesce(analyses_seed.created_at, now())
-from public.analyses analyses_seed
-where nullif(analyses_seed.app_user_id, '') is not null
+  coalesce(a.created_at, now()),
+  coalesce(a.created_at, now())
+from public.analyses a
+where nullif(a.app_user_id, '') is not null
   and not exists (
     select 1
-    from public.users users_seed
-    where users_seed.id = analyses_seed.app_user_id
+    from public.users u
+    where u.id = a.app_user_id
   )
 on conflict (id) do nothing;
 
 do $$
 begin
-  if exists (
-    select 1
-    from information_schema.tables
-    where table_schema = 'public'
-      and table_name = 'analyses'
-  ) and not exists (
+  if not exists (
     select 1
     from information_schema.table_constraints
     where table_schema = 'public'
@@ -232,48 +130,6 @@ end $$;
 
 create index if not exists idx_analyses_app_user_id
   on public.analyses (app_user_id);
-
-create index if not exists idx_analyses_input_mode
-  on public.analyses (input_mode);
-
-create or replace function public.sync_analysis_shadow_columns()
-returns trigger
-language plpgsql
-as $$
-begin
-  new.input_text := coalesce(new.input_text, new.input_data);
-  new.input_mode := coalesce(new.input_mode, new.input_type);
-
-  if new.result_json is null and new.scene_data is not null and jsonb_typeof(new.scene_data) = 'object' then
-    new.result_json := coalesce(new.scene_data -> 'result_json', '{}'::jsonb);
-  end if;
-
-  if coalesce(new.app_user_id, '') = '' and new.scene_data is not null and jsonb_typeof(new.scene_data) = 'object' then
-    new.app_user_id := new.scene_data ->> 'app_user_id';
-  end if;
-
-  new.result_json := coalesce(new.result_json, '{}'::jsonb);
-  return new;
-end;
-$$;
-
-do $$
-begin
-  if exists (
-    select 1
-    from information_schema.tables
-    where table_schema = 'public'
-      and table_name = 'analyses'
-  ) and not exists (
-    select 1
-    from pg_trigger
-    where tgname = 'analyses_sync_shadow_columns'
-  ) then
-    create trigger analyses_sync_shadow_columns
-      before insert or update on public.analyses
-      for each row execute function public.sync_analysis_shadow_columns();
-  end if;
-end $$;
 
 create table if not exists public.wardrobe (
   id uuid primary key default gen_random_uuid(),
@@ -465,83 +321,9 @@ begin
   end if;
 end $$;
 
-create table if not exists public.community_votes (
-  id uuid primary key default gen_random_uuid(),
-  user_id text not null,
-  fragrance_name text not null,
-  perfume_name text,
-  week_key text not null,
-  vote_type text not null default 'balanced',
-  created_at timestamptz not null default now()
-);
-
-alter table public.community_votes
-  add column if not exists fragrance_name text,
-  add column if not exists perfume_name text,
-  add column if not exists vote_type text not null default 'balanced';
-
-do $$
-begin
-  if not exists (
-    select 1
-    from information_schema.table_constraints
-    where table_schema = 'public'
-      and table_name = 'community_votes'
-      and constraint_name = 'community_votes_user_fk'
-  ) then
-    alter table public.community_votes
-      add constraint community_votes_user_fk
-      foreign key (user_id) references public.users(id)
-      on delete cascade;
-  end if;
-exception
-  when duplicate_object then null;
-end $$;
-
-update public.community_votes
-set fragrance_name = coalesce(nullif(fragrance_name, ''), perfume_name),
-    perfume_name = coalesce(nullif(perfume_name, ''), fragrance_name),
-    vote_type = coalesce(nullif(vote_type, ''), 'balanced')
-where fragrance_name is null
-   or perfume_name is null
-   or vote_type is null
-   or vote_type = '';
-
-create unique index if not exists community_votes_user_week_idx
-  on public.community_votes (user_id, week_key);
-
-create index if not exists community_votes_week_fragrance_idx
-  on public.community_votes (week_key, fragrance_name);
-
-create or replace function public.sync_community_vote_columns()
-returns trigger
-language plpgsql
-as $$
-begin
-  new.fragrance_name := coalesce(nullif(new.fragrance_name, ''), new.perfume_name);
-  new.perfume_name := coalesce(nullif(new.perfume_name, ''), new.fragrance_name);
-  new.vote_type := coalesce(nullif(new.vote_type, ''), 'balanced');
-  return new;
-end;
-$$;
-
-do $$
-begin
-  if not exists (
-    select 1
-    from pg_trigger
-    where tgname = 'community_votes_sync_columns'
-  ) then
-    create trigger community_votes_sync_columns
-      before insert or update on public.community_votes
-      for each row execute function public.sync_community_vote_columns();
-  end if;
-end $$;
-
 alter table public.users enable row level security;
 alter table public.analyses enable row level security;
 alter table public.wardrobe enable row level security;
-alter table public.community_votes enable row level security;
 
 do $$
 begin
@@ -662,51 +444,5 @@ begin
       on public.wardrobe
       for delete
       using (auth.uid()::text = user_id);
-  end if;
-end $$;
-
-do $$
-begin
-  if not exists (
-    select 1 from pg_policies
-    where schemaname = 'public'
-      and tablename = 'community_votes'
-      and policyname = 'community_votes_select_self'
-  ) then
-    create policy community_votes_select_self
-      on public.community_votes
-      for select
-      using (auth.uid()::text = user_id);
-  end if;
-end $$;
-
-do $$
-begin
-  if not exists (
-    select 1 from pg_policies
-    where schemaname = 'public'
-      and tablename = 'community_votes'
-      and policyname = 'community_votes_insert_self'
-  ) then
-    create policy community_votes_insert_self
-      on public.community_votes
-      for insert
-      with check (auth.uid()::text = user_id);
-  end if;
-end $$;
-
-do $$
-begin
-  if not exists (
-    select 1 from pg_policies
-    where schemaname = 'public'
-      and tablename = 'community_votes'
-      and policyname = 'community_votes_update_self'
-  ) then
-    create policy community_votes_update_self
-      on public.community_votes
-      for update
-      using (auth.uid()::text = user_id)
-      with check (auth.uid()::text = user_id);
   end if;
 end $$;

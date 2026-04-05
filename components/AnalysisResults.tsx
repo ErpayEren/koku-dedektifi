@@ -99,6 +99,7 @@ export const AnalysisResults = memo(function AnalysisResults({
           wheelValues={model.wheelValues}
           scores={model.scores}
           intensity={model.activeResult.intensity}
+          scoreCards={model.scoreCards}
           style={model.cardMotion(4)}
         />
       </div>

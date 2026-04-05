@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
 import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { fetchAnalysisHistory } from '@/lib/client/api';
 import { clearHistory, getHistory } from '@/lib/client/storage';
 import type { AnalysisResult } from '@/lib/client/types';
 import { UI } from '@/lib/strings';
@@ -20,7 +21,29 @@ function familyBadgeClass(family: string): string {
 
 export default function GecmisPage() {
   const [rows, setRows] = useState<AnalysisResult[]>(() => getHistory());
+  const [loading, setLoading] = useState(true);
   const hasRows = rows.length > 0;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const remote = await fetchAnalysisHistory();
+        if (!cancelled && remote.length > 0) {
+          setRows(remote);
+        }
+      } catch {
+        // Giriş yoksa veya DB okunamazsa yerel geçmişte kal.
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const grouped = useMemo(() => {
     const map = new Map<string, AnalysisResult[]>();
@@ -51,7 +74,7 @@ export default function GecmisPage() {
         </div>
         {!hasRows ? (
           <Card className="p-4">
-            <EmptyState title={UI.emptyHistoryTitle} subtitle={UI.emptyHistoryBody} />
+            <EmptyState title={loading ? 'Geçmiş yükleniyor' : UI.emptyHistoryTitle} subtitle={loading ? 'Supabase analiz kayıtları kontrol ediliyor.' : UI.emptyHistoryBody} />
           </Card>
         ) : (
           <div className="space-y-6">
@@ -60,10 +83,21 @@ export default function GecmisPage() {
                 <p className="text-[11px] font-mono tracking-[.12em] uppercase text-muted mb-3">{date}</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {list.map((item) => (
-                    <Link key={item.id} href={`/?replay=${encodeURIComponent(item.id)}&mode=text`} className="no-underline">
+                    <Link
+                      key={item.id}
+                      href={`/?replay=${encodeURIComponent(item.id)}&mode=${encodeURIComponent(
+                        item.analysisMode === 'image' ? 'photo' : item.analysisMode || 'text',
+                      )}`}
+                      className="no-underline"
+                    >
                       <Card className="p-4 h-full hover-lift hover:border-[var(--gold-line)] transition-colors">
                         <p className="text-[1.5rem] font-semibold leading-[1.08] text-cream">{item.name}</p>
-                        <p className="text-[11px] text-muted mt-1">{item.description.slice(0, 92)}...</p>
+                        <p className="mt-1 text-[11px] text-muted">
+                          {[item.brand, typeof item.year === 'number' ? String(item.year) : '', item.family].filter(Boolean).join(' · ')}
+                        </p>
+                        <p className="text-[11px] text-muted mt-2">
+                          {(item.moodProfile || item.description).slice(0, 92)}...
+                        </p>
                         <div className="mt-4 flex items-center justify-between gap-3">
                           <span className={`text-[10px] px-2 py-1 rounded-full border ${familyBadgeClass(item.family)}`}>{item.family}</span>
                           <span className="text-[10px] text-muted">{item.intensity}%</span>

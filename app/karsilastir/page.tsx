@@ -9,6 +9,7 @@ import { CardTitle } from '@/components/ui/CardTitle';
 import { useProGate } from '@/hooks/useProGate';
 import { analyzeText, readableError } from '@/lib/client/api';
 import type { AnalysisResult } from '@/lib/client/types';
+import { useUserStore } from '@/lib/store/userStore';
 import { UI } from '@/lib/strings';
 
 function ScoreRow({ label, left, right }: { label: string; left: number; right: number }) {
@@ -42,6 +43,7 @@ function ResultSide({ title, row }: { title: string; row: AnalysisResult | null 
 
 export default function KarsilastirPage() {
   const { requirePro } = useProGate();
+  const isPro = useUserStore((state) => state.isPro);
   const [left, setLeft] = useState('Dior Sauvage Eau de Parfum');
   const [right, setRight] = useState('Bleu de Chanel Eau de Parfum');
   const [loading, setLoading] = useState(false);
@@ -64,7 +66,7 @@ export default function KarsilastirPage() {
     setError('');
 
     try {
-      const [leftValue, rightValue] = await Promise.all([analyzeText(left), analyzeText(right)]);
+      const [leftValue, rightValue] = await Promise.all([analyzeText(left, isPro), analyzeText(right, isPro)]);
       setLeftResult(leftValue);
       setRightResult(rightValue);
     } catch (errorValue) {

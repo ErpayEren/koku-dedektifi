@@ -31,7 +31,7 @@ const DEFAULT_SNAPSHOT: BillingEntitlementSnapshot = {
   dailyAnalysisLimit: 3,
   wardrobeLimit: 5,
   similarLimit: 3,
-  moleculeUnlockedCount: 2,
+  moleculeUnlockedCount: 1,
 };
 
 export function buildEntitlementSnapshot(tier: BillingTier, status = 'active'): BillingEntitlementSnapshot {
@@ -50,12 +50,12 @@ export function buildEntitlementSnapshot(tier: BillingTier, status = 'active'): 
   return {
     tier: 'free',
     status,
-    loaded: true,
-    dailyAnalysisLimit: 3,
-    wardrobeLimit: 5,
-    similarLimit: 3,
-    moleculeUnlockedCount: 2,
-  };
+      loaded: true,
+      dailyAnalysisLimit: 3,
+      wardrobeLimit: 5,
+      similarLimit: 3,
+      moleculeUnlockedCount: 1,
+    };
 }
 
 export function useBillingEntitlement(): BillingEntitlementSnapshot {

@@ -8,6 +8,9 @@ import type { MoleculeData } from '@/components/MoleculeCard';
 export interface SimilarItem {
   name: string;
   similarity: number;
+  brand?: string;
+  reason?: string;
+  priceRange?: string;
 }
 
 export interface MoleculeLookupRow {
@@ -103,6 +106,8 @@ export function sanitizeMolecules(value: unknown): MoleculeItem[] {
       origin: typeof row.origin === 'string' ? row.origin : '',
       note: typeof row.note === 'string' ? row.note : '',
       contribution: typeof row.contribution === 'string' ? row.contribution : '',
+      effect: typeof row.effect === 'string' ? row.effect : '',
+      percentage: typeof row.percentage === 'string' ? row.percentage : '',
       evidence: typeof row.evidence === 'string' ? row.evidence : '',
       evidenceLevel: normalizeEvidenceLevel(row.evidenceLevel ?? row.evidence_level),
       evidenceLabel:
@@ -278,7 +283,7 @@ export function toMoleculeData(
             : [];
     const linkedFragrances = catalog.linked_fragrance_names || [];
     const evidenceTone = resolveEvidenceTone(evidenceLevel);
-    const strength = relation?.percentage || parseContributionPct(item.contribution, index, molecules.length);
+    const strength = relation?.percentage || parseContributionPct(item.percentage || item.contribution, index, molecules.length);
 
     return [
       {
@@ -303,6 +308,7 @@ export function toMoleculeData(
         linkedFragrances,
         evidenceAccent: evidenceTone.accent,
         traceStrengthLabel: traceStrengthLabel(strength),
+        percentage: item.percentage || '',
       },
     ];
   });
@@ -319,6 +325,18 @@ export function buildSimilarItems(values: string[]): SimilarItem[] {
       similarity,
     };
   });
+}
+
+export function buildSimilarItemsFromRich(
+  values: Array<{ name: string; brand?: string; reason?: string; priceRange?: string }>,
+): SimilarItem[] {
+  return values.map((item, index) => ({
+    name: item.name,
+    brand: item.brand,
+    reason: item.reason,
+    priceRange: item.priceRange,
+    similarity: clampPercent(94 - index * 4, 72),
+  }));
 }
 
 export function resolveConfidence(result: AnalysisResult): number {

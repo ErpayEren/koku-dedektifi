@@ -86,7 +86,12 @@ export function OverviewPanel({
         />
         <div className="min-w-0 flex-1">
           <h2 className="text-[2rem] font-semibold leading-[1.02] text-cream md:text-[2.45rem]">{result.name}</h2>
-          <p className="mt-2 text-[11px] font-mono uppercase tracking-[.12em] text-gold">{result.family || 'Aromatik'}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-mono uppercase tracking-[.12em] text-gold/85">
+            {result.brand ? <span>{result.brand}</span> : null}
+            {typeof result.year === 'number' ? <span>{result.year}</span> : null}
+            {result.concentration ? <span>{result.concentration}</span> : null}
+            <span className="text-gold">{result.family || 'Aromatik'}</span>
+          </div>
         </div>
       </div>
 
@@ -105,7 +110,9 @@ export function OverviewPanel({
 
       <div className="mt-6 border-t border-white/[.06] pt-5">
         <CardTitle>{UI.scentDescription}</CardTitle>
-        <p className="text-[15px] leading-relaxed text-cream/95">{result.description || 'Açıklama şu an hazır değil.'}</p>
+        <p className="text-[15px] leading-relaxed text-cream/95">
+          {result.moodProfile || result.description || 'Açıklama şu an hazır değil.'}
+        </p>
         <div className="mt-4 flex flex-wrap gap-2">
           {season.map((tag) => (
             <span key={tag} className="rounded-full border border-white/[.08] px-2.5 py-1.5 text-[10px] font-mono text-muted">
@@ -117,6 +124,28 @@ export function OverviewPanel({
               {result.occasion}
             </span>
           ) : null}
+        </div>
+      </div>
+
+      {result.expertComment ? (
+        <div className="mt-5 rounded-[22px] border border-white/[.06] bg-black/10 px-5 py-4">
+          <p className="text-[10px] font-mono uppercase tracking-[.14em] text-gold">Parfümör Yorumu</p>
+          <p className="mt-3 text-[14px] leading-relaxed text-cream/90">{result.expertComment}</p>
+        </div>
+      ) : null}
+
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="rounded-[20px] border border-white/[.06] bg-white/[.02] px-4 py-4">
+          <p className="text-[10px] font-mono uppercase tracking-[.14em] text-gold">Katmanlama İpucu</p>
+          <p className="mt-2 text-[13px] leading-relaxed text-cream/84">
+            {result.layeringTip || 'Katmanlama önerisi şu an hazır değil.'}
+          </p>
+        </div>
+        <div className="rounded-[20px] border border-white/[.06] bg-white/[.02] px-4 py-4">
+          <p className="text-[10px] font-mono uppercase tracking-[.14em] text-gold">Uygulama İpucu</p>
+          <p className="mt-2 text-[13px] leading-relaxed text-cream/84">
+            {result.applicationTip || 'Uygulama önerisi şu an hazır değil.'}
+          </p>
         </div>
       </div>
 
@@ -178,7 +207,7 @@ export function DetailPanel({ result, heartNotes, style }: DetailPanelProps) {
 }
 
 interface SimilarPanelProps extends PanelMotionProps {
-  similarItems: Array<{ name: string; similarity: number }>;
+  similarItems: Array<{ name: string; similarity: number; brand?: string; reason?: string; priceRange?: string }>;
   hiddenSimilarCount: number;
   similarLimit: number;
   dupes: string[];
@@ -202,13 +231,18 @@ export function SimilarPanel({
             <button
               key={`${item.name}-${item.similarity}`}
               type="button"
-              onClick={() => onAnalyzeSimilar(item.name)}
+              onClick={() => onAnalyzeSimilar(item.brand ? `${item.brand} ${item.name}` : item.name)}
               className="similar-item w-full rounded-xl border border-white/[.08] px-3.5 py-3 text-left transition-all hover:border-[var(--gold-line)] hover:bg-[var(--gold-dim)]/45"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <span className="block truncate text-[14px] text-cream">{item.name}</span>
-                  <span className="mt-1 block text-[11px] text-muted">Bu profile göre yeniden analiz çalıştır.</span>
+                  <span className="block truncate text-[14px] text-cream">
+                    {item.brand ? `${item.brand} ${item.name}` : item.name}
+                  </span>
+                  <span className="mt-1 block text-[11px] text-muted">
+                    {item.reason || 'Bu profile göre yeniden analiz çalıştır.'}
+                  </span>
+                  {item.priceRange ? <span className="mt-1 block text-[10px] text-gold/75">{item.priceRange}</span> : null}
                 </div>
                 <SimilarityArc pct={item.similarity} />
               </div>
@@ -258,9 +292,14 @@ interface WheelPanelProps extends PanelMotionProps {
     warmth: number;
   };
   intensity: number;
+  scoreCards?: {
+    value: number;
+    uniqueness: number;
+    wearability: number;
+  } | null;
 }
 
-export function WheelPanel({ wheelValues, scores, intensity, style }: WheelPanelProps) {
+export function WheelPanel({ wheelValues, scores, intensity, scoreCards, style }: WheelPanelProps) {
   const metricRows = [
     { label: 'Tazelik', value: scores.freshness, tone: 'var(--sage)', note: scores.freshness >= 70 ? 'Canlı ve ferah' : 'Daha sakin ve yumuşak' },
     { label: 'Tatlılık', value: scores.sweetness, tone: '#d58ebb', note: scores.sweetness >= 60 ? 'Tatlı akor belirgin' : 'Tatlılık geri planda' },
@@ -301,6 +340,17 @@ export function WheelPanel({ wheelValues, scores, intensity, style }: WheelPanel
           ))}
         </div>
       </div>
+
+      {scoreCards ? (
+        <div className="mt-5 border-t border-white/[.06] pt-5">
+          <CardTitle className="mb-3">Skor Kartları</CardTitle>
+          <div className="grid grid-cols-1 gap-3">
+            <WheelMetricRail label="Değer" value={scoreCards.value * 10} tone="var(--gold)" note="Fiyat / performans dengesi" />
+            <WheelMetricRail label="Özgünlük" value={scoreCards.uniqueness * 10} tone="#9377d6" note="Karakterin ayırt ediciliği" />
+            <WheelMetricRail label="Giyilebilirlik" value={scoreCards.wearability * 10} tone="#4a86f5" note="Günlük kullanımdaki esneklik" />
+          </div>
+        </div>
+      ) : null}
     </Card>
   );
 }
@@ -455,8 +505,10 @@ export function MoleculePanel({
                             </span>
                           ) : null}
                         </div>
-                        <span className="text-[11px] font-mono text-gold">{item.traceStrengthLabel || 'Belirgin iz'}</span>
-                      </div>
+                  <span className="text-[11px] font-mono text-gold">
+                    {item.percentage || item.traceStrengthLabel || 'Belirgin iz'}
+                  </span>
+                </div>
                       <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[.08]">
                         <div
                           className="mol-bar h-full rounded-full bg-gold"
@@ -479,7 +531,7 @@ export function MoleculePanel({
                 <p className="text-[10px] font-mono uppercase tracking-[.16em] text-gold/80">Pro duvarı</p>
                 <p className="mt-2 text-[15px] font-semibold text-cream">{hiddenMoleculeCount} molekül daha gizli</p>
                 <p className="mt-2 text-[13px] leading-relaxed text-cream/78">
-                  Ücretsiz katmanda ilk iki molekül görünür. Tam molekül analizi ve detay sayfaları Pro ile açılır.
+                  Ücretsiz katmanda ilk molekül görünür. Tam molekül analizi ve detay sayfaları Pro ile açılır.
                 </p>
                 <Link
                   href="/paketler"

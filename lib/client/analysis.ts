@@ -60,6 +60,8 @@ function normalizeMolecules(value: unknown): MoleculeItem[] {
       origin: cleanText(entry.origin),
       note: cleanText(entry.note),
       contribution: cleanText(entry.contribution),
+      effect: cleanText(entry.effect),
+      percentage: cleanText(entry.percentage),
       evidence: cleanText(entry.evidence),
       evidenceLevel: parseEvidenceLevel(entry.evidence_level ?? entry.evidenceLevel),
       evidenceLabel: cleanText(entry.evidence_label ?? entry.evidenceLabel),

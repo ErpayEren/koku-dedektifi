@@ -41,6 +41,14 @@
       "destination": "/api/ops?r=weekly-molecule"
     },
     {
+      "source": "/api/analyze",
+      "destination": "/api/ops?r=analyze"
+    },
+    {
+      "source": "/api/analyses",
+      "destination": "/api/ops?r=analyses"
+    },
+    {
       "source": "/api/feed-health",
       "destination": "/api/ops?r=feed-health"
     },

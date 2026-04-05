@@ -26,6 +26,7 @@ export interface MoleculeData {
   linkedFragrances?: string[];
   evidenceAccent?: string;
   traceStrengthLabel?: string;
+  percentage?: string;
 }
 
 interface MoleculeCardProps {

@@ -1,5 +1,5 @@
 import { normalizeAnalysisPayload } from './analysis';
-import type { AnalysisResult, FinderCandidate } from './types';
+import type { AnalysisMode, AnalysisResult, FinderCandidate } from './types';
 
 export interface ApiErrorPayload {
   error?: string;
@@ -42,58 +42,58 @@ async function jsonRequest<T>(url: string, options: RequestInit): Promise<T> {
   return data as T;
 }
 
-export async function analyzeText(text: string): Promise<AnalysisResult> {
-  const payload = {
-    promptType: 'analysis',
-    messages: [{ role: 'user', content: text.trim() }],
-  };
+function normalizeDirectAnalysis(data: unknown): AnalysisResult {
+  if (!data || typeof data !== 'object') {
+    throw new Error('Analiz cevabı okunamadı.');
+  }
 
-  const data = await jsonRequest<unknown>('/api/proxy', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  const payload = data as { analysis?: AnalysisResult };
+  if (!payload.analysis || typeof payload.analysis !== 'object') {
+    throw new Error('Analiz sonucu eksik.');
+  }
 
-  return normalizeAnalysisPayload(data);
+  return payload.analysis;
 }
 
-export async function analyzeNotes(notesText: string): Promise<AnalysisResult> {
-  const prompt = `Aşağıdaki nota listesine göre analiz yap: ${notesText.trim()}`;
-  const payload = {
-    promptType: 'analysis',
-    messages: [{ role: 'user', content: prompt }],
-  };
-
-  const data = await jsonRequest<unknown>('/api/proxy', {
+async function analyze(mode: AnalysisMode, input: string, isPro: boolean, imageBase64?: string): Promise<AnalysisResult> {
+  const data = await jsonRequest<unknown>('/api/analyze', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      mode,
+      input: input.trim(),
+      imageBase64,
+      isPro,
+    }),
   });
 
-  return normalizeAnalysisPayload(data);
+  return normalizeDirectAnalysis(data);
 }
 
-export async function analyzeImage(dataUrl: string): Promise<AnalysisResult> {
-  const payload = {
-    promptType: 'analysis',
-    messages: [
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: 'Bu görseldeki kokuyu analiz et.' },
-          { type: 'image_url', image_url: { url: dataUrl } },
-        ],
-      },
-    ],
-  };
+export async function analyzeText(text: string, isPro: boolean): Promise<AnalysisResult> {
+  return analyze('text', text, isPro);
+}
 
-  const data = await jsonRequest<unknown>('/api/proxy', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+export async function analyzeNotes(notesText: string, isPro: boolean): Promise<AnalysisResult> {
+  return analyze('notes', notesText, isPro);
+}
+
+export async function analyzeImage(dataUrl: string, isPro: boolean): Promise<AnalysisResult> {
+  return analyze('image', 'Fotoğraf analizi', isPro, dataUrl);
+}
+
+export async function fetchAnalysisHistory(): Promise<AnalysisResult[]> {
+  const data = await jsonRequest<{ analyses?: AnalysisResult[] }>('/api/analyses', {
+    method: 'GET',
   });
+  return Array.isArray(data.analyses) ? data.analyses : [];
+}
 
-  return normalizeAnalysisPayload(data);
+export async function fetchAnalysisById(id: string): Promise<AnalysisResult | null> {
+  const data = await jsonRequest<{ analysis?: AnalysisResult }>(`/api/analyses?id=${encodeURIComponent(id)}`, {
+    method: 'GET',
+  });
+  return data.analysis ?? null;
 }
 
 export async function runFinder(input: {

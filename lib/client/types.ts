@@ -1,4 +1,5 @@
 export type InputMode = 'photo' | 'text' | 'notes';
+export type AnalysisMode = 'text' | 'notes' | 'image';
 export type MoleculeEvidenceLevel =
   | 'verified_component'
   | 'signature_molecule'
@@ -14,11 +15,25 @@ export interface MoleculeItem {
   origin: string;
   note: string;
   contribution: string;
+  effect?: string;
+  percentage?: string;
   evidence?: string;
   evidenceLevel?: MoleculeEvidenceLevel;
   evidenceLabel?: string;
   evidenceReason?: string;
   matchedNotes?: string[];
+}
+
+export interface SimilarFragranceItem {
+  name: string;
+  brand: string;
+  reason: string;
+  priceRange: string;
+}
+
+export interface LongevityHours {
+  min: number;
+  max: number;
 }
 
 export interface TechnicalItem {
@@ -51,22 +66,40 @@ export interface AnalysisResult {
   id: string;
   iconToken: string;
   name: string;
+  brand?: string | null;
+  year?: number | null;
   family: string;
+  concentration?: string | null;
   intensity: number;
   season: string[];
   occasion: string;
+  occasions?: string[];
   description: string;
+  moodProfile?: string;
+  expertComment?: string;
+  layeringTip?: string;
+  applicationTip?: string;
+  sillage?: 'yakın' | 'orta' | 'güçlü' | 'çok güçlü' | string;
+  longevityHours?: LongevityHours | null;
+  ageProfile?: string;
+  genderProfile?: 'Feminen' | 'Maskülen' | 'Unisex' | string;
   pyramid: {
     top: string[];
     middle: string[];
     base: string[];
   } | null;
   similar: string[];
+  similarFragrances?: SimilarFragranceItem[];
   scores: {
     freshness: number;
     sweetness: number;
     warmth: number;
   };
+  scoreCards?: {
+    value: number;
+    uniqueness: number;
+    wearability: number;
+  } | null;
   persona: PersonaInfo | null;
   dupes: string[];
   layering: LayeringInfo | null;
@@ -74,6 +107,8 @@ export interface AnalysisResult {
   technical: TechnicalItem[];
   molecules: MoleculeItem[];
   confidence?: number;
+  analysisMode?: AnalysisMode;
+  inputText?: string;
   createdAt: string;
 }
 

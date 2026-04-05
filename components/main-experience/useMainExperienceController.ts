@@ -3,7 +3,7 @@
 import type { Route } from 'next';
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ApiError, analyzeImage, analyzeNotes, analyzeText, readableError } from '@/lib/client/api';
+import { ApiError, analyzeImage, analyzeNotes, analyzeText, fetchAnalysisById, readableError } from '@/lib/client/api';
 import { FLASH_NOTICE_KEY } from '@/lib/client/useInstantProUpgrade';
 import { findHistoryById, getWardrobe, pushFeed, saveHistoryRow, upsertWardrobe } from '@/lib/client/storage';
 import type { AnalysisResult, InputMode, WardrobeItem } from '@/lib/client/types';
@@ -40,12 +40,13 @@ export function useMainExperienceController() {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const { requirePro } = useProGate();
-  const { dailyUsed, dailyLimit, wardrobeCount, wardrobeLimit, incrementUsage } = useUserStore((state) => ({
+  const { dailyUsed, dailyLimit, wardrobeCount, wardrobeLimit, incrementUsage, isPro } = useUserStore((state) => ({
     dailyUsed: state.dailyUsed,
     dailyLimit: state.dailyLimit,
     wardrobeCount: state.wardrobeCount,
     wardrobeLimit: state.wardrobeLimit,
     incrementUsage: state.incrementUsage,
+    isPro: state.isPro,
   }));
 
   const [mode, setMode] = useState<InputMode>('photo');
@@ -76,6 +77,19 @@ export function useMainExperienceController() {
         setResult(row);
         setNotice('Geçmiş analiz yüklendi.');
         setError('');
+      } else {
+        void (async () => {
+          try {
+            const remote = await fetchAnalysisById(replayId);
+            if (!remote) return;
+            saveHistoryRow(remote);
+            setResult(remote);
+            setNotice('Paylaşılan analiz yüklendi.');
+            setError('');
+          } catch (requestError) {
+            setError(readableError(requestError));
+          }
+        })();
       }
     }
 
@@ -107,11 +121,11 @@ export function useMainExperienceController() {
 
       if (mode === 'photo') {
         if (!imagePreview) throw new Error('Önce bir fotoğraf seçmelisin.');
-        analysis = await analyzeImage(imagePreview);
+        analysis = await analyzeImage(imagePreview, isPro);
       } else if (mode === 'notes') {
-        analysis = await analyzeNotes(notesValue);
+        analysis = await analyzeNotes(notesValue, isPro);
       } else {
-        analysis = await analyzeText(textValue);
+        analysis = await analyzeText(textValue, isPro);
       }
 
       setResult(analysis);
@@ -133,7 +147,7 @@ export function useMainExperienceController() {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [dailyLimit, dailyUsed, imagePreview, incrementUsage, mode, notesValue, requirePro, textValue]);
+  }, [dailyLimit, dailyUsed, imagePreview, incrementUsage, isPro, mode, notesValue, requirePro, textValue]);
 
   const onAnalyzeSimilar = useCallback(
     async (name: string): Promise<void> => {
@@ -152,7 +166,7 @@ export function useMainExperienceController() {
       setError('');
 
       try {
-        const analysis = await analyzeText(name);
+        const analysis = await analyzeText(name, isPro);
         setResult(analysis);
         saveHistoryRow(analysis);
         incrementUsage();
@@ -171,7 +185,7 @@ export function useMainExperienceController() {
         setIsAnalyzing(false);
       }
     },
-    [dailyLimit, dailyUsed, incrementUsage, requirePro, startTransition],
+    [dailyLimit, dailyUsed, incrementUsage, isPro, requirePro, startTransition],
   );
 
   const handleModeChange = useCallback(

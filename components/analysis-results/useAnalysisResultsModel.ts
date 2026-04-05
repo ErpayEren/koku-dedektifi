@@ -10,6 +10,7 @@ import {
   FAMILY_GLOW,
   type MoleculeLookupRow,
   buildSimilarItems,
+  buildSimilarItemsFromRich,
   clampPercent,
   resolveConfidence,
   resolveMetricScore,
@@ -136,7 +137,11 @@ export function useAnalysisResultsModel({ result, isAnalyzing }: UseAnalysisResu
   }, [activeResult, rawMolecules]);
 
   const season = activeResult ? toList(activeResult.season, 6) : [];
-  const allSimilarItems = activeResult ? buildSimilarItems(toList(activeResult.similar, 10)) : [];
+  const allSimilarItems = activeResult
+    ? activeResult.similarFragrances && activeResult.similarFragrances.length > 0
+      ? buildSimilarItemsFromRich(activeResult.similarFragrances)
+      : buildSimilarItems(toList(activeResult.similar, 10))
+    : [];
   const dupes = activeResult ? toList(activeResult.dupes, 8) : [];
   const allMoleculeData = activeResult ? toMoleculeData(rawMolecules, moleculeLookup, activeResult.name) : [];
   const visibleMoleculeCount = activeResult
@@ -342,5 +347,6 @@ export function useAnalysisResultsModel({ result, isAnalyzing }: UseAnalysisResu
     allMoleculeData,
     visibleMoleculeCount,
     onboardingPreferences,
+    scoreCards: activeResult?.scoreCards ?? null,
   };
 }

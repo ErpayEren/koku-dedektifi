@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Cormorant_Garamond, DM_Mono, DM_Sans } from 'next/font/google';
+import { Toaster } from 'sonner';
 import './globals.css';
 
 const cormorant = Cormorant_Garamond({
@@ -66,7 +67,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="shortcut icon" href="/favicon.svg?v=20260331" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/icon.svg?v=20260331" type="image/svg+xml" />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Toaster
+          position="top-center"
+          theme="dark"
+          richColors
+          toastOptions={{
+            style: {
+              background: 'rgba(18, 17, 24, 0.96)',
+              color: '#f7efe2',
+              border: '1px solid rgba(255,255,255,0.08)',
+            },
+          }}
+        />
+      </body>
     </html>
   );
 }

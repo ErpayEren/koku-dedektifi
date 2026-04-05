@@ -12,6 +12,7 @@ import { CardTitle } from '@/components/ui/CardTitle';
 import { authAction, readableError } from '@/lib/client/api';
 import { getWardrobe } from '@/lib/client/storage';
 import { useBillingEntitlement } from '@/lib/client/useBillingEntitlement';
+import { useToastSync } from '@/lib/client/useToastSync';
 import { useUserStore } from '@/lib/store/userStore';
 
 interface SessionUser {
@@ -58,6 +59,8 @@ export default function ProfilePageClient({
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [user, setUser] = useState<SessionUser | null>(null);
+
+  useToastSync({ error, notice });
 
   const isLoggedIn = Boolean(user);
   const isPro = Boolean(user?.isPro || isProFromStore || entitlement.tier === 'pro');

@@ -7,8 +7,10 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
+import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { useProGate } from '@/hooks/useProGate';
 import { readableError, runLayering } from '@/lib/client/api';
+import { useToastSync } from '@/lib/client/useToastSync';
 import { syncWardrobeFromRemote } from '@/lib/client/wardrobe';
 import type { AnalysisResult, WardrobeItem } from '@/lib/client/types';
 
@@ -32,6 +34,8 @@ export default function LayeringPage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [compatibility, setCompatibility] = useState(0);
   const [shared, setShared] = useState<string[]>([]);
+
+  useToastSync({ error });
 
   useEffect(() => {
     void (async () => {
@@ -115,67 +119,68 @@ export default function LayeringPage() {
               >
                 {loading ? 'Blend hazırlanıyor...' : 'Katmanlamayı analiz et'}
               </button>
-              {error ? <p className="mt-4 text-[12px] text-[#f1a2a2]">{error}</p> : null}
             </Card>
 
-            <Card className="p-5 md:p-6 hover-lift">
-              <CardTitle>Katmanlama Sonucu</CardTitle>
-              {!result ? (
-                <p className="text-[13px] text-muted">
-                  Sol ve sağ parfümü seçip analizi çalıştırdığında sonuç burada görünür.
-                </p>
-              ) : (
-                <div>
-                  <p className="text-[2rem] font-semibold leading-[1.05] text-cream">{result.name}</p>
-                  <p className="mt-2 text-[13px] leading-relaxed text-cream/82">{result.moodProfile || result.description}</p>
+            {loading ? (
+              <SkeletonCard lines={5} className="h-full" />
+            ) : (
+              <Card className="p-5 md:p-6 hover-lift">
+                <CardTitle>Katmanlama Sonucu</CardTitle>
+                {!result ? (
+                  <p className="text-[13px] text-muted">Sol ve sağ parfümü seçip analizi çalıştırdığında sonuç burada görünür.</p>
+                ) : (
+                  <div>
+                    <p className="text-[2rem] font-semibold leading-[1.05] text-cream">{result.name}</p>
+                    <p className="mt-2 text-[13px] leading-relaxed text-cream/82">{result.moodProfile || result.description}</p>
 
-                  <div className="mt-4 rounded-xl border border-white/[.08] p-3.5">
-                    <div className="mb-1.5 flex justify-between text-[11px] text-muted">
-                      <span>Uyumluluk</span>
-                      <span>{compatibility}/100</span>
-                    </div>
-                    <div className="h-[6px] overflow-hidden rounded-full bg-white/[.08]">
-                      <div
-                        className="h-full rounded-full bg-sage transition-all duration-500"
-                        style={{ width: `${Math.max(0, Math.min(100, compatibility))}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {shared.length > 0 ? (
-                    <div className="mt-4">
-                      <p className="mb-2 text-[11px] text-muted">Ortak notalar</p>
-                      <div className="flex flex-wrap gap-2">
-                        {shared.map((tag) => (
-                          <span key={tag} className="rounded-full border border-sage/30 bg-sage/10 px-2.5 py-1 text-[10px] text-sage">
-                            {tag}
-                          </span>
-                        ))}
+                    <div className="mt-4 rounded-xl border border-white/[.08] p-3.5">
+                      <div className="mb-1.5 flex justify-between text-[11px] text-muted">
+                        <span>Uyumluluk</span>
+                        <span>{compatibility}/100</span>
+                      </div>
+                      <div className="h-[6px] overflow-hidden rounded-full bg-white/[.08]">
+                        <div
+                          className="h-full rounded-full bg-sage transition-all duration-500"
+                          style={{ width: `${Math.max(0, Math.min(100, compatibility))}%` }}
+                        />
                       </div>
                     </div>
-                  ) : null}
 
-                  <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <InfoBox label="Karakter Tanımı" value={result.expertComment || result.description} />
-                    <InfoBox
-                      label="Sürüş Talimatı"
-                      value={
-                        result.applicationTip ||
-                        result.layeringTip ||
-                        'Önce daha hafif kokuyu, ardından daha koyu izi taşıyan katmanı uygula.'
-                      }
-                    />
+                    {shared.length > 0 ? (
+                      <div className="mt-4">
+                        <p className="mb-2 text-[11px] text-muted">Ortak notalar</p>
+                        <div className="flex flex-wrap gap-2">
+                          {shared.map((tag) => (
+                            <span key={tag} className="rounded-full border border-sage/30 bg-sage/10 px-2.5 py-1 text-[10px] text-sage">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <InfoBox label="Karakter Tanımı" value={result.expertComment || result.description} />
+                      <InfoBox
+                        label="Sürüş Talimatı"
+                        value={
+                          result.applicationTip ||
+                          result.layeringTip ||
+                          'Önce daha hafif kokuyu, ardından daha koyu izi taşıyan katmanı uygula.'
+                        }
+                      />
+                    </div>
+
+                    <Link
+                      href={`/?mode=text&q=${encodeURIComponent(result.name)}`}
+                      className="mt-4 inline-flex text-[11px] font-mono uppercase tracking-[.08em] text-gold no-underline transition-colors hover:text-cream"
+                    >
+                      Bu blendi ana analizde aç →
+                    </Link>
                   </div>
-
-                  <Link
-                    href={`/?mode=text&q=${encodeURIComponent(result.name)}`}
-                    className="mt-4 inline-flex text-[11px] font-mono uppercase tracking-[.08em] text-gold no-underline transition-colors hover:text-cream"
-                  >
-                    Bu blendi ana analizde aç →
-                  </Link>
-                </div>
-              )}
-            </Card>
+                )}
+              </Card>
+            )}
           </div>
         </div>
       </ErrorBoundary>

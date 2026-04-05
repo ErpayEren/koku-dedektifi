@@ -6,8 +6,10 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
+import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { useProGate } from '@/hooks/useProGate';
 import { analyzeText, readableError } from '@/lib/client/api';
+import { useToastSync } from '@/lib/client/useToastSync';
 import { upsertWardrobeRemote } from '@/lib/client/wardrobe';
 import { useUserStore } from '@/lib/store/userStore';
 import type { AnalysisResult } from '@/lib/client/types';
@@ -53,6 +55,8 @@ export default function KarsilastirPage() {
   const [notice, setNotice] = useState('');
   const [leftResult, setLeftResult] = useState<AnalysisResult | null>(null);
   const [rightResult, setRightResult] = useState<AnalysisResult | null>(null);
+
+  useToastSync({ error, notice });
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -128,13 +132,11 @@ export default function KarsilastirPage() {
             >
               {loading ? 'Karşılaştırılıyor...' : 'Karşılaştırmayı başlat'}
             </button>
-            {error ? <p className="mt-3 text-[12px] text-[#f1a2a2]">{error}</p> : null}
-            {notice ? <p className="mt-3 text-[12px] text-sage">{notice}</p> : null}
           </Card>
 
           <div className="mb-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
-            <ResultCard title="Sol Sonuç" row={leftResult} saving={savingKey === leftResult?.id} onAdd={handleAdd} />
-            <ResultCard title="Sağ Sonuç" row={rightResult} saving={savingKey === rightResult?.id} onAdd={handleAdd} />
+            <ResultCard title="Sol Sonuç" row={leftResult} saving={savingKey === leftResult?.id} onAdd={handleAdd} loading={loading} />
+            <ResultCard title="Sağ Sonuç" row={rightResult} saving={savingKey === rightResult?.id} onAdd={handleAdd} loading={loading} />
           </div>
 
           {leftResult && rightResult ? (
@@ -171,12 +173,18 @@ function ResultCard({
   row,
   saving,
   onAdd,
+  loading,
 }: {
   title: string;
   row: AnalysisResult | null;
   saving: boolean;
   onAdd: (row: AnalysisResult) => Promise<void>;
+  loading: boolean;
 }) {
+  if (loading && !row) {
+    return <SkeletonCard lines={4} className="h-full" />;
+  }
+
   return (
     <Card className="hover-lift p-5">
       <CardTitle>{title}</CardTitle>

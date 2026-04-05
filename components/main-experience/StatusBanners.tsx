@@ -1,11 +1,22 @@
 'use client';
 
+import { useEffect } from 'react';
+import { toast } from 'sonner';
+
 interface StatusBannersProps {
   error: string;
   notice: string;
 }
 
 export function StatusBanners({ error, notice }: StatusBannersProps) {
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
+
+  useEffect(() => {
+    if (notice) toast.success(notice);
+  }, [notice]);
+
   return (
     <>
       {error ? (

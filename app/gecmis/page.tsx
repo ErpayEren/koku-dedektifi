@@ -6,6 +6,7 @@ import { AppShell } from '@/components/AppShell';
 import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { fetchAnalysisHistory } from '@/lib/client/api';
 import { clearHistory, getHistory } from '@/lib/client/storage';
 import type { AnalysisResult } from '@/lib/client/types';
@@ -59,29 +60,46 @@ export default function GecmisPage() {
   return (
     <AppShell>
       <TopBar title={UI.history} />
-      <div className="px-5 md:px-12 py-8">
-        <div className="flex justify-end mb-4">
+      <div className="px-5 py-8 md:px-12">
+        <div className="mb-4 flex justify-end">
           <button
             type="button"
             onClick={() => {
               clearHistory();
               setRows([]);
             }}
-            className="text-[11px] font-mono uppercase tracking-[.08em] text-muted hover:text-cream transition-colors"
+            className="text-[11px] font-mono uppercase tracking-[.08em] text-muted transition-colors hover:text-cream"
           >
             {UI.clearHistory}
           </button>
         </div>
-        {!hasRows ? (
+        {loading ? (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <SkeletonCard lines={4} />
+            <SkeletonCard lines={4} />
+            <SkeletonCard lines={4} />
+          </div>
+        ) : !hasRows ? (
           <Card className="p-4">
-            <EmptyState title={loading ? 'Geçmiş yükleniyor' : UI.emptyHistoryTitle} subtitle={loading ? 'Supabase analiz kayıtları kontrol ediliyor.' : UI.emptyHistoryBody} />
+            <EmptyState
+              title={UI.emptyHistoryTitle}
+              subtitle={UI.emptyHistoryBody}
+              action={
+                <Link
+                  href="/"
+                  className="inline-flex items-center rounded-md border border-[var(--gold-line)] bg-[var(--gold-dim)] px-5 py-3 text-[11px] font-mono uppercase tracking-[.08em] text-gold no-underline transition-colors hover:bg-gold/15"
+                >
+                  Analiz Et →
+                </Link>
+              }
+            />
           </Card>
         ) : (
           <div className="space-y-6">
             {grouped.map(([date, list]) => (
               <section key={date}>
-                <p className="text-[11px] font-mono tracking-[.12em] uppercase text-muted mb-3">{date}</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <p className="mb-3 text-[11px] font-mono uppercase tracking-[.12em] text-muted">{date}</p>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {list.map((item) => (
                     <Link
                       key={item.id}
@@ -90,16 +108,14 @@ export default function GecmisPage() {
                       )}`}
                       className="no-underline"
                     >
-                      <Card className="p-4 h-full hover-lift hover:border-[var(--gold-line)] transition-colors">
+                      <Card className="h-full p-4 transition-colors hover-lift hover:border-[var(--gold-line)]">
                         <p className="text-[1.5rem] font-semibold leading-[1.08] text-cream">{item.name}</p>
                         <p className="mt-1 text-[11px] text-muted">
                           {[item.brand, typeof item.year === 'number' ? String(item.year) : '', item.family].filter(Boolean).join(' · ')}
                         </p>
-                        <p className="text-[11px] text-muted mt-2">
-                          {(item.moodProfile || item.description).slice(0, 92)}...
-                        </p>
+                        <p className="mt-2 text-[11px] text-muted">{(item.moodProfile || item.description).slice(0, 92)}...</p>
                         <div className="mt-4 flex items-center justify-between gap-3">
-                          <span className={`text-[10px] px-2 py-1 rounded-full border ${familyBadgeClass(item.family)}`}>{item.family}</span>
+                          <span className={`rounded-full border px-2 py-1 text-[10px] ${familyBadgeClass(item.family)}`}>{item.family}</span>
                           <span className="text-[10px] text-muted">{item.intensity}%</span>
                         </div>
                       </Card>

@@ -7,29 +7,54 @@ import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { fetchAnalysisHistory } from '@/lib/client/api';
 import { getHistory } from '@/lib/client/storage';
 import { syncWardrobeFromRemote } from '@/lib/client/wardrobe';
 import type { AnalysisResult, WardrobeItem } from '@/lib/client/types';
 
-const PIE_COLORS = ['#d4b16b', '#6a8cff', '#9b7ff3', '#64c3a7', '#d58ebb'];
+const PIE_COLORS = ['#d4b16b', '#4f79ff', '#9b7ff3', '#64c3a7', '#d58ebb'];
 
 export default function WearPage() {
   const [history, setHistory] = useState<AnalysisResult[]>([]);
   const [wardrobe, setWardrobe] = useState<WardrobeItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     void (async () => {
-      const [remoteHistory, remoteWardrobe] = await Promise.all([
-        fetchAnalysisHistory().catch(() => getHistory()),
-        syncWardrobeFromRemote(),
-      ]);
-      setHistory(remoteHistory.length > 0 ? remoteHistory : getHistory());
-      setWardrobe(remoteWardrobe);
+      try {
+        const [remoteHistory, remoteWardrobe] = await Promise.all([
+          fetchAnalysisHistory().catch(() => getHistory()),
+          syncWardrobeFromRemote(),
+        ]);
+        setHistory(remoteHistory.length > 0 ? remoteHistory : getHistory());
+        setWardrobe(remoteWardrobe);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
   const summary = useMemo(() => buildWearSummary(history, wardrobe), [history, wardrobe]);
+
+  if (loading) {
+    return (
+      <AppShell>
+        <TopBar title="Koku Rutinim" />
+        <div className="grid grid-cols-1 gap-5 px-5 py-10 md:px-12 xl:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="space-y-5">
+            <SkeletonCard lines={4} />
+            <SkeletonCard lines={3} />
+            <SkeletonCard lines={3} />
+          </div>
+          <div className="space-y-5">
+            <SkeletonCard lines={3} />
+            <SkeletonCard lines={5} />
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
 
   if (history.length < 3) {
     return (
@@ -45,7 +70,7 @@ export default function WearPage() {
                   href="/"
                   className="inline-flex items-center rounded-md border border-[var(--gold-line)] bg-[var(--gold-dim)] px-5 py-3 text-[11px] font-mono uppercase tracking-[.08em] text-gold no-underline transition-colors hover:bg-gold/15"
                 >
-                  İlk analizini yap
+                  Analiz Et →
                 </Link>
               }
             />

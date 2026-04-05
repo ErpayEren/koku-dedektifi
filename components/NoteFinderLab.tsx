@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useProGate } from '@/hooks/useProGate';
 import { readableError, runFinder } from '@/lib/client/api';
 import type { FinderCandidate } from '@/lib/client/types';
+import { useToastSync } from '@/lib/client/useToastSync';
+import { SkeletonCard } from './ui/SkeletonCard';
 
 function parseCommaList(value: string): string[] {
   return value
@@ -24,6 +26,8 @@ export function NoteFinderLab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [results, setResults] = useState<FinderCandidate[]>([]);
+
+  useToastSync({ error });
 
   async function handleSearch(): Promise<void> {
     if (!requirePro('Nota Avcısı')) return;
@@ -88,7 +92,6 @@ export function NoteFinderLab() {
           >
             {loading ? 'Öneriler hazırlanıyor...' : '8 parfüm önerisi üret'}
           </button>
-          {error ? <p className="text-[12px] text-[#f1a2a2]">{error}</p> : null}
         </div>
 
         <div className="rounded-[24px] border border-white/8 bg-black/10 p-4">
@@ -102,7 +105,14 @@ export function NoteFinderLab() {
             </span>
           </div>
 
-          {results.length === 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <SkeletonCard lines={4} className="h-full" />
+              <SkeletonCard lines={4} className="h-full" />
+              <SkeletonCard lines={4} className="h-full" />
+              <SkeletonCard lines={4} className="h-full" />
+            </div>
+          ) : results.length === 0 ? (
             <p className="text-sm leading-relaxed text-muted">
               Dahil ve hariç notaları girip aramayı başlattığında öneriler burada görünür.
             </p>

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
@@ -7,7 +8,9 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { useProGate } from '@/hooks/useProGate';
+import { useToastSync } from '@/lib/client/useToastSync';
 import { syncWardrobeFromRemote, pushWardrobeToRemote } from '@/lib/client/wardrobe';
 import { useUserStore } from '@/lib/store/userStore';
 import type { WardrobeItem } from '@/lib/client/types';
@@ -34,12 +37,21 @@ export default function DolapPage() {
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [savingKey, setSavingKey] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useToastSync({ error });
 
   useEffect(() => {
     void (async () => {
-      const rows = await syncWardrobeFromRemote();
-      setItems(rows);
-      setWardrobeCount(rows.length);
+      try {
+        const rows = await syncWardrobeFromRemote();
+        setItems(rows);
+        setWardrobeCount(rows.length);
+      } catch {
+        setError('Dolap yüklenirken bir sorun oluştu.');
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [setWardrobeCount]);
 
@@ -111,11 +123,24 @@ export default function DolapPage() {
 
           {error ? <p className="mb-4 text-[12px] text-[#f1a2a2]">{error}</p> : null}
 
-          {rows.length === 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <SkeletonCard lines={4} />
+              <SkeletonCard lines={4} />
+            </div>
+          ) : rows.length === 0 ? (
             <Card className="p-4">
               <EmptyState
                 title="Dolabın henüz boş"
-                subtitle="Analiz yaptıkça parfümlerini buraya ekleyebilirsin."
+                subtitle="Analiz ettiğin parfümleri buraya eklediğinde koleksiyonun zamanla burada şekillenecek."
+                action={
+                  <Link
+                    href="/"
+                    className="inline-flex items-center rounded-md border border-[var(--gold-line)] bg-[var(--gold-dim)] px-5 py-3 text-[11px] font-mono uppercase tracking-[.08em] text-gold no-underline transition-colors hover:bg-gold/15"
+                  >
+                    Analiz Et →
+                  </Link>
+                }
               />
             </Card>
           ) : (
@@ -132,9 +157,7 @@ export default function DolapPage() {
                       type="button"
                       onClick={() => changeItem(item.key, { favorite: !item.favorite })}
                       className={`rounded-full border px-3 py-1.5 text-[10px] font-mono uppercase tracking-[.08em] ${
-                        item.favorite
-                          ? 'border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold'
-                          : 'border-white/[.08] text-muted'
+                        item.favorite ? 'border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold' : 'border-white/[.08] text-muted'
                       }`}
                     >
                       {item.favorite ? 'Favori' : 'Favorile'}

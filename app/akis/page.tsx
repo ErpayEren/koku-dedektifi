@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { BarChart3, Sparkles, TrendingUp } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
@@ -7,7 +8,9 @@ import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { clearFeed, getFeed } from '@/lib/client/storage';
+import { useToastSync } from '@/lib/client/useToastSync';
 
 interface TrendItem {
   name: string;
@@ -35,7 +38,10 @@ export default function AkisPage() {
   const [feed, setFeed] = useState(() => getFeed());
   const [hub, setHub] = useState<CommunityHubResponse | null>(null);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const [loadingVote, setLoadingVote] = useState(false);
+
+  useToastSync({ error });
 
   useEffect(() => {
     void loadHub();
@@ -47,6 +53,7 @@ export default function AkisPage() {
   );
 
   async function loadHub(): Promise<void> {
+    setLoading(true);
     try {
       const response = await fetch('/api/community-hub', { credentials: 'include' });
       if (!response.ok) {
@@ -59,6 +66,8 @@ export default function AkisPage() {
     } catch {
       setHub(null);
       setError('Topluluk verisi şu an yüklenemedi.');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -89,75 +98,88 @@ export default function AkisPage() {
       <TopBar title="Koku Akışı" />
 
       <div className="px-5 py-8 md:px-12">
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_.9fr]">
-          <Card className="p-5 md:p-6 hover-lift">
-            <CardTitle>Günün trendi</CardTitle>
-            {hub?.trends?.length ? (
-              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-                {hub.trends.map((trend, index) => (
-                  <div key={trend.name} className="rounded-[22px] border border-white/8 bg-white/[.03] p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full border border-amber-500/20 bg-amber-500/15 text-amber-400">
-                        <TrendingUp className="h-4 w-4" strokeWidth={1.8} />
-                      </span>
-                      <span className="text-[11px] font-mono uppercase tracking-[.12em] text-gold">#{index + 1}</span>
+        {loading ? (
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_.9fr]">
+            <SkeletonCard lines={5} />
+            <SkeletonCard lines={5} />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_.9fr]">
+            <Card className="p-5 md:p-6 hover-lift">
+              <CardTitle>Günün trendi</CardTitle>
+              {hub?.trends?.length ? (
+                <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                  {hub.trends.map((trend, index) => (
+                    <div key={trend.name} className="rounded-[22px] border border-white/8 bg-white/[.03] p-4">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full border border-amber-500/20 bg-amber-500/15 text-amber-400">
+                          <TrendingUp className="h-4 w-4" strokeWidth={1.8} />
+                        </span>
+                        <span className="text-[11px] font-mono uppercase tracking-[.12em] text-gold">#{index + 1}</span>
+                      </div>
+                      <p className="text-[1.1rem] font-semibold leading-tight text-cream">{trend.name}</p>
+                      <p className="mt-2 text-[12px] text-muted">
+                        {trend.family || 'Profil'} · {trend.count} analiz
+                      </p>
                     </div>
-                    <p className="text-[1.1rem] font-semibold leading-tight text-cream">{trend.name}</p>
-                    <p className="mt-2 text-[12px] text-muted">
-                      {trend.family || 'Profil'} · {trend.count} analiz
-                    </p>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-muted">Bugünün trend verisi henüz birikmedi.</p>
+              )}
+            </Card>
+
+            <Card className="p-5 md:p-6 hover-lift">
+              <CardTitle>Bu hafta hangi koku öne çıktı?</CardTitle>
+              <p className="mt-2 text-[13px] text-muted">Aynı kullanıcı her hafta bir kez oy kullanabilir.</p>
+
+              <div className="mt-4 flex flex-col gap-3">
+                {(hub?.poll.options || []).map((option) => {
+                  const active = hub?.poll.userVote === option;
+                  const voteCount = hub?.poll.totals.find((item) => item.perfumeName === option)?.votes || 0;
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => void handleVote(option)}
+                      disabled={Boolean(hub?.poll.userVote) || loadingVote}
+                      className={`rounded-xl border px-4 py-3 text-left transition-all ${
+                        active
+                          ? 'border-amber-500/40 bg-amber-500/10 text-amber-400'
+                          : 'border-white/8 bg-white/[.03] text-cream hover:border-white/15'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span>{option}</span>
+                        <span className="text-[11px] text-muted">{voteCount} oy</span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-            ) : (
-              <p className="mt-4 text-sm text-muted">Bugünün trend verisi henüz birikmedi.</p>
-            )}
-          </Card>
 
-          <Card className="p-5 md:p-6 hover-lift">
-            <CardTitle>Bu hafta hangi koku öne çıktı?</CardTitle>
-            <p className="mt-2 text-[13px] text-muted">
-              Aynı kullanıcı her hafta bir kez oy kullanabilir.
-            </p>
-
-            <div className="mt-4 flex flex-col gap-3">
-              {(hub?.poll.options || []).map((option) => {
-                const active = hub?.poll.userVote === option;
-                const voteCount = hub?.poll.totals.find((item) => item.perfumeName === option)?.votes || 0;
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => void handleVote(option)}
-                    disabled={Boolean(hub?.poll.userVote) || loadingVote}
-                    className={`rounded-xl border px-4 py-3 text-left transition-all ${
-                      active
-                        ? 'border-amber-500/40 bg-amber-500/10 text-amber-400'
-                        : 'border-white/8 bg-white/[.03] text-cream hover:border-white/15'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span>{option}</span>
-                      <span className="text-[11px] text-muted">{voteCount} oy</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            <p className="mt-3 text-[11px] text-muted">
-              Toplam oy: {totalVotes}
-              {hub?.poll.source ? ` · Kaynak: ${hub.poll.source}` : ''}
-            </p>
-            {error ? <p className="mt-2 text-[12px] text-[#f1a2a2]">{error}</p> : null}
-          </Card>
-        </div>
+              <p className="mt-3 text-[11px] text-muted">
+                Toplam oy: {totalVotes}
+                {hub?.poll.source ? ` · Kaynak: ${hub.poll.source}` : ''}
+              </p>
+              {error ? <p className="mt-2 text-[12px] text-[#f1a2a2]">{error}</p> : null}
+            </Card>
+          </div>
+        )}
 
         {feed.length === 0 ? (
           <Card className="mt-5 p-4">
             <EmptyState
               title="Henüz topluluk sinyali yok"
-              subtitle="Bu koku için ilk geri bildirimi sen bırak."
+              subtitle="Analizler geldikçe günün trendleri ve topluluk hareketi burada görünür olacak."
+              action={
+                <Link
+                  href="/"
+                  className="inline-flex items-center rounded-md border border-[var(--gold-line)] bg-[var(--gold-dim)] px-5 py-3 text-[11px] font-mono uppercase tracking-[.08em] text-gold no-underline transition-colors hover:bg-gold/15"
+                >
+                  Analiz Et →
+                </Link>
+              }
             />
           </Card>
         ) : (

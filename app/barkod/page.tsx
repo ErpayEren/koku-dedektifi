@@ -8,9 +8,10 @@ import { AnalysisResults } from '@/components/AnalysisResults';
 import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
+import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { analyzeText, lookupBarcode, readableError } from '@/lib/client/api';
+import { useToastSync } from '@/lib/client/useToastSync';
 import type { AnalysisResult } from '@/lib/client/types';
-import { useProGate } from '@/hooks/useProGate';
 import { useUserStore } from '@/lib/store/userStore';
 
 interface BarcodeLookupResult {
@@ -23,7 +24,6 @@ interface BarcodeLookupResult {
 }
 
 export default function BarkodPage() {
-  const { requirePro } = useProGate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const controlsRef = useRef<{ stop: () => void } | null>(null);
@@ -43,6 +43,8 @@ export default function BarkodPage() {
     incrementUsage: state.incrementUsage,
   }));
 
+  useToastSync({ error: error || cameraError });
+
   useEffect(() => {
     return () => stopCamera();
   }, []);
@@ -55,7 +57,7 @@ export default function BarkodPage() {
 
   async function runAnalyzeByName(name: string): Promise<void> {
     if (dailyLimit !== Number.POSITIVE_INFINITY && dailyUsed >= dailyLimit) {
-      requirePro('Sınırsız günlük analiz');
+      setError('Bugünkü ücretsiz analiz limitine ulaştın.');
       return;
     }
 
@@ -171,9 +173,6 @@ export default function BarkodPage() {
                 </button>
               </div>
 
-              {cameraError ? <p className="mt-3 text-[12px] text-[#f1a2a2]">{cameraError}</p> : null}
-              {error ? <p className="mt-3 text-[12px] text-[#f1a2a2]">{error}</p> : null}
-
               {cameraOpen ? (
                 <div className="mt-5 overflow-hidden rounded-2xl border border-white/[.08] bg-black/25">
                   <video ref={videoRef} className="aspect-[4/3] w-full object-cover" muted playsInline />
@@ -205,33 +204,37 @@ export default function BarkodPage() {
               ) : null}
             </Card>
 
-            <Card className="p-5 md:p-6 hover-lift">
-              <CardTitle>Barkod Sonucu</CardTitle>
-              {!lookupResult ? (
-                <p className="text-[13px] text-muted">
-                  Barkod araması tamamlandığında eşleşen parfüm bulunursa analiz otomatik başlar. Bulunamazsa manuel girişe yönlendirilirsin.
-                </p>
-              ) : lookupResult.found ? (
-                <div>
-                  <p className="text-[2rem] font-semibold leading-[1.05] text-cream">{lookupResult.perfume}</p>
-                  <p className="mt-2 text-[12px] text-muted">
-                    {lookupResult.family || 'Aromatik'} · {lookupResult.occasion || 'Genel kullanım'}
+            {loading || isAnalyzing ? (
+              <SkeletonCard lines={4} className="h-full" />
+            ) : (
+              <Card className="p-5 md:p-6 hover-lift">
+                <CardTitle>Barkod Sonucu</CardTitle>
+                {!lookupResult ? (
+                  <p className="text-[13px] text-muted">
+                    Barkod araması tamamlandığında eşleşen parfüm bulunursa analiz otomatik başlar. Bulunamazsa manuel girişe yönlendirilirsin.
                   </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {lookupResult.season.map((season) => (
-                      <span
-                        key={season}
-                        className="rounded-full border border-white/[.08] px-2.5 py-1 text-[10px] font-mono uppercase tracking-[.08em] text-muted"
-                      >
-                        {season}
-                      </span>
-                    ))}
+                ) : lookupResult.found ? (
+                  <div>
+                    <p className="text-[2rem] font-semibold leading-[1.05] text-cream">{lookupResult.perfume}</p>
+                    <p className="mt-2 text-[12px] text-muted">
+                      {lookupResult.family || 'Aromatik'} · {lookupResult.occasion || 'Genel kullanım'}
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {lookupResult.season.map((season) => (
+                        <span
+                          key={season}
+                          className="rounded-full border border-white/[.08] px-2.5 py-1 text-[10px] font-mono uppercase tracking-[.08em] text-muted"
+                        >
+                          {season}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <p className="text-[13px] text-muted">{lookupResult.message}</p>
-              )}
-            </Card>
+                ) : (
+                  <p className="text-[13px] text-muted">{lookupResult.message}</p>
+                )}
+              </Card>
+            )}
           </div>
         </div>
 

@@ -7,6 +7,7 @@ import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
 import { useInstantProUpgrade } from '@/lib/client/useInstantProUpgrade';
+import { useToastSync } from '@/lib/client/useToastSync';
 import { useUserStore } from '@/lib/store/userStore';
 
 interface BillingPlan {
@@ -173,6 +174,8 @@ export default function PricingPage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busyPlanId, setBusyPlanId] = useState('');
+
+  useToastSync({ error: error || upgradeError, notice });
 
   useEffect(() => {
     void (async () => {

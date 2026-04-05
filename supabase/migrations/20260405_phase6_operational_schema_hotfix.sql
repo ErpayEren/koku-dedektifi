@@ -96,9 +96,9 @@ insert into public.users (
 )
 select distinct
   nullif(a.app_user_id, ''),
-  null,
+  null::text,
   false,
-  null,
+  null::timestamptz,
   coalesce(a.created_at, now()),
   coalesce(a.created_at, now())
 from public.analyses a

@@ -193,9 +193,9 @@ insert into public.users (
 )
 select distinct
   nullif(analyses_seed.app_user_id, ''),
-  null,
+  null::text,
   false,
-  null,
+  null::timestamptz,
   coalesce(analyses_seed.created_at, now()),
   coalesce(analyses_seed.created_at, now())
 from public.analyses analyses_seed

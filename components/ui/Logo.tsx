@@ -1,45 +1,44 @@
-import Link from 'next/link';
-import { LogoMark } from './LogoMark';
-
 type LogoSize = 'sm' | 'md' | 'sidebar';
 
-const SIZE_MAP: Record<LogoSize, { icon: number; text: string; gap: string; max: string }> = {
+const SIZE_MAP: Record<LogoSize, { text: string; tracking: string }> = {
   sm: {
-    icon: 48,
-    text: 'text-[18px]',
-    gap: 'gap-[10px]',
-    max: 'max-w-[164px]',
+    text: 'text-[20px]',
+    tracking: 'tracking-[-0.02em]',
   },
   md: {
-    icon: 60,
     text: 'text-[24px]',
-    gap: 'gap-[12px]',
-    max: 'max-w-[224px]',
+    tracking: 'tracking-[-0.02em]',
   },
   sidebar: {
-    icon: 72,
     text: 'text-[24px]',
-    gap: 'gap-[12px]',
-    max: 'max-w-[150px]',
+    tracking: 'tracking-[-0.022em]',
   },
 };
 
-export function Logo({ size = 'md' }: { size?: LogoSize }) {
+export function Logo({
+  size = 'md',
+  asLink = true,
+}: {
+  size?: LogoSize;
+  asLink?: boolean;
+}) {
   const config = SIZE_MAP[size];
+  const wordmark = (
+    <span
+      className={`whitespace-nowrap font-display italic leading-[0.96] transition-transform duration-200 group-hover:translate-x-[1px] ${config.text} ${config.tracking}`}
+    >
+      <span className="text-cream">Koku </span>
+      <span className="text-gold">Dedektifi</span>
+    </span>
+  );
+
+  if (!asLink) {
+    return <span className="group inline-flex max-w-full items-center">{wordmark}</span>;
+  }
 
   return (
-    <Link
-      href="/"
-      className={`group inline-flex max-w-full items-center ${config.gap} no-underline`}
-      aria-label="Koku Dedektifi ana sayfa"
-    >
-      <LogoMark size={config.icon} />
-      <span
-        className={`min-w-0 ${config.max} whitespace-nowrap font-display italic leading-[0.96] tracking-[-0.02em] transition-transform duration-200 group-hover:translate-x-[1px] ${config.text}`}
-      >
-        <span className="text-cream">Koku </span>
-        <span className="text-gold">Dedektifi</span>
-      </span>
-    </Link>
+    <a href="/" className="group inline-flex max-w-full items-center no-underline" aria-label="Koku Dedektifi ana sayfa">
+      {wordmark}
+    </a>
   );
 }

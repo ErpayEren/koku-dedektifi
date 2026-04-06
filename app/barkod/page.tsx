@@ -36,12 +36,10 @@ export default function BarkodPage() {
   const [lookupResult, setLookupResult] = useState<BarcodeLookupResult | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const { isPro, dailyLimit, dailyUsed, incrementUsage } = useUserStore((state) => ({
-    isPro: state.isPro,
-    dailyLimit: state.dailyLimit,
-    dailyUsed: state.dailyUsed,
-    incrementUsage: state.incrementUsage,
-  }));
+  const isPro = useUserStore((state) => state.isPro);
+  const dailyLimit = useUserStore((state) => state.dailyLimit);
+  const dailyUsed = useUserStore((state) => state.dailyUsed);
+  const incrementUsage = useUserStore((state) => state.incrementUsage);
 
   useToastSync({ error: error || cameraError });
 

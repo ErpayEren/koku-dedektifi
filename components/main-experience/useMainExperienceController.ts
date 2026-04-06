@@ -40,14 +40,12 @@ export function useMainExperienceController() {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const { requirePro } = useProGate();
-  const { dailyUsed, dailyLimit, wardrobeCount, wardrobeLimit, incrementUsage, isPro } = useUserStore((state) => ({
-    dailyUsed: state.dailyUsed,
-    dailyLimit: state.dailyLimit,
-    wardrobeCount: state.wardrobeCount,
-    wardrobeLimit: state.wardrobeLimit,
-    incrementUsage: state.incrementUsage,
-    isPro: state.isPro,
-  }));
+  const dailyUsed = useUserStore((state) => state.dailyUsed);
+  const dailyLimit = useUserStore((state) => state.dailyLimit);
+  const wardrobeCount = useUserStore((state) => state.wardrobeCount);
+  const wardrobeLimit = useUserStore((state) => state.wardrobeLimit);
+  const incrementUsage = useUserStore((state) => state.incrementUsage);
+  const isPro = useUserStore((state) => state.isPro);
 
   const [mode, setMode] = useState<InputMode>('photo');
   const [textValue, setTextValue] = useState('');

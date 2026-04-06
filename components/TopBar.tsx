@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import { useInstallPrompt } from '@/lib/client/useInstallPrompt';
 import { Logo } from './ui/Logo';
@@ -35,7 +36,7 @@ export function TopBar({ title }: { title?: string }) {
         <ProBadge />
         <button
           type="button"
-          onClick={() => router.push('/profil')}
+          onClick={() => router.push('/profil' as Route)}
           className="w-8 h-8 rounded-full border border-white/[.06]
                      flex items-center justify-center text-muted
                      hover:border-white/[.10] hover:text-cream hover:bg-raise transition-all"

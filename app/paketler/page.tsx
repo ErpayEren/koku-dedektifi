@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
@@ -201,7 +202,7 @@ export default function PricingPage() {
   async function activatePlan(planId: string): Promise<void> {
     if (planId !== 'pro') return;
     if (!data?.user) {
-      router.push('/profil?redirect=/paketler');
+      router.push('/profil?redirect=%2Fpaketler' as Route);
       return;
     }
 

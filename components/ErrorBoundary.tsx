@@ -21,7 +21,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   public componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    console.error('[ErrorBoundary] Render hatasi yakalandi.', error, errorInfo);
+    console.error('[ErrorBoundary] Render hatası yakalandı.', error, errorInfo);
   }
 
   public render(): React.ReactNode {
@@ -29,10 +29,10 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       return (
         <div className="px-5 md:px-12 py-10">
           <div className="max-w-[920px] mx-auto rounded-3xl border border-white/[.08] bg-[var(--bg-card)] p-8 md:p-10 text-center">
-            <p className="text-[10px] font-mono uppercase tracking-[.14em] text-gold mb-4">Guvenli Mod</p>
-            <h2 className="mb-3 text-[2rem] font-semibold text-cream">Bir sey yolunda gitmedi.</h2>
+            <p className="mb-4 text-[10px] font-mono uppercase tracking-[.14em] text-gold">Güvenli Mod</p>
+            <h2 className="mb-3 text-[2rem] font-semibold text-cream">Bir şey yolunda gitmedi.</h2>
             <p className="text-[13px] text-muted max-w-[520px] mx-auto mb-6">
-              Sayfa beklenmedik bir hata yasadi. Tek dokunusla yeniden yukleyip kaldigin yerden devam
+              Sayfa beklenmedik bir hata yaşadı. Tek dokunuşla yeniden yükleyip kaldığın yerden devam
               edebilirsin.
             </p>
             <button

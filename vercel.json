@@ -9,6 +9,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/analyze",
+      "destination": "/api/ops?r=analyze"
+    },
+    {
       "source": "/api/health",
       "destination": "/api/ops?r=health"
     },
@@ -43,10 +47,6 @@
     {
       "source": "/api/weekly-molecule",
       "destination": "/api/ops?r=weekly-molecule"
-    },
-    {
-      "source": "/api/analyze",
-      "destination": "/api/ops?r=analyze"
     },
     {
       "source": "/api/analyses",

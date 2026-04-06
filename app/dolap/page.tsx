@@ -28,11 +28,9 @@ function statusLabel(value: WardrobeItem['status']): string {
 export default function DolapPage() {
   const router = useRouter();
   const { requirePro } = useProGate();
-  const { isPro, wardrobeLimit, setWardrobeCount } = useUserStore((state) => ({
-    isPro: state.isPro,
-    wardrobeLimit: state.wardrobeLimit,
-    setWardrobeCount: state.setWardrobeCount,
-  }));
+  const isPro = useUserStore((state) => state.isPro);
+  const wardrobeLimit = useUserStore((state) => state.wardrobeLimit);
+  const setWardrobeCount = useUserStore((state) => state.setWardrobeCount);
   const [items, setItems] = useState<WardrobeItem[]>([]);
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [savingKey, setSavingKey] = useState('');

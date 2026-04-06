@@ -21,6 +21,7 @@ import { getHistory } from '@/lib/client/storage';
 import { useBillingEntitlement } from '@/lib/client/useBillingEntitlement';
 import { useInstantProUpgrade } from '@/lib/client/useInstantProUpgrade';
 import { useUserStore } from '@/lib/store/userStore';
+import { Logo } from './ui/Logo';
 import { LogoMark } from './ui/LogoMark';
 
 interface NavItem {
@@ -266,21 +267,17 @@ export function Sidebar() {
           <Link
             href="/"
             className={`group inline-flex items-center no-underline transition-[gap] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-              collapsed ? 'justify-center gap-0 duration-[980ms]' : 'gap-3 duration-[620ms]'
+              collapsed ? 'justify-center gap-0 duration-[980ms]' : 'duration-[620ms]'
             }`}
             aria-label="Koku Dedektifi ana sayfa"
           >
-            <LogoMark size={collapsed ? 54 : 72} />
-            <span
-              className={`overflow-hidden whitespace-nowrap font-display italic leading-[0.96] tracking-[-0.02em] text-[24px] transition-[max-width,transform] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                collapsed
-                  ? 'max-w-0 -translate-x-2 duration-[760ms] delay-[140ms]'
-                  : 'max-w-[180px] translate-x-0 duration-[720ms] delay-[140ms]'
-              }`}
-            >
-              <span className="text-cream">Koku </span>
-              <span className="text-gold">Dedektifi</span>
-            </span>
+            {collapsed ? (
+              <LogoMark size={54} />
+            ) : (
+              <span className="overflow-hidden transition-[max-width,transform] duration-[720ms] ease-[cubic-bezier(0.16,1,0.3,1)]">
+                <Logo size="sidebar" asLink={false} />
+              </span>
+            )}
           </Link>
         </div>
 

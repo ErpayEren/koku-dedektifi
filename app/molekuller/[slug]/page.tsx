@@ -13,6 +13,12 @@ interface MoleculeDetailPageProps {
   params: Promise<{ slug: string }>;
 }
 
+export const dynamicParams = false;
+
+export function generateStaticParams() {
+  return getPublicMolecules().map((molecule) => ({ slug: molecule.slug }));
+}
+
 function intensityDots(level: 'subtle' | 'moderate' | 'powerful'): number {
   if (level === 'subtle') return 2;
   if (level === 'moderate') return 4;

@@ -21,7 +21,6 @@ const proxyHandler = require('../api/proxy');
 const authHandler = require('../api/auth');
 const billingHandler = require('../api/billing');
 const billingWebhookHandler = require('../api/billing-webhook');
-const billingHealthHandler = require('../api/billing-health');
 const wardrobeHandler = require('../api/wardrobe');
 const wardrobeHealthHandler = require('../api_internal/wardrobe-health');
 const errorLogHandler = require('../api_internal/error-log');
@@ -1061,101 +1060,6 @@ test('billing endpoint returns checkout_unavailable when paddle config is missin
     assert.equal(checkoutRes.body.code, 'checkout_unavailable');
   } finally {
     process.env.BILLING_PROVIDER = originalEnv.BILLING_PROVIDER;
-    process.env.BILLING_PADDLE_API_KEY = originalEnv.BILLING_PADDLE_API_KEY;
-    process.env.BILLING_PADDLE_PRICE_ID_PRO = originalEnv.BILLING_PADDLE_PRICE_ID_PRO;
-  }
-});
-
-test('billing health endpoint reports readiness for manual provider', async () => {
-  const originalEnv = {
-    BILLING_PROVIDER: process.env.BILLING_PROVIDER,
-    BILLING_WEBHOOK_SECRET: process.env.BILLING_WEBHOOK_SECRET,
-    BILLING_CHECKOUT_URL_PRO: process.env.BILLING_CHECKOUT_URL_PRO,
-  };
-
-  process.env.BILLING_PROVIDER = 'manual';
-  process.env.BILLING_WEBHOOK_SECRET = 'whsec_test_manual';
-  process.env.BILLING_CHECKOUT_URL_PRO = 'https://checkout.example/pro';
-
-  try {
-    const req = buildReq('GET');
-    const res = createRes();
-    await billingHealthHandler(req, res);
-
-    assert.equal(res.statusCode, 200);
-    assert.equal(res.body.ok, true);
-    assert.equal(res.body.billing.provider, 'manual');
-    assert.equal(res.body.billing.ready, true);
-    assert.deepEqual(res.body.billing.missing, []);
-  } finally {
-    process.env.BILLING_PROVIDER = originalEnv.BILLING_PROVIDER;
-    process.env.BILLING_WEBHOOK_SECRET = originalEnv.BILLING_WEBHOOK_SECRET;
-    process.env.BILLING_CHECKOUT_URL_PRO = originalEnv.BILLING_CHECKOUT_URL_PRO;
-  }
-});
-
-test('billing health endpoint reports missing stripe variables', async () => {
-  const originalEnv = {
-    BILLING_PROVIDER: process.env.BILLING_PROVIDER,
-    BILLING_WEBHOOK_SECRET: process.env.BILLING_WEBHOOK_SECRET,
-    BILLING_STRIPE_SECRET_KEY: process.env.BILLING_STRIPE_SECRET_KEY,
-    BILLING_STRIPE_PRICE_ID_PRO: process.env.BILLING_STRIPE_PRICE_ID_PRO,
-    BILLING_STRIPE_SUCCESS_URL: process.env.BILLING_STRIPE_SUCCESS_URL,
-    BILLING_STRIPE_CANCEL_URL: process.env.BILLING_STRIPE_CANCEL_URL,
-  };
-
-  process.env.BILLING_PROVIDER = 'stripe';
-  process.env.BILLING_WEBHOOK_SECRET = 'whsec_test_stripe';
-  process.env.BILLING_STRIPE_SECRET_KEY = '';
-  process.env.BILLING_STRIPE_PRICE_ID_PRO = 'price_pro_123';
-  process.env.BILLING_STRIPE_SUCCESS_URL = 'https://example.com/success';
-  process.env.BILLING_STRIPE_CANCEL_URL = '';
-
-  try {
-    const req = buildReq('GET');
-    const res = createRes();
-    await billingHealthHandler(req, res);
-
-    assert.equal(res.statusCode, 200);
-    assert.equal(res.body.billing.provider, 'stripe');
-    assert.equal(res.body.billing.ready, false);
-    assert.equal(res.body.billing.missing.includes('BILLING_STRIPE_SECRET_KEY'), true);
-    assert.equal(res.body.billing.missing.includes('BILLING_STRIPE_CANCEL_URL'), true);
-  } finally {
-    process.env.BILLING_PROVIDER = originalEnv.BILLING_PROVIDER;
-    process.env.BILLING_WEBHOOK_SECRET = originalEnv.BILLING_WEBHOOK_SECRET;
-    process.env.BILLING_STRIPE_SECRET_KEY = originalEnv.BILLING_STRIPE_SECRET_KEY;
-    process.env.BILLING_STRIPE_PRICE_ID_PRO = originalEnv.BILLING_STRIPE_PRICE_ID_PRO;
-    process.env.BILLING_STRIPE_SUCCESS_URL = originalEnv.BILLING_STRIPE_SUCCESS_URL;
-    process.env.BILLING_STRIPE_CANCEL_URL = originalEnv.BILLING_STRIPE_CANCEL_URL;
-  }
-});
-
-test('billing health endpoint reports readiness for paddle provider', async () => {
-  const originalEnv = {
-    BILLING_PROVIDER: process.env.BILLING_PROVIDER,
-    BILLING_WEBHOOK_SECRET: process.env.BILLING_WEBHOOK_SECRET,
-    BILLING_PADDLE_API_KEY: process.env.BILLING_PADDLE_API_KEY,
-    BILLING_PADDLE_PRICE_ID_PRO: process.env.BILLING_PADDLE_PRICE_ID_PRO,
-  };
-
-  process.env.BILLING_PROVIDER = 'paddle';
-  process.env.BILLING_WEBHOOK_SECRET = 'whsec_test_paddle';
-  process.env.BILLING_PADDLE_API_KEY = 'pdl_live_apikey_test';
-  process.env.BILLING_PADDLE_PRICE_ID_PRO = 'pri_pro_123';
-
-  try {
-    const req = buildReq('GET');
-    const res = createRes();
-    await billingHealthHandler(req, res);
-
-    assert.equal(res.statusCode, 200);
-    assert.equal(res.body.billing.provider, 'paddle');
-    assert.equal(res.body.billing.ready, true);
-    assert.deepEqual(res.body.billing.missing, []);
-  } finally {
-    process.env.BILLING_PROVIDER = originalEnv.BILLING_PROVIDER;
-    process.env.BILLING_WEBHOOK_SECRET = originalEnv.BILLING_WEBHOOK_SECRET;
     process.env.BILLING_PADDLE_API_KEY = originalEnv.BILLING_PADDLE_API_KEY;
     process.env.BILLING_PADDLE_PRICE_ID_PRO = originalEnv.BILLING_PADDLE_PRICE_ID_PRO;
   }

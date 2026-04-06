@@ -1,9 +1,5 @@
-import ProfilePageClient from '@/components/profile/ProfilePageClient';
+import ProfilPage from '../profil/page';
 
-export default function HesapPage({
-  searchParams,
-}: {
-  searchParams?: { redirect?: string };
-}) {
-  return <ProfilePageClient redirectTarget={searchParams?.redirect || ''} />;
+export default function HesapPage() {
+  return <ProfilPage />;
 }

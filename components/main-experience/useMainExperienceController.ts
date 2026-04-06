@@ -3,6 +3,7 @@
 import type { Route } from 'next';
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { hydrateAnalysisResult } from '@/lib/client/analysis';
 import { ApiError, analyzeImage, analyzeNotes, analyzeText, fetchAnalysisById, readableError } from '@/lib/client/api';
 import { FLASH_NOTICE_KEY } from '@/lib/client/useInstantProUpgrade';
 import { findHistoryById, getWardrobe, pushFeed, saveHistoryRow, upsertWardrobe } from '@/lib/client/storage';
@@ -72,7 +73,8 @@ export function useMainExperienceController() {
     if (replayId) {
       const row = findHistoryById(replayId);
       if (row) {
-        setResult(row);
+        const hydrated = hydrateAnalysisResult(row);
+        if (hydrated) setResult(hydrated);
         setNotice('Geçmiş analiz yüklendi.');
         setError('');
       } else {
@@ -81,7 +83,8 @@ export function useMainExperienceController() {
             const remote = await fetchAnalysisById(replayId);
             if (!remote) return;
             saveHistoryRow(remote);
-            setResult(remote);
+            const hydrated = hydrateAnalysisResult(remote);
+            if (hydrated) setResult(hydrated);
             setNotice('Paylaşılan analiz yüklendi.');
             setError('');
           } catch (requestError) {

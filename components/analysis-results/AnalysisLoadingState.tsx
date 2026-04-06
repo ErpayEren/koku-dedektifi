@@ -2,7 +2,6 @@
 
 import { UI } from '@/lib/strings';
 import { Card } from '@/components/ui/Card';
-import { SectionDivider } from '@/components/ui/SectionDivider';
 import { ANALYSIS_STEPS } from './utils';
 
 interface AnalysisLoadingStateProps {
@@ -11,8 +10,7 @@ interface AnalysisLoadingStateProps {
 
 export function AnalysisLoadingState({ analysisStepIndex }: AnalysisLoadingStateProps) {
   return (
-    <section className="anim-up-1 px-5 pb-8 md:px-12">
-      <SectionDivider label="Analiz İşleniyor" />
+    <div className="anim-up-1">
       <Card className="overflow-hidden p-7 md:p-9">
         <div className="flex flex-col gap-7 md:flex-row md:items-center">
           <div className="relative flex h-28 w-28 items-center justify-center self-center rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)]/30 md:self-start">
@@ -50,6 +48,6 @@ export function AnalysisLoadingState({ analysisStepIndex }: AnalysisLoadingState
           </div>
         </div>
       </Card>
-    </section>
+    </div>
   );
 }

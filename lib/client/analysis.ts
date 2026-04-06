@@ -27,6 +27,18 @@ function clampScore(value: unknown, fallback = 50): number {
   return Math.max(0, Math.min(100, Math.round(num)));
 }
 
+function parseLongevityHours(value: unknown): AnalysisResult['longevityHours'] {
+  if (!value || typeof value !== 'object') return null;
+  const entry = value as Record<string, unknown>;
+  const min = Number(entry.min);
+  const max = Number(entry.max);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
+  return {
+    min: Math.max(0, Math.round(min)),
+    max: Math.max(Math.round(min), Math.round(max)),
+  };
+}
+
 function parseEvidenceLevel(value: unknown): MoleculeEvidenceLevel | undefined {
   if (
     value === 'verified_component' ||
@@ -60,6 +72,34 @@ function normalizeMolecules(value: unknown): MoleculeItem[] {
       origin: cleanText(entry.origin),
       note: cleanText(entry.note),
       contribution: cleanText(entry.contribution),
+      effect: cleanText(entry.effect),
+      percentage: cleanText(entry.percentage),
+      evidence: cleanText(entry.evidence),
+      evidenceLevel: parseEvidenceLevel(entry.evidence_level ?? entry.evidenceLevel),
+      evidenceLabel: cleanText(entry.evidence_label ?? entry.evidenceLabel),
+      evidenceReason: cleanText(entry.evidence_reason ?? entry.evidenceReason),
+      matchedNotes: asList(entry.matched_notes ?? entry.matchedNotes, 6),
+    });
+  });
+  return molecules;
+}
+
+function normalizeLegacyKeyMolecules(value: unknown): MoleculeItem[] {
+  if (!Array.isArray(value)) return [];
+  const molecules: MoleculeItem[] = [];
+  value.forEach((raw) => {
+    if (!raw || typeof raw !== 'object') return;
+    const entry = raw as Record<string, unknown>;
+    const name = cleanText(entry.name);
+    if (!name) return;
+    molecules.push({
+      name,
+      smiles: cleanText(entry.smiles),
+      formula: cleanText(entry.formula),
+      family: cleanText(entry.family),
+      origin: cleanText(entry.origin),
+      note: cleanText(entry.role),
+      contribution: cleanText(entry.effect ?? entry.contribution),
       effect: cleanText(entry.effect),
       percentage: cleanText(entry.percentage),
       evidence: cleanText(entry.evidence),
@@ -109,6 +149,152 @@ function normalizeTimeline(value: unknown): AnalysisTimeline | null {
   const t3 = cleanText(entry.t3);
   if (!t0 && !t1 && !t2 && !t3) return null;
   return { t0, t1, t2, t3 };
+}
+
+function normalizePyramid(value: unknown, fallbackSource?: Record<string, unknown>): AnalysisResult['pyramid'] {
+  const entry = value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
+  const top = asList(entry?.top ?? fallbackSource?.topNotes, 6);
+  const middle = asList(entry?.middle ?? entry?.heart ?? fallbackSource?.heartNotes, 8);
+  const base = asList(entry?.base ?? fallbackSource?.baseNotes, 8);
+  if (top.length === 0 && middle.length === 0 && base.length === 0) return null;
+  return { top, middle, base };
+}
+
+function normalizeMode(value: unknown): AnalysisResult['analysisMode'] {
+  if (value === 'text' || value === 'notes' || value === 'image') return value;
+  if (value === 'photo') return 'image';
+  return undefined;
+}
+
+function normalizePersona(value: unknown, family: string, occasion: string): AnalysisResult['persona'] {
+  if (!value || typeof value !== 'object') {
+    return {
+      gender: 'Unisex',
+      age: 'Yetiskin profili',
+      vibe: family,
+      occasions: occasion ? [occasion] : [],
+      season: '',
+    };
+  }
+
+  const entry = value as Record<string, unknown>;
+  const occasions = asList(entry.occasions, 4);
+  return {
+    gender: cleanText(entry.gender, 'Unisex'),
+    age: cleanText(entry.age, 'Yetiskin profili'),
+    vibe: cleanText(entry.vibe, family),
+    occasions: occasions.length > 0 ? occasions : occasion ? [occasion] : [],
+    season: cleanText(entry.season),
+  };
+}
+
+function normalizeScoreCards(value: unknown, source?: Record<string, unknown>): AnalysisResult['scoreCards'] {
+  const entry = value && typeof value === 'object' ? (value as Record<string, unknown>) : source ?? null;
+  if (!entry) return null;
+  const val = Number(entry.value ?? entry.valueScore);
+  const uniq = Number(entry.uniqueness ?? entry.uniquenessScore);
+  const wear = Number(entry.wearability ?? entry.wearabilityScore);
+  if (!Number.isFinite(val) && !Number.isFinite(uniq) && !Number.isFinite(wear)) return null;
+  return {
+    value: Number.isFinite(val) ? Math.max(1, Math.min(10, Math.round(val))) : 7,
+    uniqueness: Number.isFinite(uniq) ? Math.max(1, Math.min(10, Math.round(uniq))) : 7,
+    wearability: Number.isFinite(wear) ? Math.max(1, Math.min(10, Math.round(wear))) : 7,
+  };
+}
+
+function normalizeSimilarFragrances(value: unknown): NonNullable<AnalysisResult['similarFragrances']> {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((raw) => {
+      if (!raw || typeof raw !== 'object') return null;
+      const entry = raw as Record<string, unknown>;
+      const name = cleanText(entry.name);
+      if (!name) return null;
+      return {
+        name,
+        brand: cleanText(entry.brand),
+        reason: cleanText(entry.reason),
+        priceRange: cleanText(entry.priceRange ?? entry.price_range),
+      };
+    })
+    .filter((item): item is NonNullable<AnalysisResult['similarFragrances']>[number] => Boolean(item));
+}
+
+export function hydrateAnalysisResult(value: unknown): AnalysisResult | null {
+  if (!value || typeof value !== 'object') return null;
+  const raw = value as Record<string, unknown>;
+  const name = cleanText(raw.name, 'Bilinmeyen Koku');
+  const family = cleanText(raw.family, 'Aromatik');
+  const description = cleanText(raw.description ?? raw.ai_description, `${name} icin detayli aciklama uretildi.`);
+  const moodProfile = cleanText(raw.moodProfile ?? raw.mood_profile, description);
+  const pyramid = normalizePyramid(raw.pyramid, raw);
+  const occasion = cleanText(raw.occasion, asList(raw.occasions, 1)[0] || 'Gunluk');
+  const similarFragrances = normalizeSimilarFragrances(raw.similarFragrances ?? raw.similar_fragrances);
+  const molecules = (() => {
+    const normalized = normalizeMolecules(raw.molecules);
+    if (normalized.length > 0) return normalized;
+    return normalizeLegacyKeyMolecules(raw.keyMolecules ?? raw.key_molecules);
+  })();
+  const technical = normalizeTechnical(raw.technical);
+  const scoreCards = normalizeScoreCards(raw.scoreCards, raw);
+  const season = asList(raw.season ?? raw.seasons, 4);
+  const scoresSource = raw.scores && typeof raw.scores === 'object' ? (raw.scores as Record<string, unknown>) : {};
+  const similar = (() => {
+    const direct = asList(raw.similar, 10);
+    if (direct.length > 0) return direct;
+    return similarFragrances
+      .map((item) => `${item.brand ? `${item.brand} ` : ''}${item.name}`.trim())
+      .filter(Boolean)
+      .slice(0, 10);
+  })();
+
+  return {
+    id: cleanText(raw.id, `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`),
+    iconToken: cleanText(raw.iconToken, 'signature'),
+    name,
+    brand: cleanText(raw.brand) || null,
+    year: Number.isFinite(Number(raw.year)) ? Number(raw.year) : null,
+    family,
+    concentration: cleanText(raw.concentration) || null,
+    intensity: clampScore(raw.intensity, 68),
+    season,
+    occasion,
+    occasions: asList(raw.occasions, 8),
+    description,
+    moodProfile,
+    expertComment: cleanText(raw.expertComment ?? raw.expert_comment),
+    layeringTip: cleanText(raw.layeringTip ?? raw.layering_tip),
+    applicationTip: cleanText(raw.applicationTip ?? raw.application_tip),
+    sillage: cleanText(raw.sillage),
+    longevityHours: parseLongevityHours(raw.longevityHours ?? raw.longevity_hours),
+    ageProfile: cleanText(raw.ageProfile ?? raw.age_profile),
+    genderProfile: cleanText(raw.genderProfile ?? raw.gender_profile, 'Unisex'),
+    pyramid,
+    similar,
+    similarFragrances,
+    scores: {
+      freshness: clampScore(scoresSource.freshness, 50),
+      sweetness: clampScore(scoresSource.sweetness, 45),
+      warmth: clampScore(scoresSource.warmth, 60),
+    },
+    scoreCards,
+    persona: normalizePersona(raw.persona, family, occasion),
+    dupes: asList(raw.dupes, 8),
+    layering:
+      raw.layering && typeof raw.layering === 'object'
+        ? {
+            pair: cleanText((raw.layering as Record<string, unknown>).pair),
+            result: cleanText((raw.layering as Record<string, unknown>).result),
+          }
+        : null,
+    timeline: normalizeTimeline(raw.timeline),
+    technical,
+    molecules,
+    confidence: extractConfidenceScore(raw.confidence),
+    analysisMode: normalizeMode(raw.analysisMode ?? raw.mode ?? raw.inputMode ?? raw.input_mode),
+    inputText: cleanText(raw.inputText ?? raw.input_text),
+    createdAt: cleanText(raw.createdAt ?? raw.created_at, new Date().toISOString()),
+  };
 }
 
 function parseProxyBlocks(data: unknown): Record<string, unknown> {

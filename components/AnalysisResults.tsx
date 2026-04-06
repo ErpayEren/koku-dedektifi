@@ -34,9 +34,10 @@ export const AnalysisResults = memo(function AnalysisResults({
   const sectionRef = useRef<HTMLElement | null>(null);
   const activeResultId = model.activeResult?.id ?? null;
   const hasActiveResult = Boolean(model.activeResult);
+  const shouldShowSection = isAnalyzing || hasActiveResult;
 
   useEffect(() => {
-    if (!hasActiveResult || isAnalyzing) return;
+    if (!shouldShowSection) return;
 
     const node = sectionRef.current;
     if (!node) return;
@@ -46,16 +47,12 @@ export const AnalysisResults = memo(function AnalysisResults({
         behavior: 'smooth',
         block: 'start',
       });
-    }, 80);
+    }, isAnalyzing ? 30 : 80);
 
     return () => window.clearTimeout(timeout);
-  }, [activeResultId, hasActiveResult, isAnalyzing]);
+  }, [activeResultId, isAnalyzing, shouldShowSection]);
 
-  if (isAnalyzing) {
-    return <AnalysisLoadingState analysisStepIndex={model.analysisStepIndex} />;
-  }
-
-  if (!model.activeResult) return null;
+  if (!shouldShowSection) return null;
 
   return (
     <section
@@ -63,95 +60,102 @@ export const AnalysisResults = memo(function AnalysisResults({
       id="analysis-results"
       className="anim-up-2 scroll-mt-24 px-5 pb-8 md:px-12"
     >
-      <SectionDivider label="Analiz Sonucu" />
+      <SectionDivider label={isAnalyzing ? 'Analiz İşleniyor' : 'Analiz Sonucu'} />
 
-      <div ref={model.shareCardRef} className="mb-4 grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
-        <OverviewPanel
-          result={model.activeResult}
-          confidence={model.confidence}
-          glowColor={model.glowColor}
-          season={model.season}
-          longevityScore={model.longevityScore}
-          projectionScore={model.projectionScore}
-          fitScore={model.fitScore}
-          signatureTags={model.signatureTags}
-          barsReady={model.barsReady}
-          shareBusy={model.shareBusy}
-          onOpenShare={() => model.setShareModalOpen(true)}
-          style={model.cardMotion(0)}
-        />
+      {isAnalyzing ? <AnalysisLoadingState analysisStepIndex={model.analysisStepIndex} /> : null}
 
-        <DetailPanel
-          result={model.activeResult}
-          heartNotes={model.heartNotes}
-          style={model.cardMotion(1)}
-        />
-      </div>
+      {!model.activeResult || isAnalyzing ? null : (
+        <>
+          <div ref={model.shareCardRef} className="mb-4 grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
+            <OverviewPanel
+              result={model.activeResult}
+              confidence={model.confidence}
+              glowColor={model.glowColor}
+              season={model.season}
+              longevityScore={model.longevityScore}
+              projectionScore={model.projectionScore}
+              fitScore={model.fitScore}
+              signatureTags={model.signatureTags}
+              barsReady={model.barsReady}
+              shareBusy={model.shareBusy}
+              onOpenShare={() => model.setShareModalOpen(true)}
+              style={model.cardMotion(0)}
+            />
 
-      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
-        <MoleculePanel
-          molecule={model.molecule}
-          moleculeData={model.moleculeData}
-          moleculeSafeIndex={model.moleculeSafeIndex}
-          hiddenMoleculeCount={model.hiddenMoleculeCount}
-          visibleMoleculeCount={model.visibleMoleculeCount}
-          allMoleculeData={model.allMoleculeData}
-          barsReady={model.barsReady}
-          onSelectMolecule={model.setMoleculeIndex}
-          onOpenMolecule={(index) => {
-            model.setMoleculeIndex(index);
-            model.setMolCardIdx(index);
-          }}
-          onPrev={() => model.setMoleculeIndex((prev) => Math.max(0, prev - 1))}
-          onNext={() => model.setMoleculeIndex((prev) => Math.min(model.moleculeData.length - 1, prev + 1))}
-          onShare={model.shareMoleculesCard}
-          moleculeShareBusy={model.moleculeShareBusy}
-          style={model.cardMotion(2)}
-        />
+            <DetailPanel
+              result={model.activeResult}
+              heartNotes={model.heartNotes}
+              style={model.cardMotion(1)}
+            />
+          </div>
 
-        <SimilarPanel
-          similarItems={model.similarItems}
-          hiddenSimilarCount={model.hiddenSimilarCount}
-          similarLimit={model.entitlement.similarLimit}
-          dupes={model.dupes}
-          onAnalyzeSimilar={onAnalyzeSimilar}
-          style={model.cardMotion(3)}
-        />
+          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
+            <MoleculePanel
+              molecule={model.molecule}
+              moleculeData={model.moleculeData}
+              moleculeSafeIndex={model.moleculeSafeIndex}
+              hiddenMoleculeCount={model.hiddenMoleculeCount}
+              visibleMoleculeCount={model.visibleMoleculeCount}
+              allMoleculeData={model.allMoleculeData}
+              barsReady={model.barsReady}
+              onSelectMolecule={model.setMoleculeIndex}
+              onOpenMolecule={(index) => {
+                model.setMoleculeIndex(index);
+                model.setMolCardIdx(index);
+              }}
+              onPrev={() => model.setMoleculeIndex((prev) => Math.max(0, prev - 1))}
+              onNext={() => model.setMoleculeIndex((prev) => Math.min(model.moleculeData.length - 1, prev + 1))}
+              onShare={model.shareMoleculesCard}
+              moleculeShareBusy={model.moleculeShareBusy}
+              style={model.cardMotion(2)}
+            />
 
-        <WheelPanel
-          wheelValues={model.wheelValues}
-          scores={model.scores}
-          intensity={model.activeResult.intensity}
-          scoreCards={model.scoreCards}
-          style={model.cardMotion(4)}
-        />
-      </div>
+            <SimilarPanel
+              similarItems={model.similarItems}
+              hiddenSimilarCount={model.hiddenSimilarCount}
+              similarLimit={model.entitlement.similarLimit}
+              dupes={model.dupes}
+              onAnalyzeSimilar={onAnalyzeSimilar}
+              style={model.cardMotion(3)}
+            />
 
-      <ShareCanvases
-        result={model.activeResult}
-        confidence={model.confidence}
-        molecule={model.molecule}
-        moleculeData={model.moleculeData}
-        storyShareRef={model.storyShareRef}
-        moleculeShareRef={model.moleculeShareRef}
-      />
+            <WheelPanel
+              wheelValues={model.wheelValues}
+              scores={model.scores}
+              intensity={model.activeResult.intensity}
+              scoreCards={model.scoreCards}
+              style={model.cardMotion(4)}
+            />
+          </div>
 
-      <ShareAnalysisModal
-        open={model.shareModalOpen}
-        busy={model.shareBusy}
-        onClose={() => model.setShareModalOpen(false)}
-        onInstagramShare={model.shareResultCard}
-        onCopyLink={model.copyResultLink}
-        onDownload={model.downloadResultCard}
-      />
+          <ShareCanvases
+            result={model.activeResult}
+            confidence={model.confidence}
+            molecule={model.molecule}
+            moleculeData={model.moleculeData}
+            storyShareRef={model.storyShareRef}
+            moleculeShareRef={model.moleculeShareRef}
+          />
 
-      {model.molCardIdx !== null ? (
-        <MoleculeCard
-          molecules={model.moleculeData}
-          initialIndex={model.molCardIdx}
-          onClose={() => model.setMolCardIdx(null)}
-        />
-      ) : null}
+          <ShareAnalysisModal
+            open={model.shareModalOpen}
+            busy={model.shareBusy}
+            onClose={() => model.setShareModalOpen(false)}
+            onInstagramShare={model.shareResultCard}
+            onCopyLink={model.copyResultLink}
+            onDownload={model.downloadResultCard}
+          />
+
+          {model.molCardIdx !== null ? (
+            <MoleculeCard
+              molecules={model.moleculeData}
+              initialIndex={model.molCardIdx}
+              onClose={() => model.setMolCardIdx(null)}
+            />
+          ) : null}
+        </>
+      )}
+
     </section>
   );
 });

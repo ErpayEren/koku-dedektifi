@@ -1,4 +1,4 @@
-import { normalizeAnalysisPayload } from './analysis';
+import { hydrateAnalysisResult, normalizeAnalysisPayload } from './analysis';
 import type { AnalysisMode, AnalysisResult, FinderCandidate } from './types';
 
 export interface ApiErrorPayload {
@@ -52,7 +52,12 @@ function normalizeDirectAnalysis(data: unknown): AnalysisResult {
     throw new Error('Analiz sonucu eksik.');
   }
 
-  return payload.analysis;
+  const hydrated = hydrateAnalysisResult(payload.analysis);
+  if (!hydrated) {
+    throw new Error('Analiz sonucu eksik.');
+  }
+
+  return hydrated;
 }
 
 async function analyze(mode: AnalysisMode, input: string, isPro: boolean, imageBase64?: string): Promise<AnalysisResult> {
@@ -86,14 +91,15 @@ export async function fetchAnalysisHistory(): Promise<AnalysisResult[]> {
   const data = await jsonRequest<{ analyses?: AnalysisResult[] }>('/api/analyses', {
     method: 'GET',
   });
-  return Array.isArray(data.analyses) ? data.analyses : [];
+  if (!Array.isArray(data.analyses)) return [];
+  return data.analyses.map((item) => hydrateAnalysisResult(item)).filter((item): item is AnalysisResult => Boolean(item));
 }
 
 export async function fetchAnalysisById(id: string): Promise<AnalysisResult | null> {
   const data = await jsonRequest<{ analysis?: AnalysisResult }>(`/api/analyses?id=${encodeURIComponent(id)}`, {
     method: 'GET',
   });
-  return data.analysis ?? null;
+  return hydrateAnalysisResult(data.analysis);
 }
 
 export async function runFinder(input: {

@@ -1,3 +1,4 @@
+import { hydrateAnalysisResult } from './analysis';
 import type { AnalysisResult, FeedItem, OnboardingPreferences, WardrobeItem } from './types';
 
 const KEYS = {
@@ -51,12 +52,15 @@ export function debouncedWrite<T>(key: string, value: T, ms = 400): void {
 
 export function getHistory(): AnalysisResult[] {
   const rows = readJson<AnalysisResult[]>(KEYS.history, []);
-  return Array.isArray(rows) ? rows : [];
+  if (!Array.isArray(rows)) return [];
+  return rows.map((row) => hydrateAnalysisResult(row)).filter((row): row is AnalysisResult => Boolean(row));
 }
 
 export function saveHistoryRow(row: AnalysisResult): void {
-  const list = getHistory().filter((item) => item.id !== row.id);
-  list.unshift(row);
+  const normalized = hydrateAnalysisResult(row);
+  if (!normalized) return;
+  const list = getHistory().filter((item) => item.id !== normalized.id);
+  list.unshift(normalized);
   writeJson(KEYS.history, list.slice(0, 40));
   emitClientDataChanged('history');
 }

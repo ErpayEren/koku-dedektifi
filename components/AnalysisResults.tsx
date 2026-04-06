@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { SectionDivider } from './ui/SectionDivider';
 import { AnalysisLoadingState } from './analysis-results/AnalysisLoadingState';
@@ -31,6 +31,25 @@ export const AnalysisResults = memo(function AnalysisResults({
   onAnalyzeSimilar,
 }: AnalysisResultsProps) {
   const model = useAnalysisResultsModel({ result, isAnalyzing });
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const activeResultId = model.activeResult?.id ?? null;
+  const hasActiveResult = Boolean(model.activeResult);
+
+  useEffect(() => {
+    if (!hasActiveResult || isAnalyzing) return;
+
+    const node = sectionRef.current;
+    if (!node) return;
+
+    const timeout = window.setTimeout(() => {
+      node.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }, 80);
+
+    return () => window.clearTimeout(timeout);
+  }, [activeResultId, hasActiveResult, isAnalyzing]);
 
   if (isAnalyzing) {
     return <AnalysisLoadingState analysisStepIndex={model.analysisStepIndex} />;
@@ -39,7 +58,11 @@ export const AnalysisResults = memo(function AnalysisResults({
   if (!model.activeResult) return null;
 
   return (
-    <section className="anim-up-2 px-5 pb-8 md:px-12">
+    <section
+      ref={sectionRef}
+      id="analysis-results"
+      className="anim-up-2 scroll-mt-24 px-5 pb-8 md:px-12"
+    >
       <SectionDivider label="Analiz Sonucu" />
 
       <div ref={model.shareCardRef} className="mb-4 grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">

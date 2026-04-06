@@ -130,7 +130,7 @@ export default function KarsilastirPage() {
                   : 'bg-gold text-bg hover:bg-[#d8b676]'
               }`}
             >
-              {loading ? 'Karşılaştırılıyor...' : 'Karşılaştırmayı başlat'}
+              {loading ? 'Karşılaştırılıyor...' : 'Karşılaştırmayı Çalıştır'}
             </button>
           </Card>
 

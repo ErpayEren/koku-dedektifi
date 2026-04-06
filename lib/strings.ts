@@ -57,7 +57,7 @@ export const UI = {
   wardrobeWishlist: 'İstek Listesi',
   wardrobeTried: 'Denedim',
   wardrobeBuyAgain: 'Tekrar Alırım',
-  wardrobeSkip: 'Geç',
+  wardrobeSkip: 'Geçti',
 
   emptyWardrobeTitle: 'Dolabın henüz boş',
   emptyWardrobeBody: 'Analiz yaptıkça parfümlerini buraya ekleyebilirsin.',
@@ -76,7 +76,7 @@ export const UI = {
   packagesFreeTitle: 'Ücretsiz',
   packagesFreePrice: '0 TL',
   packagesFreeTag: 'Başlangıç seviyesi',
-  packagesFreeFeatures: ['5 analiz / gün', 'Koku dolabı', 'Karşılaştırma'],
+  packagesFreeFeatures: ['Günlük 3 analiz', 'Koku dolabı', 'Karşılaştırma'],
   packagesFreeBtn: 'Ücretsiz Başla',
   packagesProTitle: 'Pro',
   packagesProTag: 'Önerilen',

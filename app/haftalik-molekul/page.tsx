@@ -40,9 +40,7 @@ export default function WeeklyMoleculePage() {
                 <h1 className="mt-3 font-display text-[clamp(2.5rem,6vw,4.6rem)] leading-[0.96] text-cream">
                   {molecule.name}
                 </h1>
-                <p className="mt-3 text-[13px] font-mono uppercase tracking-[.12em] text-muted">
-                  {molecule.iupac_name}
-                </p>
+                <p className="mt-3 text-[13px] font-mono uppercase tracking-[.12em] text-muted">{molecule.iupac_name}</p>
                 <p className="mt-5 max-w-[60ch] text-[15px] leading-relaxed text-cream/88">{molecule.fun_fact}</p>
 
                 <div className="mt-5 flex flex-wrap gap-2">

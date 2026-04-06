@@ -9,10 +9,6 @@
   ],
   "rewrites": [
     {
-      "source": "/api/analyze",
-      "destination": "/api/ops?r=analyze"
-    },
-    {
       "source": "/api/health",
       "destination": "/api/ops?r=health"
     },

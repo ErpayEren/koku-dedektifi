@@ -120,9 +120,7 @@ export function Sidebar() {
     handleResize();
 
     const observer = new ResizeObserver(() => measure());
-    if (placeholderRef.current) {
-      observer.observe(placeholderRef.current);
-    }
+    if (placeholderRef.current) observer.observe(placeholderRef.current);
 
     window.addEventListener('resize', handleResize);
 
@@ -143,17 +141,13 @@ export function Sidebar() {
 
       const passed = window.scrollY > RAIL_SCROLL_THRESHOLD;
       if (!passed) {
-        if (scrollSettleTimerRef.current) {
-          clearTimeout(scrollSettleTimerRef.current);
-        }
+        if (scrollSettleTimerRef.current) clearTimeout(scrollSettleTimerRef.current);
         setHoverExpanded(false);
         setScrolledPastThreshold(false);
         return;
       }
 
-      if (scrollSettleTimerRef.current) {
-        clearTimeout(scrollSettleTimerRef.current);
-      }
+      if (scrollSettleTimerRef.current) clearTimeout(scrollSettleTimerRef.current);
 
       scrollSettleTimerRef.current = setTimeout(() => {
         setScrolledPastThreshold(true);
@@ -192,12 +186,8 @@ export function Sidebar() {
 
   useEffect(() => {
     return () => {
-      if (hoverCollapseTimerRef.current) {
-        clearTimeout(hoverCollapseTimerRef.current);
-      }
-      if (scrollSettleTimerRef.current) {
-        clearTimeout(scrollSettleTimerRef.current);
-      }
+      if (hoverCollapseTimerRef.current) clearTimeout(hoverCollapseTimerRef.current);
+      if (scrollSettleTimerRef.current) clearTimeout(scrollSettleTimerRef.current);
     };
   }, []);
 
@@ -215,17 +205,13 @@ export function Sidebar() {
 
   const openRail = () => {
     if (!canRailCollapse || !scrolledPastThreshold) return;
-    if (hoverCollapseTimerRef.current) {
-      clearTimeout(hoverCollapseTimerRef.current);
-    }
+    if (hoverCollapseTimerRef.current) clearTimeout(hoverCollapseTimerRef.current);
     setHoverExpanded(true);
   };
 
   const scheduleCollapse = () => {
     if (!canRailCollapse || !scrolledPastThreshold) return;
-    if (hoverCollapseTimerRef.current) {
-      clearTimeout(hoverCollapseTimerRef.current);
-    }
+    if (hoverCollapseTimerRef.current) clearTimeout(hoverCollapseTimerRef.current);
     hoverCollapseTimerRef.current = setTimeout(() => {
       setHoverExpanded(false);
     }, HOVER_COLLAPSE_DELAY_MS);

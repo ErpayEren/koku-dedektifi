@@ -37,7 +37,7 @@ interface GroupDefinition {
   key: GroupKey;
   label: string;
   aria: string;
-  Icon: (props: IconProps) => JSX.Element;
+  Icon: (props: IconProps) => React.JSX.Element;
   items: readonly GroupItem[];
 }
 

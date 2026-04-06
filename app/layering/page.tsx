@@ -117,7 +117,7 @@ export default function LayeringPage() {
                   loading ? 'border border-white/[.08] bg-white/[.06] text-muted' : 'bg-gold text-bg hover:bg-[#d8b676]'
                 }`}
               >
-                {loading ? 'Blend hazırlanıyor...' : 'Katmanlamayı analiz et'}
+                {loading ? 'Blend hazırlanıyor...' : 'Katmanlamayı Analiz Et'}
               </button>
             </Card>
 
@@ -127,7 +127,7 @@ export default function LayeringPage() {
               <Card className="p-5 md:p-6 hover-lift">
                 <CardTitle>Katmanlama Sonucu</CardTitle>
                 {!result ? (
-                  <p className="text-[13px] text-muted">Sol ve sağ parfümü seçip analizi çalıştırdığında sonuç burada görünür.</p>
+                  <p className="text-[13px] text-muted">Sol ve sağ parfüm seçip analizi çalıştırdığında sonuç burada görünür.</p>
                 ) : (
                   <div>
                     <p className="text-[2rem] font-semibold leading-[1.05] text-cream">{result.name}</p>

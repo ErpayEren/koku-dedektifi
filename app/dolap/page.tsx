@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { useProGate } from '@/hooks/useProGate';
 import { useToastSync } from '@/lib/client/useToastSync';
-import { syncWardrobeFromRemote, pushWardrobeToRemote } from '@/lib/client/wardrobe';
+import { pushWardrobeToRemote, syncWardrobeFromRemote } from '@/lib/client/wardrobe';
 import { useUserStore } from '@/lib/store/userStore';
 import type { WardrobeItem } from '@/lib/client/types';
 

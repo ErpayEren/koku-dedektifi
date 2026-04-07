@@ -21,8 +21,7 @@ import { getHistory } from '@/lib/client/storage';
 import { useBillingEntitlement } from '@/lib/client/useBillingEntitlement';
 import { useInstantProUpgrade } from '@/lib/client/useInstantProUpgrade';
 import { useUserStore } from '@/lib/store/userStore';
-import { Logo } from './ui/Logo';
-import { LogoMark } from './ui/LogoMark';
+import { Logo, LogoMark } from './ui/Logo';
 
 interface NavItem {
   label: string;
@@ -44,7 +43,7 @@ const SCROLL_SETTLE_COLLAPSE_MS = 320;
 
 const NAV: NavGroup[] = [
   {
-    section: 'ANALİZ',
+    section: 'analiz',
     items: [
       { label: 'Yeni Analiz', href: '/', Icon: Sparkles },
       { label: 'Koku Geçmişi', href: '/gecmis', Icon: History },
@@ -52,7 +51,7 @@ const NAV: NavGroup[] = [
     ],
   },
   {
-    section: 'KOLEKSİYON',
+    section: 'koleksiyon',
     items: [
       { label: 'Koku Dolabım', href: '/dolap', Icon: Archive },
       { label: 'Koku Rutinim', href: '/wear', Icon: CalendarDays },
@@ -60,7 +59,7 @@ const NAV: NavGroup[] = [
     ],
   },
   {
-    section: 'KEŞFET',
+    section: 'keşfet',
     items: [
       { label: 'Nota Avcısı', href: '/notalar', Icon: Search },
       { label: 'Haftalık Molekül', href: '/haftalik-molekul', Icon: FlaskConical },
@@ -250,21 +249,19 @@ export function Sidebar() {
             collapsed ? 'justify-center px-0 duration-[980ms]' : 'gap-3 px-5 md:px-6 duration-[620ms]'
           }`}
         >
-          <Link
-            href="/"
-            className={`group inline-flex items-center no-underline transition-[gap] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-              collapsed ? 'justify-center gap-0 duration-[980ms]' : 'duration-[620ms]'
-            }`}
-            aria-label="Koku Dedektifi ana sayfa"
-          >
-            {collapsed ? (
-              <LogoMark size={54} />
-            ) : (
-              <span className="overflow-hidden transition-[max-width,transform] duration-[720ms] ease-[cubic-bezier(0.16,1,0.3,1)]">
-                <Logo size="sidebar" asLink={false} />
-              </span>
-            )}
-          </Link>
+          {collapsed ? (
+            <Link
+              href="/"
+              className="group inline-flex items-center justify-center gap-0 no-underline transition-[gap] duration-[980ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+              aria-label="Koku Dedektifi ana sayfa"
+            >
+              <LogoMark size={30} />
+            </Link>
+          ) : (
+            <span className="inline-flex items-center gap-3 overflow-hidden transition-[max-width,transform] duration-[720ms] ease-[cubic-bezier(0.16,1,0.3,1)]">
+              <Logo size="md" />
+            </span>
+          )}
         </div>
 
         <div className="relative flex-1 overflow-hidden">
@@ -283,13 +280,20 @@ export function Sidebar() {
             {NAV.map((group, groupIndex) => (
               <div key={group.section} className={groupIndex === 0 ? '' : collapsed ? 'mt-4' : 'mt-0'}>
                 <p
-                  className={`overflow-hidden text-[10px] font-medium tracking-[0.2em] text-white/30 transition-[max-height,margin,padding] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                  className={`overflow-hidden transition-[max-height,margin,padding] ease-[cubic-bezier(0.16,1,0.3,1)] ${
                     collapsed
                       ? 'mb-0 mt-0 max-h-0 px-0 duration-[520ms]'
                       : groupIndex === 0
-                        ? 'mb-1 mt-0 max-h-6 px-4 duration-[620ms]'
-                        : 'mb-1 mt-6 max-h-6 px-4 duration-[620ms]'
+                        ? 'mb-2 mt-0 max-h-6 px-7 duration-[620ms]'
+                        : 'mb-2 mt-5 max-h-6 px-7 duration-[620ms]'
                   }`}
+                  style={{
+                    fontSize: 9,
+                    fontFamily: 'var(--kd-font-mono, "DM Mono", monospace)',
+                    letterSpacing: '0.16em',
+                    textTransform: 'uppercase',
+                    color: 'var(--kd-hint, #3F3B45)',
+                  }}
                 >
                   {group.section}
                 </p>

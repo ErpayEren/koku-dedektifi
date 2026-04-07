@@ -1,44 +1,45 @@
-type LogoSize = 'sm' | 'md' | 'sidebar';
-
-const SIZE_MAP: Record<LogoSize, { text: string; tracking: string }> = {
-  sm: {
-    text: 'text-[20px]',
-    tracking: 'tracking-[-0.02em]',
-  },
-  md: {
-    text: 'text-[24px]',
-    tracking: 'tracking-[-0.02em]',
-  },
-  sidebar: {
-    text: 'text-[24px]',
-    tracking: 'tracking-[-0.022em]',
-  },
-};
-
-export function Logo({
-  size = 'md',
-  asLink = true,
-}: {
-  size?: LogoSize;
-  asLink?: boolean;
-}) {
-  const config = SIZE_MAP[size];
-  const wordmark = (
-    <span
-      className={`whitespace-nowrap font-display italic leading-[0.96] transition-transform duration-200 group-hover:translate-x-[1px] ${config.text} ${config.tracking}`}
-    >
-      <span className="text-cream">Koku </span>
-      <span className="text-gold">Dedektifi</span>
-    </span>
-  );
-
-  if (!asLink) {
-    return <span className="group inline-flex max-w-full items-center">{wordmark}</span>;
-  }
-
+export function LogoMark({ size = 30 }: { size?: number }) {
   return (
-    <a href="/" className="group inline-flex max-w-full items-center no-underline" aria-label="Koku Dedektifi ana sayfa">
-      {wordmark}
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 30 30"
+      fill="none"
+      aria-hidden="true"
+      style={{ flexShrink: 0 }}
+    >
+      <circle cx="15" cy="15" r="13" stroke="rgba(201,169,110,0.45)" strokeWidth="1" />
+      <circle cx="15" cy="15" r="5" fill="rgba(201,169,110,0.7)" />
+      <line x1="15" y1="4" x2="15" y2="8" stroke="rgba(201,169,110,0.5)" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function Logo({ size = 'md' }: { size?: 'sm' | 'md' }) {
+  const fs = size === 'sm' ? 15 : 17;
+  return (
+    <a
+      href="/"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        textDecoration: 'none',
+      }}
+    >
+      <LogoMark size={size === 'sm' ? 26 : 30} />
+      <span
+        style={{
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontStyle: 'italic',
+          fontSize: fs,
+          color: '#EBE4D8',
+          lineHeight: 1,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        Koku <span style={{ color: '#C9A96E' }}>Dedektifi</span>
+      </span>
     </a>
   );
 }

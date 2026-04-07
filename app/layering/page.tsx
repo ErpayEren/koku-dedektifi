@@ -127,7 +127,7 @@ export default function LayeringPage() {
               <Card className="p-5 md:p-6 hover-lift">
                 <CardTitle>Katmanlama Sonucu</CardTitle>
                 {!result ? (
-                  <p className="text-[13px] text-muted">Sol ve sağ parfüm seçip analizi çalıştırdığında sonuç burada görünür.</p>
+                  <p className="text-[13px] text-muted">Sol ve sağ parfümü seçip analizi çalıştırdığında sonuç burada görünür.</p>
                 ) : (
                   <div>
                     <p className="text-[2rem] font-semibold leading-[1.05] text-cream">{result.name}</p>

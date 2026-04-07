@@ -179,7 +179,11 @@ function buildWearSummary(history: AnalysisResult[], wardrobe: WardrobeItem[]) {
 
   const ownedItems = wardrobe.filter((item) => item.status === 'owned');
   const ownedProfile = ownedItems.length
-    ? `Sahip olduğun koleksiyon ${ownedItems.length} parfüm üzerinden okununca ${Array.from(new Set(ownedItems.map((item) => item.family).filter(Boolean))).slice(0, 3).join(', ')} eksenine yaslanıyor.`
+    ? `Sahip olduğun koleksiyon ${ownedItems.length} parfüm üzerinden okununca ${Array.from(
+        new Set(ownedItems.map((item) => item.family).filter(Boolean)),
+      )
+        .slice(0, 3)
+        .join(', ')} eksenine yaslanıyor.`
     : 'Dolabında “Sahibim” statüsünde yeterli parfüm yok; bu alan dolabın büyüdükçe derinleşecek.';
 
   return {

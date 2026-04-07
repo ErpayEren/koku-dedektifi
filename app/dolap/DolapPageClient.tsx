@@ -26,14 +26,6 @@ const FILTERS: Array<{ id: StatusFilter; label: string }> = [
   { id: 'skip', label: 'Geç' },
 ];
 
-function statusLabel(value: WardrobeItem['status']): string {
-  if (value === 'owned') return 'Sahibim';
-  if (value === 'wishlist') return 'İstek Listesi';
-  if (value === 'tested') return 'Denedim';
-  if (value === 'rebuy') return 'Tekrar Alırım';
-  return 'Geç';
-}
-
 export function DolapPageClient() {
   const router = useRouter();
   const { requirePro } = useProGate();

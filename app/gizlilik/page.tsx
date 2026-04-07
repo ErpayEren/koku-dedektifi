@@ -1,6 +1,9 @@
+import type { Metadata } from 'next';
 import { PageShell } from '@/components/ui/PageShell';
 
-export const metadata = { title: 'Gizlilik Politikası — Koku Dedektifi' };
+export const metadata: Metadata = {
+  title: 'Gizlilik Politikası — Koku Dedektifi',
+};
 
 export default function GizlilikPage() {
   return (

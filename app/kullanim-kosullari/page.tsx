@@ -1,14 +1,15 @@
+import type { Metadata } from 'next';
 import { PageShell } from '@/components/ui/PageShell';
 
-export const metadata = { title: 'Kullanım Koşulları — Koku Dedektifi' };
+export const metadata: Metadata = {
+  title: 'Kullanım Koşulları — Koku Dedektifi',
+};
 
 export default function KullanimKosullariPage() {
   return (
     <PageShell title="Kullanım Koşulları" date="29 Mart 2026">
       <h2>Hizmet Kapsamı</h2>
-      <p>
-        Koku Dedektifi, fotoğraf ve metin girdilerinden AI destekli koku analizi üretir. Sonuçlar tavsiye niteliğindedir.
-      </p>
+      <p>Koku Dedektifi, fotoğraf ve metin girdilerinden AI destekli koku analizi üretir. Sonuçlar tavsiye niteliğindedir.</p>
 
       <h2>Kullanıcı Sorumluluğu</h2>
       <ul>
@@ -24,8 +25,7 @@ export default function KullanimKosullariPage() {
 
       <hr />
       <p>
-        <a href="/gizlilik">Gizlilik Politikası</a> · <a href="/iade-politikasi">İade Politikası</a> ·{' '}
-        <a href="/paketler">Paketler</a>
+        <a href="/gizlilik">Gizlilik Politikası</a> · <a href="/iade-politikasi">İade Politikası</a> · <a href="/paketler">Paketler</a>
       </p>
     </PageShell>
   );

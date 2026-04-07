@@ -7,9 +7,12 @@ const nextConfig = {
       { source: '/pricing.html', destination: '/paketler', permanent: true },
       { source: '/privacy.html', destination: '/gizlilik', permanent: true },
       { source: '/privacy-policy.html', destination: '/gizlilik', permanent: true },
+      { source: '/gizlilik.html', destination: '/gizlilik', permanent: true },
       { source: '/terms.html', destination: '/kullanim-kosullari', permanent: true },
       { source: '/terms-and-conditions.html', destination: '/kullanim-kosullari', permanent: true },
+      { source: '/kullanim-kosullari.html', destination: '/kullanim-kosullari', permanent: true },
       { source: '/refund-policy.html', destination: '/iade-politikasi', permanent: true },
+      { source: '/iade-politikasi.html', destination: '/iade-politikasi', permanent: true },
       { source: '/index.html', destination: '/', permanent: true },
     ];
   },
@@ -36,4 +39,3 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
-

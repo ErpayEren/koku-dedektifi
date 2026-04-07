@@ -1,6 +1,9 @@
+import type { Metadata } from 'next';
 import { PageShell } from '@/components/ui/PageShell';
 
-export const metadata = { title: 'İade Politikası — Koku Dedektifi' };
+export const metadata: Metadata = {
+  title: 'İade Politikası — Koku Dedektifi',
+};
 
 export default function IadePolitikasiPage() {
   return (
@@ -21,8 +24,7 @@ export default function IadePolitikasiPage() {
 
       <hr />
       <p>
-        <a href="/gizlilik">Gizlilik Politikası</a> · <a href="/kullanim-kosullari">Kullanım Koşulları</a> ·{' '}
-        <a href="/paketler">Paketler</a>
+        <a href="/gizlilik">Gizlilik Politikası</a> · <a href="/kullanim-kosullari">Kullanım Koşulları</a> · <a href="/paketler">Paketler</a>
       </p>
     </PageShell>
   );

@@ -225,8 +225,12 @@ function CompareTable({ left, right }: { left: AnalysisResult; right: AnalysisRe
     { label: 'Mevsim', left: (left.season || []).join(', ') || '—', right: (right.season || []).join(', ') || '—' },
     {
       label: 'Skorlar',
-      left: `Değer ${left.scoreCards?.value ?? '—'} · Özgünlük ${left.scoreCards?.uniqueness ?? '—'} · Giyilebilirlik ${left.scoreCards?.wearability ?? '—'}`,
-      right: `Değer ${right.scoreCards?.value ?? '—'} · Özgünlük ${right.scoreCards?.uniqueness ?? '—'} · Giyilebilirlik ${right.scoreCards?.wearability ?? '—'}`,
+      left: `Değer ${left.scoreCards?.value ?? '—'} · Özgünlük ${left.scoreCards?.uniqueness ?? '—'} · Giyilebilirlik ${
+        left.scoreCards?.wearability ?? '—'
+      }`,
+      right: `Değer ${right.scoreCards?.value ?? '—'} · Özgünlük ${right.scoreCards?.uniqueness ?? '—'} · Giyilebilirlik ${
+        right.scoreCards?.wearability ?? '—'
+      }`,
     },
   ];
 

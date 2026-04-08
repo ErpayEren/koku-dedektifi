@@ -246,18 +246,18 @@ export function Sidebar() {
         style={{ left: panelLeft, willChange: 'width' } as CSSProperties}
       >
         <div
-          className={`flex h-[92px] shrink-0 items-center transition-[padding,gap] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          className={`flex h-[108px] shrink-0 items-center transition-[padding,gap] ease-[cubic-bezier(0.16,1,0.3,1)] ${
             collapsed ? 'justify-center px-0 duration-[980ms]' : 'gap-3 px-5 md:px-6 duration-[620ms]'
           }`}
         >
           {collapsed ? (
             <Link href="/" className="no-underline" aria-label="Koku Dedektifi ana sayfa">
-              <div className="flex h-[36px] w-[36px] items-center justify-center">
-                <LogoMark size={30} />
+              <div className="flex h-[54px] w-[54px] items-center justify-center">
+                <LogoMark size={44} />
               </div>
             </Link>
           ) : (
-            <div className="overflow-hidden transition-[width,opacity] duration-[620ms] ease-[cubic-bezier(0.16,1,0.3,1)] w-[220px] opacity-100">
+            <div className="overflow-hidden transition-[width,opacity] duration-[620ms] ease-[cubic-bezier(0.16,1,0.3,1)] w-[256px] opacity-100">
               <Logo size="sidebar" />
             </div>
           )}

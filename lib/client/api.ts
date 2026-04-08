@@ -96,10 +96,17 @@ export async function fetchAnalysisHistory(): Promise<AnalysisResult[]> {
 }
 
 export async function fetchAnalysisById(id: string): Promise<AnalysisResult | null> {
-  const data = await jsonRequest<{ analysis?: AnalysisResult }>(`/api/analyses?id=${encodeURIComponent(id)}`, {
-    method: 'GET',
-  });
-  return hydrateAnalysisResult(data.analysis);
+  try {
+    const data = await jsonRequest<{ analysis?: AnalysisResult }>(`/api/analyses?id=${encodeURIComponent(id)}`, {
+      method: 'GET',
+    });
+    return hydrateAnalysisResult(data.analysis);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function runFinder(input: {

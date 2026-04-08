@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { fetchAnalysisHistory } from '@/lib/client/api';
-import { clearHistory, getHistory } from '@/lib/client/storage';
+import { clearHistory, getHistory, saveHistoryRow } from '@/lib/client/storage';
 import type { AnalysisResult } from '@/lib/client/types';
 
 function familyBadgeClass(family: string): string {
@@ -31,6 +31,7 @@ export function GecmisPageClient() {
       try {
         const remote = await fetchAnalysisHistory();
         if (!cancelled && remote.length > 0) {
+          remote.forEach((item) => saveHistoryRow(item));
           setRows(remote);
         }
       } catch {
@@ -102,6 +103,7 @@ export function GecmisPageClient() {
                   {list.map((item) => (
                     <Link
                       key={item.id}
+                      onClick={() => saveHistoryRow(item)}
                       href={`/?replay=${encodeURIComponent(item.id)}&mode=${encodeURIComponent(
                         item.analysisMode === 'image' ? 'photo' : item.analysisMode || 'text',
                       )}`}

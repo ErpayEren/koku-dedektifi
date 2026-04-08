@@ -8,6 +8,17 @@ import { getPublicFragrancesForMolecule } from '@/lib/catalog-public';
 import { getStaticMoleculeProfile } from '@/lib/data/molecules';
 import { getWeeklyMolecule } from '@/lib/weekly-molecule';
 
+function normalizeWeeklyText(value: string): string {
+  if (!value) return value;
+  return value.replace(/Gul akorunun modern sentetik parlakligi/gi, 'Gül akorunun modern sentetik parlaklığı');
+}
+
+function sanitizeUsageText(value: string): string {
+  const text = (value || '').trim();
+  if (!text) return '';
+  return /^%?\s*0([.,]0+)?\s*$/.test(text) ? '' : text;
+}
+
 export default function WeeklyMoleculePage() {
   const molecule = getWeeklyMolecule();
 
@@ -31,7 +42,8 @@ export default function WeeklyMoleculePage() {
     typeof molecule.usage_percentage_typical === 'number' && molecule.usage_percentage_typical > 0
       ? `%${molecule.usage_percentage_typical}`
       : '';
-  const usageText = staticProfile?.typicalConcentration?.trim() || dynamicUsage;
+  const usageText = sanitizeUsageText(staticProfile?.typicalConcentration?.trim() || dynamicUsage);
+  const funFact = normalizeWeeklyText(molecule.fun_fact || '');
 
   return (
     <AppShell>
@@ -44,7 +56,7 @@ export default function WeeklyMoleculePage() {
                 <p className="text-[10px] font-mono uppercase tracking-[.18em] text-gold/80">Her pazartesi seçilen molekül</p>
                 <h1 className="mt-3 font-display text-[clamp(2.5rem,6vw,4.6rem)] leading-[0.96] text-cream">{molecule.name}</h1>
                 <p className="mt-3 text-[13px] font-mono uppercase tracking-[.12em] text-muted">{molecule.iupac_name}</p>
-                <p className="mt-5 max-w-[60ch] text-[15px] leading-relaxed text-cream/88">{molecule.fun_fact}</p>
+                <p className="mt-5 max-w-[60ch] text-[15px] leading-relaxed text-cream/88">{funFact}</p>
 
                 <div className="mt-5 flex flex-wrap gap-2">
                   {molecule.families.map((family) => (

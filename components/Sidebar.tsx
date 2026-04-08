@@ -21,7 +21,7 @@ import { getHistory } from '@/lib/client/storage';
 import { useBillingEntitlement } from '@/lib/client/useBillingEntitlement';
 import { useInstantProUpgrade } from '@/lib/client/useInstantProUpgrade';
 import { useUserStore } from '@/lib/store/userStore';
-import { Logo, LogoMark } from './ui/Logo';
+import { Logo } from '@/components/ui/Logo';
 
 interface NavItem {
   label: string;
@@ -249,19 +249,15 @@ export function Sidebar() {
             collapsed ? 'justify-center px-0 duration-[980ms]' : 'gap-3 px-5 md:px-6 duration-[620ms]'
           }`}
         >
-          {collapsed ? (
-            <Link
-              href="/"
-              className="group inline-flex items-center justify-center gap-0 no-underline transition-[gap] duration-[980ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
-              aria-label="Koku Dedektifi ana sayfa"
+          <Link href="/" className="no-underline" aria-label="Koku Dedektifi ana sayfa">
+            <div
+              className={`overflow-hidden transition-[width,opacity] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                collapsed ? 'w-[30px] opacity-95 duration-[980ms]' : 'w-[220px] opacity-100 duration-[620ms]'
+              }`}
             >
-              <LogoMark size={30} />
-            </Link>
-          ) : (
-            <span className="inline-flex items-center gap-3 overflow-hidden transition-[max-width,transform] duration-[720ms] ease-[cubic-bezier(0.16,1,0.3,1)]">
-              <Logo size="md" />
-            </span>
-          )}
+              <Logo size={collapsed ? 'sm' : 'md'} />
+            </div>
+          </Link>
         </div>
 
         <div className="relative flex-1 overflow-hidden">

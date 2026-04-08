@@ -27,6 +27,11 @@ export default function WeeklyMoleculePage() {
 
   const fragrances = getPublicFragrancesForMolecule(molecule.slug);
   const staticProfile = getStaticMoleculeProfile(molecule.slug);
+  const dynamicUsage =
+    typeof molecule.usage_percentage_typical === 'number' && molecule.usage_percentage_typical > 0
+      ? `%${molecule.usage_percentage_typical}`
+      : '';
+  const usageText = staticProfile?.typicalConcentration?.trim() || dynamicUsage;
 
   return (
     <AppShell>
@@ -37,9 +42,7 @@ export default function WeeklyMoleculePage() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.15fr)_360px] lg:items-start">
               <div>
                 <p className="text-[10px] font-mono uppercase tracking-[.18em] text-gold/80">Her pazartesi seçilen molekül</p>
-                <h1 className="mt-3 font-display text-[clamp(2.5rem,6vw,4.6rem)] leading-[0.96] text-cream">
-                  {molecule.name}
-                </h1>
+                <h1 className="mt-3 font-display text-[clamp(2.5rem,6vw,4.6rem)] leading-[0.96] text-cream">{molecule.name}</h1>
                 <p className="mt-3 text-[13px] font-mono uppercase tracking-[.12em] text-muted">{molecule.iupac_name}</p>
                 <p className="mt-5 max-w-[60ch] text-[15px] leading-relaxed text-cream/88">{molecule.fun_fact}</p>
 
@@ -77,10 +80,11 @@ export default function WeeklyMoleculePage() {
                 <p>
                   <span className="text-muted">Doğal kaynak:</span> {staticProfile?.naturalSource || molecule.natural_source}
                 </p>
-                <p>
-                  <span className="text-muted">Tipik kullanım:</span>{' '}
-                  {staticProfile?.typicalConcentration || (molecule.usage_percentage_typical ? `%${molecule.usage_percentage_typical}` : 'Veri yok')}
-                </p>
+                {usageText ? (
+                  <p>
+                    <span className="text-muted">Tipik kullanım:</span> {usageText}
+                  </p>
+                ) : null}
                 <p>
                   <span className="text-muted">Kompozisyon rolü:</span> {staticProfile?.compositionRole || molecule.longevity_contribution}
                 </p>

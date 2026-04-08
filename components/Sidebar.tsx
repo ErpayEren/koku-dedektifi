@@ -247,13 +247,13 @@ export function Sidebar() {
       >
         <div
           className={`flex h-[108px] shrink-0 items-center transition-[padding,gap] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-            collapsed ? 'justify-center px-0 duration-[980ms]' : 'gap-3 px-5 md:px-6 duration-[620ms]'
+            collapsed ? 'h-[132px] justify-center px-0 duration-[980ms]' : 'gap-3 px-5 md:px-6 duration-[620ms]'
           }`}
         >
           {collapsed ? (
             <Link href="/" className="no-underline" aria-label="Koku Dedektifi ana sayfa">
-              <div className="flex h-[54px] w-[54px] items-center justify-center">
-                <LogoMark size={44} />
+              <div className="flex h-[72px] w-[72px] items-center justify-center">
+                <LogoMark size={58} />
               </div>
             </Link>
           ) : (

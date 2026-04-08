@@ -1,45 +1,45 @@
-export function LogoMark({ size = 30 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 30 30"
-      fill="none"
-      aria-hidden="true"
-      style={{ flexShrink: 0 }}
-    >
-      <circle cx="15" cy="15" r="13" stroke="rgba(201,169,110,0.45)" strokeWidth="1" />
-      <circle cx="15" cy="15" r="5" fill="rgba(201,169,110,0.7)" />
-      <line x1="15" y1="4" x2="15" y2="8" stroke="rgba(201,169,110,0.5)" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
+import Link from 'next/link';
+import { LogoMark } from './LogoMark';
 
-export function Logo({ size = 'md' }: { size?: 'sm' | 'md' }) {
-  const fs = size === 'sm' ? 15 : 17;
+type LogoSize = 'sm' | 'md' | 'sidebar';
+
+const SIZE_MAP: Record<LogoSize, { icon: number; text: string; gap: string; max: string }> = {
+  sm: {
+    icon: 34,
+    text: 'text-[15px]',
+    gap: 'gap-[10px]',
+    max: 'max-w-[160px]',
+  },
+  md: {
+    icon: 42,
+    text: 'text-[17px]',
+    gap: 'gap-[11px]',
+    max: 'max-w-[190px]',
+  },
+  sidebar: {
+    icon: 46,
+    text: 'text-[18px]',
+    gap: 'gap-[12px]',
+    max: 'max-w-[205px]',
+  },
+};
+
+export function Logo({ size = 'md' }: { size?: LogoSize }) {
+  const config = SIZE_MAP[size];
+
   return (
-    <a
+    <Link
       href="/"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        textDecoration: 'none',
-      }}
+      className={`group inline-flex max-w-full items-center ${config.gap} no-underline`}
+      aria-label="Koku Dedektifi ana sayfa"
     >
-      <LogoMark size={size === 'sm' ? 26 : 30} />
+      <LogoMark size={config.icon} />
       <span
-        style={{
-          fontFamily: "'Cormorant Garamond', Georgia, serif",
-          fontStyle: 'italic',
-          fontSize: fs,
-          color: '#EBE4D8',
-          lineHeight: 1,
-          whiteSpace: 'nowrap',
-        }}
+        className={`min-w-0 ${config.max} whitespace-nowrap font-display italic leading-[0.96] tracking-[-0.02em] transition-transform duration-200 group-hover:translate-x-[1px] ${config.text}`}
       >
-        Koku <span style={{ color: '#C9A96E' }}>Dedektifi</span>
+        <span className="text-cream">Koku </span>
+        <span className="text-gold">Dedektifi</span>
       </span>
-    </a>
+    </Link>
   );
 }

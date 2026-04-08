@@ -22,6 +22,7 @@ import { useBillingEntitlement } from '@/lib/client/useBillingEntitlement';
 import { useInstantProUpgrade } from '@/lib/client/useInstantProUpgrade';
 import { useUserStore } from '@/lib/store/userStore';
 import { Logo } from '@/components/ui/Logo';
+import { LogoMark } from '@/components/ui/LogoMark';
 
 interface NavItem {
   label: string;
@@ -249,15 +250,17 @@ export function Sidebar() {
             collapsed ? 'justify-center px-0 duration-[980ms]' : 'gap-3 px-5 md:px-6 duration-[620ms]'
           }`}
         >
-          <Link href="/" className="no-underline" aria-label="Koku Dedektifi ana sayfa">
-            <div
-              className={`overflow-hidden transition-[width,opacity] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                collapsed ? 'w-[30px] opacity-95 duration-[980ms]' : 'w-[220px] opacity-100 duration-[620ms]'
-              }`}
-            >
-              <Logo size={collapsed ? 'sm' : 'md'} />
+          {collapsed ? (
+            <Link href="/" className="no-underline" aria-label="Koku Dedektifi ana sayfa">
+              <div className="flex h-[36px] w-[36px] items-center justify-center">
+                <LogoMark size={30} />
+              </div>
+            </Link>
+          ) : (
+            <div className="overflow-hidden transition-[width,opacity] duration-[620ms] ease-[cubic-bezier(0.16,1,0.3,1)] w-[220px] opacity-100">
+              <Logo size="sidebar" />
             </div>
-          </Link>
+          )}
         </div>
 
         <div className="relative flex-1 overflow-hidden">

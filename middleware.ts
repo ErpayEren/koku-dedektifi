@@ -94,21 +94,25 @@ async function fetchAuthUser(req: NextRequest): Promise<AuthUserPayload | null> 
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const opsPassword = process.env.OPS_PASSWORD;
 
   if (req.headers.get(INTERNAL_AUTH_HEADER) === '1') {
     return NextResponse.next();
   }
 
-  if (!opsPassword) {
-    throw new Error('OPS_PASSWORD env must be set');
-  }
-
   if (pathname === '/ops.html' || pathname.startsWith('/ops')) {
+    const opsUser = process.env.OPS_USER;
+    const opsPassword = process.env.OPS_PASSWORD;
+    if (!opsUser || !opsPassword) {
+      return new NextResponse('Ops credentials not configured.', {
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store, no-cache',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      });
+    }
     const auth = req.headers.get('authorization') ?? '';
-    const expected =
-      'Basic ' +
-      btoa(`${process.env.OPS_USER ?? 'admin'}:${opsPassword}`);
+    const expected = 'Basic ' + btoa(`${opsUser}:${opsPassword}`);
 
     if (!timingSafeEqual(auth, expected)) {
       return new NextResponse('Bu alana erisim kisitlidir.', {

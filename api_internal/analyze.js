@@ -1,4 +1,6 @@
 const { cleanString, setCorsHeaders, setSecurityHeaders } = require('../lib/server/config');
+const { createClient } = require('@supabase/supabase-js');
+const { resolveSupabaseConfig } = require('../lib/server/supabase-config');
 const { readAuthSession } = require('../lib/server/auth-session');
 const { readEntitlementForUser } = require('../lib/server/billing-store');
 const { callAIProvider } = require('../lib/server/provider-router');
@@ -12,7 +14,7 @@ const {
   persistAnalysisRecord,
 } = require('../lib/server/core-analysis.cjs');
 
-const FAMILY_SIMILAR_FALLBACKS = {
+const LAST_RESORT_SIMILAR_FALLBACKS = {
   Gourmand: [
     { name: 'Black Opium', brand: 'Yves Saint Laurent', priceRange: 'premium' },
     { name: 'Flowerbomb', brand: 'Viktor&Rolf', priceRange: 'premium' },
@@ -53,6 +55,15 @@ const FAMILY_SIMILAR_FALLBACKS = {
     { name: 'Mon Paris', brand: 'Yves Saint Laurent', priceRange: 'premium' },
     { name: 'Delina', brand: 'Parfums de Marly', priceRange: 'luxury' },
   ],
+};
+
+const FAMILY_TO_ACCORD_HINTS = {
+  gourmand: ['gourmand', 'sweet', 'vanilla', 'caramel', 'dessert'],
+  odunsu: ['woody', 'wood', 'amber', 'oud', 'earthy'],
+  aromatik: ['aromatic', 'fougere', 'fresh spicy', 'herbal', 'green'],
+  ciceksi: ['floral', 'rose', 'white floral', 'powdery', 'iris'],
+  oryantal: ['oriental', 'amber', 'resinous', 'incense', 'spicy'],
+  fresh: ['fresh', 'citrus', 'aquatic', 'marine', 'green'],
 };
 
 const FAMILY_NOTE_FALLBACKS = {
@@ -168,6 +179,190 @@ function isSameFragrance(analysis, name, brand) {
   ].filter(Boolean);
 
   return candidateKeys.some((key) => targetKeys.includes(key));
+}
+
+function normalizeToken(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function toStringArray(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => cleanString(item)).filter(Boolean);
+  }
+  const text = cleanString(value);
+  if (!text) return [];
+  return text
+    .split(/[,;|/]/)
+    .map((item) => cleanString(item))
+    .filter(Boolean);
+}
+
+function uniqueValues(values) {
+  const out = [];
+  const seen = new Set();
+  values.forEach((item) => {
+    const cleaned = cleanString(item);
+    if (!cleaned) return;
+    const key = cleaned.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(cleaned);
+  });
+  return out;
+}
+
+function collectAnalysisNotes(analysis) {
+  if (!analysis || typeof analysis !== 'object') return [];
+  const top = Array.isArray(analysis?.pyramid?.top) ? analysis.pyramid.top : [];
+  const middle = Array.isArray(analysis?.pyramid?.middle) ? analysis.pyramid.middle : [];
+  const base = Array.isArray(analysis?.pyramid?.base) ? analysis.pyramid.base : [];
+  return uniqueValues([...top, ...middle, ...base]).slice(0, 16);
+}
+
+function getFamilyAccordHints(family) {
+  const normalized = normalizeToken(family).replace(/\s+/g, '');
+  const entries = Object.entries(FAMILY_TO_ACCORD_HINTS);
+  for (const [key, hints] of entries) {
+    if (normalized.includes(key)) return hints;
+  }
+  return [];
+}
+
+function buildSimilarReason(sharedNotes, familyMatched, family) {
+  if (sharedNotes.length > 0) {
+    return `"${sharedNotes.slice(0, 2).join(', ')}" notalarında yakın profil.`;
+  }
+  if (familyMatched && cleanString(family)) {
+    return `${family} karakterine yakın bir profil.`;
+  }
+  return 'Koku omurgasında benzer yapı gösteriyor.';
+}
+
+function applySimilarFragrances(analysis, candidates, isPro) {
+  if (!analysis || !Array.isArray(candidates) || candidates.length === 0) return;
+  const maxCount = isPro ? 10 : 6;
+  const current = Array.isArray(analysis.similarFragrances)
+    ? analysis.similarFragrances.filter((item) => cleanString(item?.name))
+    : [];
+  const merged = [];
+  const seen = new Set();
+
+  [...candidates, ...current].forEach((item) => {
+    const name = cleanString(item?.name);
+    if (!name) return;
+    const brand = cleanString(item?.brand);
+    const key = `${brand.toLowerCase()}::${name.toLowerCase()}`;
+    if (seen.has(key)) return;
+    if (isSameFragrance(analysis, name, brand)) return;
+    seen.add(key);
+    merged.push({
+      name,
+      brand,
+      reason: cleanString(item?.reason) || 'Benzer profil.',
+      priceRange: cleanString(item?.priceRange || item?.priceTier) || 'Fiyat bilgisi yok',
+    });
+  });
+
+  const limited = merged.slice(0, maxCount);
+  if (limited.length === 0) return;
+  analysis.similarFragrances = limited;
+  analysis.similar = limited.map((item) => `${item.brand} ${item.name}`.trim());
+  analysis.dupes = analysis.similar.slice(0, Math.min(3, analysis.similar.length));
+}
+
+async function getDBSimilarFragrances(analysis, isPro) {
+  const config = resolveSupabaseConfig();
+  if (!config.url || !config.serviceRoleKey) return [];
+
+  const table =
+    cleanString(process.env.SUPABASE_PERFUMES_TABLE) ||
+    cleanString(process.env.SUPABASE_FRAGRANCES_TABLE) ||
+    'fragrances';
+
+  const notes = collectAnalysisNotes(analysis);
+  const familyHints = getFamilyAccordHints(analysis?.family);
+  const [topAnchor, middleAnchor, baseAnchor] = [
+    cleanString(Array.isArray(analysis?.pyramid?.top) ? analysis.pyramid.top[0] : ''),
+    cleanString(Array.isArray(analysis?.pyramid?.middle) ? analysis.pyramid.middle[0] : ''),
+    cleanString(Array.isArray(analysis?.pyramid?.base) ? analysis.pyramid.base[0] : ''),
+  ];
+
+  const client = createClient(config.url, config.serviceRoleKey, { auth: { persistSession: false } });
+  const selectCols = 'name,brand,price_tier,top_notes,heart_notes,base_notes,character_tags';
+  const queries = [];
+
+  if (familyHints.length > 0) {
+    queries.push(client.from(table).select(selectCols).overlaps('character_tags', familyHints).limit(200));
+  }
+  if (topAnchor) {
+    queries.push(client.from(table).select(selectCols).contains('top_notes', [topAnchor]).limit(140));
+  }
+  if (middleAnchor) {
+    queries.push(client.from(table).select(selectCols).contains('heart_notes', [middleAnchor]).limit(140));
+  }
+  if (baseAnchor) {
+    queries.push(client.from(table).select(selectCols).contains('base_notes', [baseAnchor]).limit(140));
+  }
+  if (queries.length === 0 && notes[0]) {
+    queries.push(client.from(table).select(selectCols).contains('top_notes', [notes[0]]).limit(120));
+  }
+  if (queries.length === 0) return [];
+
+  const responses = await Promise.race([
+    Promise.all(queries),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('db_similarity_timeout')), 2000)),
+  ]).catch(() => null);
+  if (!responses) return [];
+
+  const noteKeySet = new Set(notes.map((item) => normalizeToken(item)).filter(Boolean));
+  const familyKeySet = new Set(familyHints.map((item) => normalizeToken(item)).filter(Boolean));
+  const candidateMap = new Map();
+  const maxCount = isPro ? 10 : 6;
+
+  responses.forEach((response) => {
+    if (!response || response.error || !Array.isArray(response.data)) return;
+    response.data.forEach((row) => {
+      const name = cleanString(row?.name);
+      const brand = cleanString(row?.brand);
+      if (!name) return;
+      if (isSameFragrance(analysis, name, brand)) return;
+
+      const rowNotes = uniqueValues([
+        ...toStringArray(row?.top_notes),
+        ...toStringArray(row?.heart_notes),
+        ...toStringArray(row?.base_notes),
+      ]);
+      const rowAccords = uniqueValues(toStringArray(row?.character_tags));
+      const sharedNotes = rowNotes.filter((item) => noteKeySet.has(normalizeToken(item)));
+      const familyMatched = rowAccords.some((item) => familyKeySet.has(normalizeToken(item)));
+
+      const score = sharedNotes.length * 14 + (familyMatched ? 26 : 0) + Math.min(rowNotes.length, 6);
+      if (score <= 0) return;
+
+      const key = `${brand.toLowerCase()}::${name.toLowerCase()}`;
+      const existing = candidateMap.get(key);
+      const candidate = {
+        name,
+        brand,
+        reason: buildSimilarReason(sharedNotes, familyMatched, analysis?.family),
+        priceRange: cleanString(row?.price_tier) || 'Fiyat bilgisi yok',
+        score,
+      };
+      if (!existing || candidate.score > existing.score) {
+        candidateMap.set(key, candidate);
+      }
+    });
+  });
+
+  return Array.from(candidateMap.values())
+    .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+    .slice(0, maxCount);
 }
 
 function buildFallbackMolecules(perfumeContext, isPro) {
@@ -302,9 +497,9 @@ function fallbackSimilarByFamily(analysis, isPro) {
     .replace(/\s+/g, '');
 
   const pool =
-    FAMILY_SIMILAR_FALLBACKS[cleanString(analysis.family)] ||
-    FAMILY_SIMILAR_FALLBACKS[familyKey] ||
-    FAMILY_SIMILAR_FALLBACKS.Aromatik;
+    LAST_RESORT_SIMILAR_FALLBACKS[cleanString(analysis.family)] ||
+    LAST_RESORT_SIMILAR_FALLBACKS[familyKey] ||
+    LAST_RESORT_SIMILAR_FALLBACKS.Aromatik;
 
   const seen = new Set(
     current.map((item) => `${cleanString(item.brand).toLowerCase()}::${cleanString(item.name).toLowerCase()}`),
@@ -544,6 +739,8 @@ module.exports = async function analyzeHandler(req, res) {
         inputText: input,
         isPro,
       });
+      const dbSimilarFallback = await getDBSimilarFragrances(fallbackAnalysis, isPro);
+      applySimilarFragrances(fallbackAnalysis, dbSimilarFallback, isPro);
       const stableFallback = applySafetyFallbacks(fallbackAnalysis, perfumeContext, isPro);
 
       const persisted = await persistAnalysisRecord({
@@ -584,6 +781,8 @@ module.exports = async function analyzeHandler(req, res) {
       inputText: input,
       isPro,
     });
+    const dbSimilar = await getDBSimilarFragrances(analysis, isPro);
+    applySimilarFragrances(analysis, dbSimilar, isPro);
 
     const persisted = await persistAnalysisRecord({
       analysis,

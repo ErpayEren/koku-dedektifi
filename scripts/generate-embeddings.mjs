@@ -70,31 +70,46 @@ function parseArgs(argv) {
 }
 
 async function embedText(text, apiKey, model) {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:embedContent`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        content: {
-          parts: [{ text: cleanString(text).slice(0, 8000) }],
-        },
-      }),
-    },
+  const candidates = Array.from(
+    new Set(
+      [model, 'gemini-embedding-001', 'gemini-embedding-2-preview']
+        .map((item) => cleanString(item))
+        .filter(Boolean),
+    ),
   );
 
-  if (!response.ok) {
-    const payload = await response.text().catch(() => '');
-    throw new Error(payload || `embedding failed (${response.status})`);
+  let lastError = null;
+  for (const candidate of candidates) {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(candidate)}:embedContent`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          content: {
+            parts: [{ text: cleanString(text).slice(0, 8000) }],
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const payload = await response.text().catch(() => '');
+      lastError = new Error(payload || `embedding failed (${response.status})`);
+      if (response.status === 404 || response.status === 400) continue;
+      throw lastError;
+    }
+
+    const data = await response.json().catch(() => ({}));
+    const values = Array.isArray(data?.embedding?.values) ? data.embedding.values : [];
+    if (values.length) return values;
+    lastError = new Error(`embedding vector bos geldi (${candidate})`);
   }
 
-  const data = await response.json().catch(() => ({}));
-  const values = Array.isArray(data?.embedding?.values) ? data.embedding.values : [];
-  if (!values.length) throw new Error('embedding vector bos geldi');
-  return values;
+  throw lastError || new Error('embedding basarisiz');
 }
 
 function buildDocContent(perfume) {
@@ -134,7 +149,7 @@ async function main() {
     cleanString(process.env.SUPABASE_FRAGRANCES_TABLE) ||
     'fragrances';
   const vectorTable = cleanString(process.env.SUPABASE_VECTOR_TABLE) || 'perfume_docs';
-  const model = cleanString(process.env.RAG_EMBEDDING_MODEL) || 'text-embedding-004';
+  const model = cleanString(process.env.RAG_EMBEDDING_MODEL) || 'gemini-embedding-001';
 
   if (!supabaseUrl || !supabaseKey) {
     throw new Error('SUPABASE_URL ve SUPABASE_SERVICE_ROLE_KEY gerekli.');
@@ -208,6 +223,15 @@ async function main() {
         .from(vectorTable)
         .upsert(docs, { onConflict: 'perfume_id' });
       if (upsertError) {
+        if (
+          /no unique or exclusion constraint matching the ON CONFLICT specification/i.test(
+            cleanString(upsertError.message),
+          )
+        ) {
+          throw new Error(
+            `Vector tablo hazir degil: ${vectorTable}. Once supabase/migrations/20260409_phase11_perfume_docs_vector.sql migration dosyasini calistir (perfume_id unique index gerekli).`,
+          );
+        }
         throw new Error(`Batch upsert hatasi (${offset}-${rangeEnd}): ${upsertError.message}`);
       }
     }

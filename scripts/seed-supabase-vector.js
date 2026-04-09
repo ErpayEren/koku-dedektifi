@@ -30,29 +30,40 @@ function parseArgs(argv) {
 }
 
 async function embedText(text, apiKey, model) {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:embedContent`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        content: { parts: [{ text: cleanString(text).slice(0, 8000) }] },
-      }),
-    },
+  const candidates = Array.from(
+    new Set([model, 'gemini-embedding-001', 'gemini-embedding-2-preview'].map((item) => cleanString(item)).filter(Boolean)),
   );
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw new Error(body || `embedding failed (${response.status})`);
+  let lastError = null;
+  for (const candidate of candidates) {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(candidate)}:embedContent`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          content: { parts: [{ text: cleanString(text).slice(0, 8000) }] },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      lastError = new Error(body || `embedding failed (${response.status})`);
+      if (response.status === 404 || response.status === 400) continue;
+      throw lastError;
+    }
+
+    const data = await response.json();
+    const vector = Array.isArray(data?.embedding?.values) ? data.embedding.values : [];
+    if (vector.length) return vector;
+    lastError = new Error(`embedding vector is empty (${candidate})`);
   }
 
-  const data = await response.json();
-  const vector = Array.isArray(data?.embedding?.values) ? data.embedding.values : [];
-  if (!vector.length) throw new Error('embedding vector is empty');
-  return vector;
+  throw lastError || new Error('embedding failed');
 }
 
 async function upsertSupabaseRow(baseUrl, key, table, row) {
@@ -83,7 +94,7 @@ async function main() {
   const supabaseUrl = toUrlBase(process.env.SUPABASE_URL);
   const supabaseKey = cleanString(process.env.SUPABASE_SERVICE_ROLE_KEY);
   const geminiApiKey = cleanString(process.env.GEMINI_API_KEY) || cleanString(process.env.LLM_API_KEY);
-  const embeddingModel = cleanString(process.env.RAG_EMBEDDING_MODEL) || 'text-embedding-004';
+  const embeddingModel = cleanString(process.env.RAG_EMBEDDING_MODEL) || 'gemini-embedding-001';
   const table = cleanString(process.env.SUPABASE_VECTOR_TABLE) || 'perfume_docs';
 
   if (!supabaseUrl || !supabaseKey) throw new Error('SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY gerekli');

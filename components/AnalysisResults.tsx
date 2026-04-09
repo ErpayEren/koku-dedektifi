@@ -114,7 +114,6 @@ export const AnalysisResults = memo(function AnalysisResults({
               similarItems={model.similarItems}
               hiddenSimilarCount={model.hiddenSimilarCount}
               similarLimit={model.entitlement.similarLimit}
-              dupes={model.dupes}
               onAnalyzeSimilar={onAnalyzeSimilar}
               style={model.cardMotion(3)}
             />

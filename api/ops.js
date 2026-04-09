@@ -1,10 +1,19 @@
 const { cleanString } = require('../lib/server/supabase-config');
 
 const routeMap = {
+  auth: () => require('../api_internal/auth'),
+  billing: () => require('../api_internal/billing'),
+  'billing-webhook': () => require('../api_internal/billing-webhook'),
+  feed: () => require('../api_internal/feed'),
+  molecule: () => require('../api_internal/molecule'),
+  proxy: () => require('../api_internal/proxy'),
+  wardrobe: () => require('../api_internal/wardrobe'),
   health: () => require('../api_internal/health'),
   'schema-health': () => require('../api_internal/schema-health'),
   'catalog-health': () => require('../api_internal/catalog-health'),
   'catalog-seed': () => require('../api_internal/catalog-seed'),
+  'catalog-import': () => require('../api_internal/catalog-import'),
+  'catalog-backfill-evidence': () => require('../api_internal/catalog-backfill-evidence'),
   'weekly-molecule': () => require('../api_internal/weekly-molecule'),
   analyze: () => require('../api_internal/analyze'),
   analyses: () => require('../api_internal/analyses'),

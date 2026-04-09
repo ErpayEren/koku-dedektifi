@@ -210,7 +210,6 @@ interface SimilarPanelProps extends PanelMotionProps {
   similarItems: Array<{ name: string; similarity: number; brand?: string; reason?: string; priceRange?: string }>;
   hiddenSimilarCount: number;
   similarLimit: number;
-  dupes: string[];
   onAnalyzeSimilar: (name: string) => void;
 }
 
@@ -218,7 +217,6 @@ export function SimilarPanel({
   similarItems,
   hiddenSimilarCount,
   similarLimit,
-  dupes,
   onAnalyzeSimilar,
   style,
 }: SimilarPanelProps) {
@@ -268,18 +266,6 @@ export function SimilarPanel({
         </div>
       ) : null}
 
-      {dupes.length > 0 ? (
-        <div className="mt-5 border-t border-white/[.06] pt-5">
-          <CardTitle className="mb-3">Benzer Profil Alternatifleri</CardTitle>
-          <div className="flex flex-wrap gap-2">
-            {dupes.map((item) => (
-              <span key={item} className="rounded-full border border-[var(--gold-line)] px-2.5 py-1.5 text-[10px] text-gold">
-                {item}
-              </span>
-            ))}
-          </div>
-        </div>
-      ) : null}
     </Card>
   );
 }

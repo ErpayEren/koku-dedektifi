@@ -9,6 +9,34 @@
   ],
   "rewrites": [
     {
+      "source": "/api/auth",
+      "destination": "/api/ops?r=auth"
+    },
+    {
+      "source": "/api/billing",
+      "destination": "/api/ops?r=billing"
+    },
+    {
+      "source": "/api/billing-webhook",
+      "destination": "/api/ops?r=billing-webhook"
+    },
+    {
+      "source": "/api/feed",
+      "destination": "/api/ops?r=feed"
+    },
+    {
+      "source": "/api/molecule",
+      "destination": "/api/ops?r=molecule"
+    },
+    {
+      "source": "/api/proxy",
+      "destination": "/api/ops?r=proxy"
+    },
+    {
+      "source": "/api/wardrobe",
+      "destination": "/api/ops?r=wardrobe"
+    },
+    {
       "source": "/api/health",
       "destination": "/api/ops?r=health"
     },

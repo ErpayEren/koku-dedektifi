@@ -41,3 +41,5 @@ mobile_flutter/android/.gradle
 mobile_flutter/android/local.properties
 mobile_flutter/android/key.properties
 mobile_flutter/keystore
+
+.env*.local

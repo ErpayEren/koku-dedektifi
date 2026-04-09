@@ -17,21 +17,41 @@ const FAMILY_SIMILAR_FALLBACKS = {
     { name: 'Black Opium', brand: 'Yves Saint Laurent', priceRange: 'premium' },
     { name: 'Flowerbomb', brand: 'Viktor&Rolf', priceRange: 'premium' },
     { name: 'Shalimar', brand: 'Guerlain', priceRange: 'luxury' },
+    { name: 'Angel', brand: 'Thierry Mugler', priceRange: 'premium' },
+    { name: 'Naxos', brand: 'Xerjoff', priceRange: 'luxury' },
+    { name: 'Layton', brand: 'Parfums de Marly', priceRange: 'luxury' },
+    { name: 'Replica Jazz Club', brand: 'Maison Margiela', priceRange: 'premium' },
+    { name: 'Black Orchid', brand: 'Tom Ford', priceRange: 'luxury' },
   ],
   Odunsu: [
     { name: 'Sauvage', brand: 'Dior', priceRange: 'premium' },
     { name: 'Aventus', brand: 'Creed', priceRange: 'luxury' },
     { name: 'Layton', brand: 'Parfums de Marly', priceRange: 'luxury' },
+    { name: 'Interlude Man', brand: 'Amouage', priceRange: 'luxury' },
+    { name: 'Oud for Greatness', brand: 'Initio', priceRange: 'ultra-luxury' },
+    { name: 'African Leather', brand: 'Memo Paris', priceRange: 'luxury' },
+    { name: 'Wood Sage & Sea Salt', brand: 'Jo Malone', priceRange: 'premium' },
+    { name: 'By the Fireplace', brand: 'Maison Margiela', priceRange: 'premium' },
   ],
   Aromatik: [
     { name: 'Sauvage', brand: 'Dior', priceRange: 'premium' },
     { name: 'Acqua di Gio Profondo', brand: 'Giorgio Armani', priceRange: 'premium' },
     { name: 'Luna Rossa Carbon', brand: 'Prada', priceRange: 'premium' },
+    { name: 'Aventus', brand: 'Creed', priceRange: 'luxury' },
+    { name: 'Wood Sage & Sea Salt', brand: 'Jo Malone', priceRange: 'premium' },
+    { name: 'Gypsy Water', brand: 'Byredo', priceRange: 'luxury' },
+    { name: 'Orange Sanguine', brand: 'Atelier Cologne', priceRange: 'premium' },
+    { name: 'Sauvage Elixir', brand: 'Dior', priceRange: 'premium' },
   ],
   Ciceksi: [
     { name: 'No.5', brand: 'Chanel', priceRange: 'luxury' },
     { name: 'For Her', brand: 'Narciso Rodriguez', priceRange: 'premium' },
     { name: 'Portrait of a Lady', brand: 'Frederic Malle', priceRange: 'ultra-luxury' },
+    { name: 'Flowerbomb', brand: 'Viktor&Rolf', priceRange: 'premium' },
+    { name: 'Shalimar', brand: 'Guerlain', priceRange: 'luxury' },
+    { name: 'Black Orchid', brand: 'Tom Ford', priceRange: 'luxury' },
+    { name: 'Mon Paris', brand: 'Yves Saint Laurent', priceRange: 'premium' },
+    { name: 'Delina', brand: 'Parfums de Marly', priceRange: 'luxury' },
   ],
 };
 
@@ -123,6 +143,33 @@ function normalizeNoteKey(value) {
     .trim();
 }
 
+function normalizeFragranceKey(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function isSameFragrance(analysis, name, brand) {
+  const candidateName = cleanString(name);
+  if (!candidateName) return false;
+  const candidateBrand = cleanString(brand);
+  const candidateKeys = [
+    normalizeFragranceKey(candidateName),
+    normalizeFragranceKey(`${candidateBrand} ${candidateName}`),
+  ].filter(Boolean);
+
+  const targetName = cleanString(analysis?.name);
+  const targetBrand = cleanString(analysis?.brand);
+  const targetKeys = [
+    normalizeFragranceKey(targetName),
+    normalizeFragranceKey(`${targetBrand} ${targetName}`),
+  ].filter(Boolean);
+
+  return candidateKeys.some((key) => targetKeys.includes(key));
+}
+
 function buildFallbackMolecules(perfumeContext, isPro) {
   if (!perfumeContext) return [];
 
@@ -205,7 +252,7 @@ function buildFallbackMolecules(perfumeContext, isPro) {
 function enrichSimilarFragrances(analysis, perfumeContext, isPro) {
   if (!analysis || !perfumeContext) return;
 
-  const maxCount = isPro ? 10 : 3;
+  const maxCount = isPro ? 10 : 6;
   const current = Array.isArray(analysis.similarFragrances)
     ? analysis.similarFragrances.filter((item) => cleanString(item?.name))
     : [];
@@ -220,7 +267,7 @@ function enrichSimilarFragrances(analysis, perfumeContext, isPro) {
     const brand = cleanString(item?.brand);
     const key = `${brand.toLowerCase()}::${name.toLowerCase()}`;
     if (seen.has(key)) continue;
-    if (name.toLowerCase() === cleanString(analysis.name).toLowerCase()) continue;
+    if (isSameFragrance(analysis, name, brand)) continue;
 
     current.push({
       name,
@@ -246,9 +293,9 @@ function fallbackSimilarByFamily(analysis, isPro) {
   const current = Array.isArray(analysis.similarFragrances)
     ? analysis.similarFragrances.filter((item) => cleanString(item?.name))
     : [];
-  if (current.length > 0) return;
-
-  const maxCount = isPro ? 10 : 3;
+  const maxCount = isPro ? 10 : 6;
+  const minVisibleCount = isPro ? 8 : 6;
+  if (current.length >= minVisibleCount) return;
   const familyKey = cleanString(analysis.family)
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -259,19 +306,31 @@ function fallbackSimilarByFamily(analysis, isPro) {
     FAMILY_SIMILAR_FALLBACKS[familyKey] ||
     FAMILY_SIMILAR_FALLBACKS.Aromatik;
 
-  const picked = pool
-    .filter((item) => cleanString(item.name).toLowerCase() !== cleanString(analysis.name).toLowerCase())
-    .slice(0, maxCount)
-    .map((item) => ({
+  const seen = new Set(
+    current.map((item) => `${cleanString(item.brand).toLowerCase()}::${cleanString(item.name).toLowerCase()}`),
+  );
+  const picked = current.slice();
+  for (const item of pool) {
+    const name = cleanString(item.name);
+    if (!name) continue;
+    const brand = cleanString(item.brand);
+    if (isSameFragrance(analysis, name, brand)) continue;
+    const key = `${brand.toLowerCase()}::${name.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    picked.push({
       name: item.name,
       brand: item.brand,
       reason: `${analysis.family || 'Benzer'} aile karakterinde yakin bir profil.`,
       priceRange: item.priceRange || 'Fiyat bilgisi yok',
-    }));
+    });
+    seen.add(key);
+    if (picked.length >= maxCount) break;
+  }
 
   if (picked.length === 0) return;
-  analysis.similarFragrances = picked;
-  analysis.similar = picked.map((item) => `${item.brand} ${item.name}`.trim());
+  const normalized = picked.slice(0, maxCount);
+  analysis.similarFragrances = normalized;
+  analysis.similar = normalized.map((item) => `${item.brand} ${item.name}`.trim());
   analysis.dupes = analysis.similar.slice(0, Math.min(3, analysis.similar.length));
 }
 
@@ -362,14 +421,14 @@ function buildEmergencyPayload({ input, mode, isPro, perfumeContext, providerErr
   const base = Array.isArray(perfumeContext?.base) ? perfumeContext.base.slice(0, 8) : [];
   const fallbackMolecules = buildFallbackMolecules(perfumeContext, isPro).slice(0, isPro ? 6 : 2);
   const fallbackSimilar = (Array.isArray(perfumeContext?.similar) ? perfumeContext.similar : [])
-    .slice(0, isPro ? 10 : 3)
+    .slice(0, isPro ? 10 : 6)
     .map((item) => ({
       name: cleanString(item?.name),
       brand: cleanString(item?.brand),
       reason: cleanString(item?.reason) || 'Benzer profil omurgası.',
       priceRange: cleanString(item?.priceTier) || 'Fiyat bilgisi yok',
     }))
-    .filter((item) => item.name);
+    .filter((item) => item.name && !isSameFragrance({ name, brand }, item.name, item.brand));
 
   return {
     name,

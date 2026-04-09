@@ -1,0 +1,50 @@
+{
+  "bergamot": {
+    "accord_family": "Citrus",
+    "molecules": ["Linalool", "Linalyl Acetate", "Limonene", "Beta-Pinene"]
+  },
+  "ambroxan": {
+    "accord_family": "Amber / Woody",
+    "molecules": ["Ambroxide", "Sclareol Derivatives"]
+  },
+  "karabiber": {
+    "accord_family": "Spicy",
+    "molecules": ["Piperine", "Beta-Caryophyllene", "Sabinene"]
+  },
+  "lavanta": {
+    "accord_family": "Floral / Herbal",
+    "molecules": ["Linalool", "Linalyl Acetate", "Camphor"]
+  },
+  "patchouli": {
+    "accord_family": "Woody / Earthy",
+    "molecules": ["Patchoulol", "Alpha-Bulnesene", "Norpatchoulenol"]
+  },
+  "sandal agaci": {
+    "accord_family": "Woody / Creamy",
+    "molecules": ["Alpha-Santalol", "Beta-Santalol", "Ebanol"]
+  },
+  "vanilya": {
+    "accord_family": "Gourmand / Sweet",
+    "molecules": ["Vanillin", "Ethyl Vanillin", "Coumarin"]
+  },
+  "gul": {
+    "accord_family": "Floral",
+    "molecules": ["Geraniol", "Citronellol", "Rose Oxide", "Damascenone"]
+  },
+  "yasemin": {
+    "accord_family": "Floral",
+    "molecules": ["Hedione", "Methyl Jasmonate", "Indole", "Benzyl Acetate"]
+  },
+  "vetiver": {
+    "accord_family": "Woody / Smoky",
+    "molecules": ["Khusimol", "Alpha-Vetivone", "Vetiveryl Acetate"]
+  },
+  "misk": {
+    "accord_family": "Musk",
+    "molecules": ["Galaxolide", "Cashmeran", "Habanolide", "Ethylene Brassylate"]
+  },
+  "oud": {
+    "accord_family": "Woody / Oriental",
+    "molecules": ["Agarospirol", "Alpha-Agarofuran", "Isoagarofuran"]
+  }
+}

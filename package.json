@@ -11,6 +11,7 @@
     "seed:data-engine": "node seed.js",
     "import:parfumo": "node scripts/import-parfumo.mjs",
     "import:parfumo:remote": "node scripts/remote-import-parfumo.mjs",
+    "embeddings:generate": "node scripts/generate-embeddings.mjs",
     "backfill:evidence:remote": "node scripts/remote-backfill-evidence.mjs",
     "seed:catalog": "node scripts/seed-fragrance-catalog.mjs",
     "seed:catalog:prod": "node scripts/seed-catalog-prod.mjs",

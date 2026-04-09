@@ -154,6 +154,38 @@ function normalizeNoteKey(value) {
     .trim();
 }
 
+function resolveNoteMapEntry(note) {
+  const key = normalizeNoteKey(note);
+  if (!key) return null;
+  return noteMoleculeMap[key] || null;
+}
+
+function resolveMappedMoleculeRows(entry) {
+  if (!entry || typeof entry !== 'object') return [];
+
+  if (Array.isArray(entry.key_molecules) && entry.key_molecules.length > 0) {
+    return entry.key_molecules
+      .map((item) => ({
+        name: cleanString(item?.name),
+        role: cleanString(item?.role) || 'temel taşıyıcı',
+        odorDescriptor: cleanString(item?.odor_descriptor),
+      }))
+      .filter((item) => item.name);
+  }
+
+  if (Array.isArray(entry.molecules) && entry.molecules.length > 0) {
+    return entry.molecules
+      .map((name) => ({
+        name: cleanString(name),
+        role: 'temel taşıyıcı',
+        odorDescriptor: '',
+      }))
+      .filter((item) => item.name);
+  }
+
+  return [];
+}
+
 function normalizeFragranceKey(value) {
   return String(value || '')
     .toLowerCase()
@@ -412,24 +444,35 @@ function buildFallbackMolecules(perfumeContext, isPro) {
   }
 
   for (const note of orderedNotes) {
-    const hit = noteMoleculeMap[normalizeNoteKey(note)];
-    if (!hit || !Array.isArray(hit.molecules)) continue;
+    const hit = resolveNoteMapEntry(note);
+    const mappedMolecules = resolveMappedMoleculeRows(hit);
+    if (!hit || mappedMolecules.length === 0) continue;
 
-    for (const moleculeName of hit.molecules) {
-      const cleaned = cleanString(moleculeName);
+    for (const molecule of mappedMolecules) {
+      const cleaned = cleanString(molecule.name);
       if (!cleaned) continue;
       const key = cleaned.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
+
+      const accordFamily = cleanString(hit.family || hit.accord_family) || '';
+      const noteCharacter = cleanString(hit.character);
+      const descriptor = cleanString(molecule.odorDescriptor);
+      const roleHint = cleanString(molecule.role) || 'temel taşıyıcı';
+
       pool.push({
         name: cleaned,
         smiles: '',
         formula: '',
-        family: cleanString(hit.accord_family) || '',
+        family: accordFamily,
         origin: '',
         note,
-        contribution: `${note} notasinin karakterini tasiyan savunulabilir bir molekuler bilesen.`,
-        effect: `${cleanString(hit.accord_family) || 'Akor'} yapisini destekler.`,
+        contribution:
+          noteCharacter ||
+          `${note} notasinin karakterini tasiyan savunulabilir bir molekuler bilesen.`,
+        effect:
+          descriptor ||
+          `${accordFamily || 'Akor'} yapisini destekleyen ${roleHint.toLowerCase()} bir etki.`,
         percentage: !isPro && pool.length > 0 ? 'Pro ile goruntule' : 'Akor tasiyici',
         evidenceLevel: 'note_match',
         evidenceLabel: 'Nota Eslesmesi',
@@ -707,7 +750,9 @@ module.exports = async function analyzeHandler(req, res) {
 
   const entitlement = auth?.user?.id ? await readEntitlementForUser(auth.user.id) : { tier: 'free' };
   const isPro = entitlement?.tier === 'pro';
-  const perfumeContext = await findPerfumeContextByInput(input);
+  const perfumeContext = await findPerfumeContextByInput(input, {
+    allowVector: body.mode === 'text' || body.mode === 'notes',
+  });
   const systemPrompt = buildPerfumeAnalysisSystemPrompt({
     isPro,
     perfumeContext,

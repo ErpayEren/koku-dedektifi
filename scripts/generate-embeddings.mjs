@@ -138,6 +138,7 @@ function buildNotaText(perfume) {
 async function main() {
   readEnvFile(path.resolve(process.cwd(), '.env.local'));
   readEnvFile(path.resolve(process.cwd(), '.env'));
+  readEnvFile(path.resolve(process.cwd(), '.env.local.private'));
 
   const args = parseArgs(process.argv);
   const supabaseUrl = cleanString(process.env.SUPABASE_URL) || cleanString(process.env.NEXT_PUBLIC_SUPABASE_URL);
@@ -152,7 +153,9 @@ async function main() {
   const model = cleanString(process.env.RAG_EMBEDDING_MODEL) || 'gemini-embedding-001';
 
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error('SUPABASE_URL ve SUPABASE_SERVICE_ROLE_KEY gerekli.');
+    throw new Error(
+      'SUPABASE_URL ve SUPABASE_SERVICE_ROLE_KEY gerekli. Not: Vercel\'de Sensitive ayarli key\'ler env pull ile bos ("") gelebilir. Yerelde .env.local.private dosyasina SUPABASE_SERVICE_ROLE_KEY ekleyip tekrar dene.',
+    );
   }
   if (!geminiApiKey) {
     throw new Error('GEMINI_API_KEY (veya LLM_API_KEY) gerekli.');

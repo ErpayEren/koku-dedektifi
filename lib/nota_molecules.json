@@ -11031,5 +11031,268 @@
       "Cinnamaldehyde",
       "Coumarin"
     ]
+  },
+  "greyfurt": {
+    "accord_family": "Turunçgil",
+    "molecules": [
+      "Limonene",
+      "Nootkatone",
+      "Linalool"
+    ]
+  },
+  "mandalina": {
+    "accord_family": "Turunçgil",
+    "molecules": [
+      "Limonene",
+      "Gamma-Terpinene",
+      "Methyl Anthranilate"
+    ]
+  },
+  "gül": {
+    "accord_family": "Çiçeksi",
+    "molecules": [
+      "Geraniol",
+      "Citronellol",
+      "Phenethyl Alcohol",
+      "Rose Oxide",
+      "Damascenone"
+    ]
+  },
+  "menekşe": {
+    "accord_family": "Çiçeksi",
+    "molecules": [
+      "Alpha-Ionone",
+      "Beta-Ionone",
+      "Methyl Ionone"
+    ]
+  },
+  "şakayık": {
+    "accord_family": "Çiçeksi",
+    "molecules": [
+      "Phenethyl Alcohol",
+      "Linalool",
+      "Hedione",
+      "Rose Oxide"
+    ]
+  },
+  "sümbül": {
+    "accord_family": "Çiçeksi",
+    "molecules": [
+      "Methyl Benzoate",
+      "Benzyl Acetate",
+      "Indole",
+      "Benzyl Salicylate"
+    ]
+  },
+  "ylang-ylang": {
+    "accord_family": "Çiçeksi",
+    "molecules": [
+      "Linalool",
+      "Benzyl Acetate",
+      "p-Cresyl Methyl Ether",
+      "Farnesol"
+    ]
+  },
+  "osmanthus": {
+    "accord_family": "Çiçeksi",
+    "molecules": [
+      "Beta-Ionone",
+      "Gamma-Decalactone",
+      "Linalool"
+    ]
+  },
+  "inci çiçeği": {
+    "accord_family": "Çiçeksi",
+    "molecules": [
+      "Hydroxycitronellal",
+      "Linalool",
+      "Florhydral"
+    ]
+  },
+  "guaiac-wood": {
+    "accord_family": "Odunsu",
+    "molecules": [
+      "Guaiol",
+      "Bulnesol",
+      "Guaiacol"
+    ]
+  },
+  "iso-e-super": {
+    "accord_family": "Odunsu",
+    "molecules": [
+      "Iso E Super",
+      "Cedramber",
+      "Ambermax"
+    ]
+  },
+  "habanolide": {
+    "accord_family": "Oryantal",
+    "molecules": [
+      "Habanolide",
+      "Exaltolide",
+      "Ethylene Brassylate"
+    ]
+  },
+  "ethylene-brassylate": {
+    "accord_family": "Oryantal",
+    "molecules": [
+      "Ethylene Brassylate",
+      "Ambrettolide",
+      "Galaxolide"
+    ]
+  },
+  "black-pepper": {
+    "accord_family": "Aromatik",
+    "molecules": [
+      "Piperine",
+      "Beta-Caryophyllene",
+      "Sabinene"
+    ]
+  },
+  "tarçın": {
+    "accord_family": "Aromatik",
+    "molecules": [
+      "Cinnamaldehyde",
+      "Eugenol",
+      "Coumarin"
+    ]
+  },
+  "safran": {
+    "accord_family": "Aromatik",
+    "molecules": [
+      "Safranal",
+      "Isophorone",
+      "Beta-Ionone"
+    ]
+  },
+  "pink-pepper": {
+    "accord_family": "Aromatik",
+    "molecules": [
+      "Limonene",
+      "Alpha-Pinene",
+      "Linalool"
+    ]
+  },
+  "pembe-biber": {
+    "accord_family": "Aromatik",
+    "molecules": [
+      "Limonene",
+      "Alpha-Pinene",
+      "Linalool"
+    ]
+  },
+  "tonka-bean": {
+    "accord_family": "Gourmand",
+    "molecules": [
+      "Coumarin",
+      "Vanillin",
+      "Ethyl Vanillin"
+    ]
+  },
+  "tonka-fasulyesi": {
+    "accord_family": "Gourmand",
+    "molecules": [
+      "Coumarin",
+      "Vanillin",
+      "Ethyl Vanillin"
+    ]
+  },
+  "coumarin": {
+    "accord_family": "Gourmand",
+    "molecules": [
+      "Coumarin",
+      "Ethyl Vanillin",
+      "Maltol"
+    ]
+  },
+  "ethyl-maltol": {
+    "accord_family": "Gourmand",
+    "molecules": [
+      "Ethyl Maltol",
+      "Maltol",
+      "Furaneol"
+    ]
+  },
+  "heliotropin": {
+    "accord_family": "Gourmand",
+    "molecules": [
+      "Heliotropin",
+      "Anisaldehyde",
+      "Vanillin"
+    ]
+  },
+  "praline": {
+    "accord_family": "Gourmand",
+    "molecules": [
+      "Ethyl Maltol",
+      "Vanillin",
+      "Maltol",
+      "Furaneol"
+    ]
+  },
+  "günlük": {
+    "accord_family": "Oryantal",
+    "molecules": [
+      "Alpha-Pinene",
+      "Limonene",
+      "Incensole Acetate"
+    ]
+  },
+  "mür": {
+    "accord_family": "Oryantal",
+    "molecules": [
+      "Furanoeudesma-1,3-diene",
+      "Curzerene",
+      "Heerabolene"
+    ]
+  },
+  "tütsü": {
+    "accord_family": "Oryantal",
+    "molecules": [
+      "Incensole Acetate",
+      "Olibanol",
+      "Guaiacol"
+    ]
+  },
+  "fougere": {
+    "accord_family": "Fougere",
+    "molecules": [
+      "Coumarin",
+      "Linalool",
+      "Linalyl Acetate",
+      "Oakmoss Absolute"
+    ]
+  },
+  "violet-leaf": {
+    "accord_family": "Fougere",
+    "molecules": [
+      "cis-3-Hexenol",
+      "Alpha-Ionone",
+      "Undecavertol"
+    ]
+  },
+  "tomato-leaf": {
+    "accord_family": "Fougere",
+    "molecules": [
+      "cis-3-Hexenal",
+      "cis-3-Hexenol",
+      "2-Isobutylthiazole"
+    ]
+  },
+  "green-tea": {
+    "accord_family": "Fougere",
+    "molecules": [
+      "Linalool",
+      "cis-Jasmone",
+      "Methyl Salicylate"
+    ]
+  },
+  "yeşil-çay": {
+    "accord_family": "Fougere",
+    "molecules": [
+      "Linalool",
+      "cis-Jasmone",
+      "Methyl Salicylate"
+    ]
   }
 }

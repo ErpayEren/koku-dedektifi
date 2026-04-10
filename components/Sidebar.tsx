@@ -195,6 +195,7 @@ export function Sidebar() {
   const sidebarWidth = collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH;
   const usageLabel = entitlement.dailyAnalysisLimit >= 9999 ? '∞' : String(entitlement.dailyAnalysisLimit);
 
+  const showUsageMeter = entitlement.tier !== 'pro';
   const usagePct = useMemo(() => {
     if (entitlement.dailyAnalysisLimit >= 9999) {
       return Math.min(100, todayUsage * 8);
@@ -384,20 +385,28 @@ export function Sidebar() {
                 {upgradeBusy ? '...' : isPro ? 'PRO ✓' : 'PRO'}
               </button>
 
-              <div className="h-11 w-[6px] overflow-hidden rounded-full bg-white/[0.08]">
-                <div
-                  className="w-full rounded-full bg-gradient-to-b from-amber-400 to-amber-600 transition-all duration-500"
-                  style={{ height: `${Math.max(14, usagePct)}%`, marginTop: `${100 - Math.max(14, usagePct)}%` }}
-                />
-              </div>
+              {showUsageMeter ? (
+                <>
+                  <div className="h-11 w-[6px] overflow-hidden rounded-full bg-white/[0.08]">
+                    <div
+                      className="w-full rounded-full bg-gradient-to-b from-amber-400 to-amber-600 transition-all duration-500"
+                      style={{ height: `${Math.max(14, usagePct)}%`, marginTop: `${100 - Math.max(14, usagePct)}%` }}
+                    />
+                  </div>
 
-              <span className="text-[10px] font-medium tracking-wide text-white/34">
-                {todayUsage}/{usageLabel}
-              </span>
+                  <span className="text-[10px] font-medium tracking-wide text-white/34">
+                    {todayUsage}/{usageLabel}
+                  </span>
+                </>
+              ) : (
+                <span className="text-[10px] font-medium tracking-wide text-emerald-300/75">limitsiz</span>
+              )}
             </div>
           ) : (
             <>
-              <div className="mb-3 flex items-center justify-between px-1">
+              {showUsageMeter && (
+                <>
+                  <div className="mb-3 flex items-center justify-between px-1">
                 <span className="text-[11px] tracking-wide text-white/40">Günlük analiz</span>
                 <span className="text-[11px] font-medium text-amber-400">
                   {todayUsage}/{usageLabel}
@@ -415,6 +424,14 @@ export function Sidebar() {
                   }}
                 />
               </div>
+                </>
+              )}
+
+              {!showUsageMeter ? (
+                <div className="mb-4 rounded-lg border border-emerald-500/22 bg-emerald-500/8 px-3 py-2 text-center text-[11px] font-medium tracking-wide text-emerald-200">
+                  Pro plan: limitsiz analiz
+                </div>
+              ) : null}
 
               <button
                 type="button"

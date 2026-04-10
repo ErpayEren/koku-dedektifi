@@ -6,6 +6,8 @@ import { BILLING_UPDATED_EVENT } from './useInstantProUpgrade';
 export type BillingTier = 'free' | 'pro';
 
 interface BillingEntitlementPayload {
+  plan?: BillingTier;
+  expiresAt?: string | null;
   entitlement?: {
     tier?: BillingTier;
     status?: string;
@@ -69,10 +71,11 @@ export function useBillingEntitlement(): BillingEntitlementSnapshot {
         const response = await fetch('/api/billing', {
           method: 'GET',
           credentials: 'include',
+          cache: 'no-store',
         });
         const payload = (await response.json().catch(() => null)) as BillingEntitlementPayload | null;
         if (!response.ok || !payload) return;
-        const tier = payload.entitlement?.tier === 'pro' ? 'pro' : 'free';
+        const tier = payload.plan === 'pro' || payload.entitlement?.tier === 'pro' ? 'pro' : 'free';
         const status = typeof payload.entitlement?.status === 'string' ? payload.entitlement.status : 'active';
         if (!cancelled) {
           setSnapshot(buildEntitlementSnapshot(tier, status));

@@ -387,7 +387,11 @@ async function handler(req, res) {
 
   if (req.method === 'GET') {
     const entitlement = auth ? await readEntitlementForUser(auth.user.id) : normalizeEntitlement(null);
+    const plan = entitlement.tier === 'pro' && entitlement.status !== 'canceled' ? 'pro' : 'free';
+    const expiresAt = cleanString(entitlement.expiresAt) || null;
     return res.status(200).json({
+      plan,
+      expiresAt,
       provider: getBillingProvider(),
       plans,
       entitlement,

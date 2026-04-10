@@ -7,7 +7,6 @@ import { AppShell } from '@/components/AppShell';
 import { TopBar } from '@/components/TopBar';
 import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
-import { useInstantProUpgrade } from '@/lib/client/useInstantProUpgrade';
 import { useToastSync } from '@/lib/client/useToastSync';
 import { useUserStore } from '@/lib/store/userStore';
 
@@ -35,10 +34,22 @@ interface BillingUser {
 }
 
 interface BillingResponse {
+  plan?: 'free' | 'pro';
+  expiresAt?: string | null;
   provider: string;
   plans: BillingPlan[];
   entitlement: BillingEntitlement;
   user: BillingUser | null;
+  devActivationAllowed?: boolean;
+}
+
+interface StartCheckoutResponse {
+  checkoutId?: string;
+  checkoutUrl?: string;
+  provider?: string;
+  planId?: string;
+  error?: string;
+  code?: string;
 }
 
 const PLAN_COPY: Record<'free' | 'pro', { name: string; features: string[]; note: string }> = {
@@ -169,14 +180,13 @@ function PlanCard({
 
 export default function PricingPage() {
   const router = useRouter();
-  const { activate, busy, error: upgradeError, clearError } = useInstantProUpgrade();
   const isPro = useUserStore((state) => state.isPro);
   const [data, setData] = useState<BillingResponse | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busyPlanId, setBusyPlanId] = useState('');
 
-  useToastSync({ error: error || upgradeError, notice });
+  useToastSync({ error, notice });
 
   useEffect(() => {
     void (async () => {
@@ -197,7 +207,7 @@ export default function PricingPage() {
   }, []);
 
   const plans = useMemo(() => normalizePlans(data?.plans), [data?.plans]);
-  const activeTier = isPro || data?.entitlement?.tier === 'pro' ? 'pro' : 'free';
+  const activeTier = isPro || data?.plan === 'pro' || data?.entitlement?.tier === 'pro' ? 'pro' : 'free';
 
   async function activatePlan(planId: string): Promise<void> {
     if (planId !== 'pro') return;
@@ -209,28 +219,33 @@ export default function PricingPage() {
     setBusyPlanId(planId);
     setError('');
     setNotice('');
-    clearError();
 
     try {
-      const upgraded = await activate();
-      if (!upgraded) return;
+      const response = await fetch('/api/billing', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'start_checkout',
+          planId,
+        }),
+      });
 
-      setData((current) =>
-        current
-          ? {
-              ...current,
-              entitlement: {
-                ...current.entitlement,
-                tier: 'pro',
-                status: 'active',
-                source: 'instant-upgrade',
-                updatedAt: new Date().toISOString(),
-              },
-            }
-          : current,
-      );
+      const payload = (await response.json().catch(() => null)) as StartCheckoutResponse | null;
+
+      if (response.status === 401) {
+        router.push('/profil?redirect=%2Fpaketler' as Route);
+        return;
+      }
+
+      if (!response.ok || !payload?.checkoutUrl) {
+        throw new Error(payload?.error || 'Ödeme sayfası açılamadı.');
+      }
+
       setNotice('Pro aktif! Tüm özellikler açıldı.');
-      router.push('/?upgraded=1');
+      window.location.assign(payload.checkoutUrl);
     } finally {
       setBusyPlanId('');
     }
@@ -268,9 +283,9 @@ export default function PricingPage() {
             )}
           </div>
 
-          {error || upgradeError ? (
+          {error ? (
             <div className="mt-4 rounded-2xl border border-[#6c3438] bg-[#271317] px-4 py-3 text-[12px] text-[#f1a2a2]">
-              {error || upgradeError}
+              {error}
             </div>
           ) : null}
 
@@ -285,7 +300,7 @@ export default function PricingPage() {
               <PlanCard
                 key={plan.id}
                 activeTier={activeTier}
-                busyPlanId={busy || busyPlanId === plan.id ? plan.id : ''}
+                busyPlanId={busyPlanId === plan.id ? plan.id : ''}
                 onActivate={activatePlan}
                 plan={plan}
               />

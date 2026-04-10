@@ -69,7 +69,28 @@ function parseArgs(argv) {
   return options;
 }
 
+let dimensionWarningShown = false;
+
+function normalizeEmbeddingVector(values, expectedDim) {
+  if (!Array.isArray(values) || values.length === 0) return [];
+  if (values.length === expectedDim) return values;
+  if (values.length > expectedDim) {
+    if (!dimensionWarningShown) {
+      console.warn(
+        `[embeddings] Uyari: embedding boyutu ${values.length} geldi, ${expectedDim} boyuta kesiliyor.`,
+      );
+      dimensionWarningShown = true;
+    }
+    return values.slice(0, expectedDim);
+  }
+  throw new Error(`embedding vector boyutu kucuk: ${values.length} < ${expectedDim}`);
+}
+
 async function embedText(text, apiKey, model) {
+  const outputDimensionality = Math.max(
+    1,
+    Number.parseInt(cleanString(process.env.RAG_EMBEDDING_DIM) || '768', 10) || 768,
+  );
   const candidates = Array.from(
     new Set(
       [model, 'gemini-embedding-001', 'gemini-embedding-2-preview']
@@ -92,6 +113,7 @@ async function embedText(text, apiKey, model) {
           content: {
             parts: [{ text: cleanString(text).slice(0, 8000) }],
           },
+          outputDimensionality,
         }),
       },
     );
@@ -104,7 +126,8 @@ async function embedText(text, apiKey, model) {
     }
 
     const data = await response.json().catch(() => ({}));
-    const values = Array.isArray(data?.embedding?.values) ? data.embedding.values : [];
+    const rawValues = Array.isArray(data?.embedding?.values) ? data.embedding.values : [];
+    const values = normalizeEmbeddingVector(rawValues, outputDimensionality);
     if (values.length) return values;
     lastError = new Error(`embedding vector bos geldi (${candidate})`);
   }

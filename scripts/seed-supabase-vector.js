@@ -29,7 +29,18 @@ function parseArgs(argv) {
   return out;
 }
 
+function normalizeEmbeddingVector(values, expectedDim) {
+  if (!Array.isArray(values) || values.length === 0) return [];
+  if (values.length === expectedDim) return values;
+  if (values.length > expectedDim) return values.slice(0, expectedDim);
+  throw new Error(`embedding vector boyutu kucuk: ${values.length} < ${expectedDim}`);
+}
+
 async function embedText(text, apiKey, model) {
+  const outputDimensionality = Math.max(
+    1,
+    Number.parseInt(cleanString(process.env.RAG_EMBEDDING_DIM) || '768', 10) || 768,
+  );
   const candidates = Array.from(
     new Set([model, 'gemini-embedding-001', 'gemini-embedding-2-preview'].map((item) => cleanString(item)).filter(Boolean)),
   );
@@ -46,6 +57,7 @@ async function embedText(text, apiKey, model) {
         },
         body: JSON.stringify({
           content: { parts: [{ text: cleanString(text).slice(0, 8000) }] },
+          outputDimensionality,
         }),
       },
     );
@@ -58,7 +70,8 @@ async function embedText(text, apiKey, model) {
     }
 
     const data = await response.json();
-    const vector = Array.isArray(data?.embedding?.values) ? data.embedding.values : [];
+    const rawVector = Array.isArray(data?.embedding?.values) ? data.embedding.values : [];
+    const vector = normalizeEmbeddingVector(rawVector, outputDimensionality);
     if (vector.length) return vector;
     lastError = new Error(`embedding vector is empty (${candidate})`);
   }

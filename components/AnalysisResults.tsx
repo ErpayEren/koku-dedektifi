@@ -39,6 +39,7 @@ interface AnalysisAccuracyFeedbackProps {
   voteBusy: boolean;
   voteError: string;
   voteThanks: boolean;
+  canChangeVote: boolean;
   onVote: (vote: AnalysisVoteValue) => void;
 }
 
@@ -49,6 +50,7 @@ function AnalysisAccuracyFeedback({
   voteBusy,
   voteError,
   voteThanks,
+  canChangeVote,
   onVote,
 }: AnalysisAccuracyFeedbackProps) {
   if (!analysisId) return null;
@@ -75,7 +77,7 @@ function AnalysisAccuracyFeedback({
               key={item.value}
               type="button"
               onClick={() => onVote(item.value)}
-              disabled={voteBusy || Boolean(selectedVote)}
+              disabled={voteBusy || (!canChangeVote && Boolean(selectedVote))}
               className={`rounded-xl border px-3 py-3 text-[13px] transition-colors ${
                 active
                   ? 'border-[var(--gold-line)] bg-[var(--gold-dim)]/25 text-gold'
@@ -90,6 +92,12 @@ function AnalysisAccuracyFeedback({
 
       {voteThanks ? (
         <p className="mt-4 text-[13px] text-sage">Teşekkürler — bu verilerle analizleri iyileştiriyoruz.</p>
+      ) : null}
+      {selectedVote && canChangeVote ? (
+        <p className="mt-2 text-[12px] text-muted">Analiz ekranindayken oyunu guncelleyebilirsin.</p>
+      ) : null}
+      {selectedVote && !canChangeVote ? (
+        <p className="mt-2 text-[12px] italic text-muted">Gecmis analizlerde oy degisikligi kapalidir.</p>
       ) : null}
       {voteError ? <p className="mt-3 text-[13px] text-rose-300">{voteError}</p> : null}
 
@@ -212,6 +220,7 @@ export const AnalysisResults = memo(function AnalysisResults({
             voteBusy={model.analysisVoteBusy}
             voteError={model.analysisVoteError}
             voteThanks={model.analysisVoteThanks}
+            canChangeVote={model.canAdjustAnalysisVote}
             onVote={(vote) => {
               void model.sendAnalysisVote(vote);
             }}

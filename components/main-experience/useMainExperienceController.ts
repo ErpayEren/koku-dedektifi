@@ -118,22 +118,22 @@ export function useMainExperienceController() {
     }
 
     const replayId = query.get('replay');
-    if (replayId) {
-      const row = findHistoryById(replayId);
-      if (row) {
-        const hydrated = hydrateAnalysisResult(row);
-        if (hydrated) setResult(hydrated);
+      if (replayId) {
+        const row = findHistoryById(replayId);
+        if (row) {
+          const hydrated = hydrateAnalysisResult(row);
+          if (hydrated) setResult({ ...hydrated, viewSource: 'replay' });
         setNotice('Geçmiş analiz yüklendi.');
         setError('');
         setStatusCard(null);
       } else {
         void (async () => {
           try {
-            const remote = await fetchAnalysisById(replayId);
-            if (!remote) return;
-            saveHistoryRow(remote);
-            const hydrated = hydrateAnalysisResult(remote);
-            if (hydrated) setResult(hydrated);
+              const remote = await fetchAnalysisById(replayId);
+              if (!remote) return;
+              saveHistoryRow(remote);
+              const hydrated = hydrateAnalysisResult(remote);
+              if (hydrated) setResult({ ...hydrated, viewSource: 'replay' });
             setNotice('Paylaşılan analiz yüklendi.');
             setError('');
             setStatusCard(null);
@@ -222,7 +222,7 @@ export function useMainExperienceController() {
         analysis = await analyzeText(textValue, isPro);
       }
 
-      setResult(analysis);
+      setResult({ ...analysis, viewSource: 'live' });
       saveHistoryRow(analysis);
       incrementUsage();
       pushFeed({
@@ -265,7 +265,7 @@ export function useMainExperienceController() {
 
       try {
         const analysis = await analyzeText(name, isPro);
-        setResult(analysis);
+        setResult({ ...analysis, viewSource: 'live' });
         saveHistoryRow(analysis);
         incrementUsage();
         pushFeed({
@@ -440,4 +440,3 @@ export function useMainExperienceController() {
     saveResultFile,
   };
 }
-

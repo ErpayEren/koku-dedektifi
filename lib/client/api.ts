@@ -260,6 +260,9 @@ export async function fetchAnalysisVoteSummary(analysisId: string): Promise<Anal
 export async function submitAnalysisVote(
   analysisId: string,
   vote: 'accurate' | 'partial' | 'wrong',
+  options?: {
+    allowUpdate?: boolean;
+  },
 ): Promise<AnalysisVoteSummary> {
   const data = await jsonRequest<unknown>('/api/perfume-vote', {
     method: 'POST',
@@ -267,6 +270,7 @@ export async function submitAnalysisVote(
     body: JSON.stringify({
       analysisId,
       vote,
+      allowUpdate: options?.allowUpdate === true,
     }),
   });
   return normalizeAnalysisVoteSummary(data);

@@ -61,6 +61,20 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
     return () => window.removeEventListener('keydown', onKey);
   }, [molecules.length, onClose]);
 
+  useEffect(() => {
+    const { overflow, paddingRight } = document.body.style;
+    const scrollbarGap = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = 'hidden';
+    if (scrollbarGap > 0) {
+      document.body.style.paddingRight = `${scrollbarGap}px`;
+    }
+
+    return () => {
+      document.body.style.overflow = overflow;
+      document.body.style.paddingRight = paddingRight;
+    };
+  }, []);
+
   if (molecules.length === 0) return null;
 
   const total = molecules.length;
@@ -75,13 +89,13 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
       <div className="fixed inset-0 z-40 bg-black/75 backdrop-blur-md" onClick={onClose} aria-hidden="true" />
 
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+        className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain p-4 sm:p-6"
         role="dialog"
         aria-modal="true"
         aria-label={`${molecule.name} molekül detayı`}
       >
         <div
-          className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-[720px] flex-col overflow-y-auto rounded-[30px] border anim-up sm:max-h-[calc(100vh-3rem)]"
+          className="relative my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-[720px] flex-col overflow-y-auto overflow-x-hidden rounded-[30px] border anim-up sm:max-h-[calc(100dvh-3rem)]"
           style={{
             background:
               'linear-gradient(180deg, rgba(255,255,255,.025) 0%, rgba(255,255,255,.01) 100%), var(--bg-card)',

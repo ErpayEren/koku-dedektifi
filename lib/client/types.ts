@@ -123,6 +123,7 @@ export interface AnalysisResult {
   molecules: MoleculeItem[];
   confidence?: number;
   dataConfidence?: AnalysisDataConfidence;
+  viewSource?: 'live' | 'replay';
   analysisMode?: AnalysisMode;
   inputText?: string;
   createdAt: string;

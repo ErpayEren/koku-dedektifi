@@ -10,42 +10,47 @@ interface AnalysisLoadingStateProps {
 function SkeletonLine({ width }: { width: string }) {
   return (
     <div
-      className="h-3 animate-pulse rounded-full"
+      className="h-2.5 animate-pulse rounded-full"
       style={{
         width,
-        background: 'color-mix(in srgb, var(--bg-card) 58%, white 42%)',
+        background:
+          'linear-gradient(90deg, color-mix(in srgb, var(--bg-card) 70%, white 30%) 0%, color-mix(in srgb, var(--bg-card) 52%, white 48%) 50%, color-mix(in srgb, var(--bg-card) 70%, white 30%) 100%)',
       }}
     />
   );
 }
 
 export function AnalysisLoadingState({ analysisStepIndex }: AnalysisLoadingStateProps) {
-  const loadingStep = ANALYSIS_STEPS[analysisStepIndex] || 'Analiz hazırlanıyor...';
+  const loadingStep = ANALYSIS_STEPS[analysisStepIndex] || 'Analiz hazirlaniyor...';
+  const columns = [
+    { title: 'Nota Piramidi', lines: ['92%', '84%', '72%', '58%'] },
+    { title: 'Anahtar Molekuller', lines: ['88%', '80%', '68%', '54%'] },
+    { title: 'Benzer Profiller', lines: ['90%', '82%', '74%', '60%'] },
+  ];
 
   return (
     <div className="anim-up-1">
-      <Card className="overflow-hidden p-5 md:p-7">
-        <div className="mb-6 space-y-3">
-          <div className="h-3 w-28 animate-pulse rounded-full bg-[var(--gold-line)]" />
-          <div
-            className="h-11 w-[min(460px,88%)] animate-pulse rounded-xl"
-            style={{
-              background: 'color-mix(in srgb, var(--bg-card) 52%, white 48%)',
-            }}
-          />
-          <p className="text-[12px] text-muted">{loadingStep}</p>
+      <Card className="overflow-hidden border-[var(--gold-line)]/35 bg-[linear-gradient(145deg,rgba(201,169,110,0.08),rgba(9,9,14,0.96)_28%,rgba(124,58,237,0.06)_100%)] p-5 md:p-7">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/[.08] bg-black/25 px-4 py-4 md:px-5">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-mono uppercase tracking-[.14em] text-gold/90">Analiz motoru</p>
+            <h3 className="mt-2 text-[17px] font-semibold text-cream md:text-[20px]">Molekuler eslesme kuruluyor</h3>
+            <p className="mt-2 text-[12px] text-muted">{loadingStep}</p>
+          </div>
+
+          <div className="relative mx-auto h-20 w-20 shrink-0">
+            <div className="absolute inset-0 rounded-full border border-[var(--gold-line)]/40" />
+            <div className="absolute inset-2 rounded-full border border-dashed border-white/25" />
+            <div className="absolute inset-0 animate-spin rounded-full border-2 border-[var(--gold-line)] border-t-[var(--gold)]" />
+            <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--gold)] shadow-[0_0_14px_rgba(201,169,110,0.8)]" />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_220px]">
-          {[
-            { title: 'Nota Piramidi', lines: ['92%', '84%', '70%', '62%'] },
-            { title: 'Anahtar Moleküller', lines: ['88%', '76%', '81%', '58%'] },
-            { title: 'Benzer Profiller', lines: ['90%', '83%', '69%', '54%'] },
-          ].map((column) => (
+          {columns.map((column) => (
             <div
               key={column.title}
-              className="rounded-2xl border border-[var(--gold-line)]/40 p-4"
-              style={{ background: 'color-mix(in srgb, var(--bg-card) 86%, white 14%)' }}
+              className="rounded-2xl border border-[var(--gold-line)]/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))] p-4"
             >
               <p className="mb-4 text-[11px] font-mono uppercase tracking-[.14em] text-gold">{column.title}</p>
               <div className="space-y-3">
@@ -56,14 +61,13 @@ export function AnalysisLoadingState({ analysisStepIndex }: AnalysisLoadingState
             </div>
           ))}
 
-          <div
-            className="flex min-h-[188px] items-center justify-center rounded-2xl border border-white/[.09]"
-            style={{ background: 'color-mix(in srgb, var(--bg-card) 88%, white 12%)' }}
-          >
+          <div className="relative flex min-h-[188px] items-center justify-center overflow-hidden rounded-2xl border border-white/[.1] bg-black/25">
+            <div className="absolute -left-8 top-1/2 h-20 w-20 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(167,139,250,0.25)_0%,transparent_70%)]" />
+            <div className="absolute -right-10 top-1/2 h-24 w-24 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(45,212,191,0.24)_0%,transparent_72%)]" />
             <div className="relative flex h-28 w-28 items-center justify-center">
-              <div className="absolute inset-0 rounded-full border border-[var(--gold-line)]/50" />
-              <div className="absolute inset-2 rounded-full border border-dashed border-white/20" />
-              <div className="h-16 w-16 animate-spin rounded-full border-2 border-[var(--gold-line)] border-t-[var(--gold)]" />
+              <div className="absolute inset-0 rounded-full border border-[var(--gold-line)]/45" />
+              <div className="absolute inset-3 animate-pulse rounded-full border border-white/20" />
+              <div className="absolute h-16 w-16 animate-[spin_2.4s_linear_infinite] rounded-full border-2 border-[var(--gold-line)] border-t-transparent" />
             </div>
           </div>
         </div>

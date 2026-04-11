@@ -223,6 +223,7 @@ export function useAnalysisResultsModel({ result, isAnalyzing }: UseAnalysisResu
   const wheelValues = [scores.freshness, scores.sweetness, scores.warmth, clampPercent(activeResult?.intensity, 65)];
   const confidence = activeResult ? resolveConfidence(activeResult) : 0;
   const analysisVoteCount = analysisVoteSummary?.total ?? 0;
+  const canAdjustAnalysisVote = activeResult?.viewSource === 'live';
   const dataTrustBadge = (() => {
     if (analysisVoteCount > 5) {
       return {
@@ -385,12 +386,17 @@ export function useAnalysisResultsModel({ result, isAnalyzing }: UseAnalysisResu
   }
 
   async function sendAnalysisVote(vote: AnalysisVoteValue): Promise<void> {
-    if (!activeResult?.id || analysisVoteBusy || analysisVote) return;
+    if (!activeResult?.id || analysisVoteBusy) return;
+    const hasExistingVote = Boolean(analysisVote);
+    if (hasExistingVote && !canAdjustAnalysisVote) return;
+    if (analysisVote === vote) return;
 
     setAnalysisVoteBusy(true);
     setAnalysisVoteError('');
     try {
-      const summary = await submitAnalysisVote(activeResult.id, vote);
+      const summary = await submitAnalysisVote(activeResult.id, vote, {
+        allowUpdate: hasExistingVote && canAdjustAnalysisVote,
+      });
       setAnalysisVoteSummary(summary);
       setAnalysisVote(vote);
       setAnalysisVoteThanks(true);
@@ -455,6 +461,7 @@ export function useAnalysisResultsModel({ result, isAnalyzing }: UseAnalysisResu
     analysisVoteError,
     analysisVoteThanks,
     analysisVoteCount,
+    canAdjustAnalysisVote,
     dataTrustBadge,
     sendAnalysisVote,
   };

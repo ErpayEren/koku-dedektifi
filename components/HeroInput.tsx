@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { UI } from '@/lib/strings';
 import type { InputMode } from '@/lib/client/types';
 
@@ -123,7 +123,7 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`relative flex min-h-[72px] w-[44%] min-w-[132px] shrink-0 flex-col items-center justify-center gap-1.5 px-2 py-2 text-center transition-colors md:min-h-[62px] md:w-auto md:min-w-0 md:flex-1 md:flex-row md:gap-2 ${
+      className={`relative flex min-h-[60px] w-full min-w-0 shrink-0 items-center justify-center gap-1.5 px-2 py-2 text-center transition-colors md:min-h-[62px] md:flex-row md:gap-2 ${
         active ? 'text-cream' : 'text-muted hover:text-cream'
       }`}
     >
@@ -180,6 +180,11 @@ export function HeroInput({
   }
 
   const activeCharCount = mode === 'notes' ? notesValue.length : textValue.length;
+  const handleAnalyzeByEnter = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
+    event.preventDefault();
+    if (canAnalyze) onAnalyze();
+  };
 
   return (
     <section id="hero-analysis" className="anim-up relative mx-auto w-full max-w-[920px] overflow-x-clip px-5 pb-8 pt-8 md:px-12 md:pt-12">
@@ -197,7 +202,7 @@ export function HeroInput({
       <p className="mb-8 max-w-[620px] text-[13px] text-muted">{UI.heroSubtitle}</p>
 
       <div className="glass-panel input-card overflow-hidden rounded-2xl shadow-[0_26px_54px_rgba(0,0,0,.44)]">
-        <div className="scrollbar-none flex gap-1 overflow-x-auto border-b border-white/[.06] bg-black/10 px-2 md:grid md:grid-cols-3 md:gap-0 md:px-0">
+        <div className="grid grid-cols-3 gap-0 border-b border-white/[.06] bg-black/10 px-0">
           <TabButton tabMode="photo" activeMode={mode} onClick={() => onModeChange('photo')} label={UI.photoTab} />
           <TabButton tabMode="text" activeMode={mode} onClick={() => onModeChange('text')} label={UI.textTab} />
           <TabButton tabMode="notes" activeMode={mode} onClick={() => onModeChange('notes')} label={UI.notesTab} />
@@ -284,6 +289,7 @@ export function HeroInput({
                 value={textValue}
                 maxLength={500}
                 onChange={(event) => onTextChange(event.target.value)}
+                onKeyDown={handleAnalyzeByEnter}
                 className="min-h-[164px] w-full resize-none rounded-xl border border-white/[.07] bg-transparent p-4 text-[1rem] text-cream outline-none placeholder:text-hint focus:border-[var(--gold-line)] md:p-5"
                 placeholder={UI.textPlaceholder}
               />
@@ -298,6 +304,7 @@ export function HeroInput({
                 value={notesValue}
                 maxLength={500}
                 onChange={(event) => onNotesChange(event.target.value)}
+                onKeyDown={handleAnalyzeByEnter}
                 className="min-h-[164px] w-full resize-none rounded-xl border border-white/[.07] bg-transparent p-4 text-[1rem] text-cream outline-none placeholder:text-hint focus:border-[var(--gold-line)] md:p-5"
                 placeholder={UI.notesPlaceholder}
               />

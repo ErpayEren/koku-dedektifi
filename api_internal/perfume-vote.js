@@ -286,6 +286,28 @@ async function putAnalysisVote(analysisId, vote) {
   return { analysisId: normalizedAnalysisId, aggregate: next };
 }
 
+async function updateAnalysisVote(analysisId, previousVote, nextVote) {
+  const normalizedAnalysisId = normalizeAnalysisId(analysisId);
+  if (!normalizedAnalysisId) throw new Error('invalid_analysis_id');
+  if (!ANALYSIS_VOTE_OPTIONS.includes(previousVote) || !ANALYSIS_VOTE_OPTIONS.includes(nextVote)) {
+    throw new Error('invalid_analysis_vote');
+  }
+
+  const row = await votesStore.getCache(`analysis-aggregate:${normalizedAnalysisId}`);
+  const next = normalizeAnalysisAggregate(row, normalizedAnalysisId);
+
+  if (previousVote !== nextVote) {
+    if (next[previousVote] > 0) next[previousVote] -= 1;
+    next[nextVote] += 1;
+  }
+
+  const recomputedTotal = ANALYSIS_VOTE_OPTIONS.reduce((sum, key) => sum + Math.max(0, Number(next[key] || 0)), 0);
+  next.total = Math.max(next.total, recomputedTotal);
+  next.updatedAt = new Date().toISOString();
+  await votesStore.setCache(`analysis-aggregate:${normalizedAnalysisId}`, next);
+  return { analysisId: normalizedAnalysisId, aggregate: next };
+}
+
 function getVoteLockKey(slug, req) {
   const dateKey = new Date().toISOString().slice(0, 10);
   const fingerprint = getClientFingerprint(req);
@@ -331,6 +353,7 @@ async function handler(req, res) {
 
   const analysisId = normalizeAnalysisId(body.analysisId || body.analysis_id);
   const analysisVote = cleanString(body.vote).toLowerCase();
+  const allowUpdate = body.allowUpdate === true;
 
   if (analysisId || analysisVote) {
     if (!analysisId) return res.status(400).json({ error: 'analysisId gerekli' });
@@ -343,6 +366,31 @@ async function handler(req, res) {
     const lockKey = getAnalysisVoteLockKey(analysisId, req);
     const alreadyVoted = await votesStore.getCache(lockKey);
     if (alreadyVoted) {
+      const previousVote = cleanString(alreadyVoted.vote).toLowerCase();
+      if (allowUpdate && ANALYSIS_VOTE_OPTIONS.includes(previousVote)) {
+        if (previousVote === analysisVote) {
+          const currentSame = await getAnalysisAggregate(analysisId);
+          return res.status(200).json({
+            ...enrichAnalysisAggregate(currentSame.aggregate),
+            duplicate: true,
+            message: 'Secili oy zaten aktif.',
+          });
+        }
+
+        const updated = await updateAnalysisVote(analysisId, previousVote, analysisVote);
+        await votesStore.setCache(lockKey, {
+          ts: new Date().toISOString(),
+          analysisId,
+          vote: analysisVote,
+          replaced: previousVote,
+        });
+
+        return res.status(200).json({
+          ...enrichAnalysisAggregate(updated.aggregate),
+          updated: true,
+        });
+      }
+
       const current = await getAnalysisAggregate(analysisId);
       return res.status(200).json({
         ...enrichAnalysisAggregate(current.aggregate),

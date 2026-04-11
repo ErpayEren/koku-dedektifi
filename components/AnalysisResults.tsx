@@ -208,7 +208,9 @@ export const AnalysisResults = memo(function AnalysisResults({
               wheelValues={model.wheelValues}
               scores={model.scores}
               intensity={model.activeResult.intensity}
-              scoreCards={model.scoreCards}
+              genderProfile={model.activeResult.genderProfile}
+              occasionList={model.occasionList}
+              styleSuggestion={model.activeResult.persona?.vibe || ''}
               style={model.cardMotion(4)}
             />
           </div>

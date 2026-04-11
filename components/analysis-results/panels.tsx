@@ -300,14 +300,30 @@ interface WheelPanelProps extends PanelMotionProps {
     warmth: number;
   };
   intensity: number;
-  scoreCards?: {
-    value: number;
-    uniqueness: number;
-    wearability: number;
-  } | null;
+  genderProfile?: string | null;
+  occasionList?: string[];
+  styleSuggestion?: string | null;
 }
 
-export function WheelPanel({ wheelValues, scores, intensity, scoreCards, style }: WheelPanelProps) {
+export function WheelPanel({
+  wheelValues,
+  scores,
+  intensity,
+  genderProfile,
+  occasionList,
+  styleSuggestion,
+  style,
+}: WheelPanelProps) {
+  const normalizedGender = String(genderProfile || '')
+    .toLocaleLowerCase('tr-TR')
+    .trim();
+  const genderRecommendation = normalizedGender.includes('mask')
+    ? 'Erkek'
+    : normalizedGender.includes('fem')
+      ? 'Kadın'
+      : 'Unisex';
+  const suggestedOccasions = Array.isArray(occasionList) && occasionList.length > 0 ? occasionList.slice(0, 4) : ['Günlük'];
+  const styleLine = (styleSuggestion || '').trim() || 'Kendine güvenli, modern ve dengeli bir karakter.';
   const metricRows = [
     { label: 'Tazelik', value: scores.freshness, tone: 'var(--sage)', note: scores.freshness >= 70 ? 'Canlı ve ferah' : 'Daha sakin ve yumuşak' },
     { label: 'Tatlılık', value: scores.sweetness, tone: '#d58ebb', note: scores.sweetness >= 60 ? 'Tatlı akor belirgin' : 'Tatlılık geri planda' },
@@ -349,36 +365,36 @@ export function WheelPanel({ wheelValues, scores, intensity, scoreCards, style }
         </div>
       </div>
 
-      {scoreCards ? (
-        <div className="mt-5 border-t border-white/[.06] pt-5">
+      <div className="mt-5 border-t border-white/[.06] pt-5">
           <CardTitle className="mb-3">Sana Yakışır mı?</CardTitle>
           <div className="grid grid-cols-1 gap-3">
-            {[
-              { label: 'Değer', value: scoreCards.value, note: 'Fiyat ve performans dengesi.' },
-              { label: 'Özgünlük', value: scoreCards.uniqueness, note: 'Karakterin ayırt edici gücü.' },
-              { label: 'Giyilebilirlik', value: scoreCards.wearability, note: 'Günlük kullanım esnekliği.' },
-            ].map((item) => (
-              <div key={item.label} className="rounded-[16px] border border-white/[.07] bg-white/[.02] px-4 py-3">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">{item.label}</p>
-                  <p className="text-[12px] font-semibold text-cream">{item.value}/10</p>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-white/[.08]">
-                  <div
-                    className="h-full rounded-full transition-all duration-700"
-                    style={{
-                      width: `${Math.max(10, Math.min(100, item.value * 10))}%`,
-                      background: 'var(--gold)',
-                      boxShadow: '0 0 10px color-mix(in srgb, var(--gold) 36%, transparent)',
-                    }}
-                  />
-                </div>
-                <p className="mt-2 text-[12px] text-cream/78">{item.note}</p>
+            <div className="rounded-[16px] border border-white/[.07] bg-white/[.02] px-4 py-3">
+              <p className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">Cinsiyet önerisi</p>
+              <p className="mt-2 text-[18px] font-semibold text-cream">{genderRecommendation}</p>
+              <p className="mt-1 text-[12px] text-cream/76">Koku profilinde en doğal oturan kullanım yönü.</p>
+            </div>
+
+            <div className="rounded-[16px] border border-white/[.07] bg-white/[.02] px-4 py-3">
+              <p className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">Ortam önerisi</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {suggestedOccasions.map((occasion) => (
+                  <span
+                    key={occasion}
+                    className="rounded-full border border-[var(--gold-line)] px-2.5 py-1 text-[10px] font-mono uppercase tracking-[.1em] text-gold"
+                  >
+                    {occasion}
+                  </span>
+                ))}
               </div>
-            ))}
+            </div>
+
+            <div className="rounded-[16px] border border-white/[.07] bg-white/[.02] px-4 py-3">
+              <p className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">Stil önerisi</p>
+              <p className="mt-2 text-[13px] leading-relaxed text-cream/84">{styleLine}</p>
+            </div>
+
           </div>
         </div>
-      ) : null}
     </Card>
   );
 }

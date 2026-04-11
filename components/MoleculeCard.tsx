@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { MoleculeVisual } from './MoleculeVisual';
 
 export interface MoleculeData {
@@ -49,8 +50,15 @@ const NOTE_LABELS: Record<MoleculeData['note'], string> = {
 
 export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeCardProps) {
   const [idx, setIdx] = useState(Math.max(0, Math.min(initialIndex, Math.max(0, molecules.length - 1))));
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     function onKey(event: KeyboardEvent): void {
       if (event.key === 'Escape') onClose();
       if (event.key === 'ArrowLeft') setIdx((value) => (value - 1 + molecules.length) % molecules.length);
@@ -59,9 +67,11 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [molecules.length, onClose]);
+  }, [mounted, molecules.length, onClose]);
 
   useEffect(() => {
+    if (!mounted) return;
+
     const { overflow, paddingRight } = document.body.style;
     const scrollbarGap = window.innerWidth - document.documentElement.clientWidth;
     document.body.style.overflow = 'hidden';
@@ -73,9 +83,9 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
       document.body.style.overflow = overflow;
       document.body.style.paddingRight = paddingRight;
     };
-  }, []);
+  }, [mounted]);
 
-  if (molecules.length === 0) return null;
+  if (molecules.length === 0 || !mounted) return null;
 
   const total = molecules.length;
   const molecule = molecules[idx] ?? molecules[0];
@@ -84,18 +94,19 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
   const prev = () => setIdx((value) => (value - 1 + total) % total);
   const next = () => setIdx((value) => (value + 1) % total);
 
-  return (
+  const modalNode = (
     <>
-      <div className="fixed inset-0 z-40 bg-black/75 backdrop-blur-md" onClick={onClose} aria-hidden="true" />
+      <div className="fixed inset-0 z-[120] bg-black/75 backdrop-blur-md" onClick={onClose} aria-hidden="true" />
 
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain p-4 sm:p-6"
+        className="fixed inset-0 z-[130] grid place-items-center overflow-hidden p-3 sm:p-6"
         role="dialog"
         aria-modal="true"
         aria-label={`${molecule.name} molekül detayı`}
       >
         <div
-          className="relative my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-[720px] flex-col overflow-y-auto overflow-x-hidden rounded-[30px] border anim-up sm:max-h-[calc(100dvh-3rem)]"
+          onClick={(event) => event.stopPropagation()}
+          className="relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-[720px] flex-col overflow-y-auto overflow-x-hidden rounded-[30px] border anim-up sm:max-h-[calc(100dvh-3rem)]"
           style={{
             background:
               'linear-gradient(180deg, rgba(255,255,255,.025) 0%, rgba(255,255,255,.01) 100%), var(--bg-card)',
@@ -155,6 +166,7 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
                     <path d="M7.5 2 4 6l3.5 4" />
                   </svg>
                 </button>
+
                 <div className="min-w-0 text-center">
                   <h3 className="mx-auto max-w-[14ch] break-words text-[clamp(1.95rem,4.7vw,3rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-cream">
                     {molecule.name}
@@ -165,6 +177,7 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
                   </p>
                   <p className="mt-3 text-[12px] uppercase tracking-[.12em] text-muted">{molecule.type}</p>
                 </div>
+
                 <button onClick={next} className="icon-btn mt-2 justify-self-end" aria-label="Sonraki molekül">
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M4.5 2 8 6l-3.5 4" />
@@ -243,4 +256,6 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
       </div>
     </>
   );
+
+  return createPortal(modalNode, document.body);
 }

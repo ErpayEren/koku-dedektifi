@@ -95,7 +95,11 @@ export function RadarWheel({ values }: { values: number[] }) {
     .join(' ');
 
   return (
-    <svg viewBox="0 0 184 184" width="188" height="188" aria-label="Koku çarkı">
+    <svg
+      viewBox="0 0 184 184"
+      className="h-[146px] w-[146px] sm:h-[168px] sm:w-[168px] md:h-[184px] md:w-[184px]"
+      aria-label="Koku çarkı"
+    >
       {[24, 44, 68].map((ring) => (
         <circle key={ring} cx={center} cy={center} r={ring} fill="none" stroke="rgba(255,255,255,.08)" />
       ))}

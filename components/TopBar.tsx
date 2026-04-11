@@ -2,6 +2,7 @@
 
 import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
+import { Menu } from 'lucide-react';
 import { useInstallPrompt } from '@/lib/client/useInstallPrompt';
 import { Logo } from './ui/Logo';
 import { ProBadge } from './ui/ProBadge';
@@ -15,7 +16,17 @@ export function TopBar({ title }: { title?: string }) {
       className="flex h-[92px] items-center justify-between px-4 sm:px-5 md:px-12
                  sticky top-0 bg-bg/85 backdrop-blur-xl z-10"
     >
-      <div className="md:hidden">
+      <div className="md:hidden flex items-center gap-2.5">
+        <button
+          type="button"
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent('kd-mobile-nav:open'));
+          }}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/[.08] bg-white/[.03] text-muted transition-colors hover:text-cream hover:border-white/[.15]"
+          aria-label="Menüyü aç"
+        >
+          <Menu className="h-[17px] w-[17px]" strokeWidth={1.9} />
+        </button>
         <Logo size="sm" />
       </div>
       <span className="hidden md:block text-[15px] font-semibold text-muted">

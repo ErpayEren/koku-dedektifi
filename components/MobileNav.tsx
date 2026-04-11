@@ -3,11 +3,10 @@
 import Link from 'next/link';
 import type { Route } from 'next';
 import { usePathname } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Archive,
   CalendarDays,
-  ChevronRight,
   FlaskConical,
   GitCompare,
   History,
@@ -15,309 +14,136 @@ import {
   ScanLine,
   Search,
   Sparkles,
-  UserRound,
-  WalletCards,
   Wind,
   X,
   type LucideIcon,
 } from 'lucide-react';
-import { UI } from '@/lib/strings';
+import { Logo } from '@/components/ui/Logo';
 
-type IconProps = { size: number; strokeWidth: number };
-type GroupKey = 'analiz' | 'koleksiyon' | 'kesfet' | 'profil';
-
-interface GroupItem {
-  href: Route;
+interface NavItem {
   label: string;
-  description: string;
+  href: Route;
   Icon: LucideIcon;
 }
 
-interface GroupDefinition {
-  key: GroupKey;
-  label: string;
-  aria: string;
-  Icon: (props: IconProps) => React.JSX.Element;
-  items: readonly GroupItem[];
+interface NavGroup {
+  section: string;
+  items: NavItem[];
 }
 
-const GROUPS: readonly GroupDefinition[] = [
+const NAV: NavGroup[] = [
   {
-    key: 'analiz',
-    label: 'Analiz',
-    aria: 'Analiz bölümü',
-    Icon: AnalysisIcon,
+    section: 'analiz',
     items: [
-      {
-        href: '/',
-        label: UI.navNewAnalysis,
-        description: 'Fotoğraf, metin veya nota listesi ile yeni analiz başlat.',
-        Icon: Sparkles,
-      },
-      {
-        href: '/gecmis',
-        label: UI.navHistory,
-        description: 'Önceki analizlerini yeniden aç ve karşılaştır.',
-        Icon: History,
-      },
-      {
-        href: '/karsilastir',
-        label: UI.navCompare,
-        description: 'İki kokuyu yan yana incele, farklarını gör.',
-        Icon: GitCompare,
-      },
+      { label: 'Yeni Analiz', href: '/', Icon: Sparkles },
+      { label: 'Koku Geçmişi', href: '/gecmis', Icon: History },
+      { label: 'Karşılaştır', href: '/karsilastir', Icon: GitCompare },
     ],
   },
   {
-    key: 'koleksiyon',
-    label: 'Koleksiyon',
-    aria: 'Koleksiyon bölümü',
-    Icon: WardrobeIcon,
+    section: 'koleksiyon',
     items: [
-      {
-        href: '/dolap',
-        label: UI.navWardrobe,
-        description: 'Sahip olduklarını, favorilerini ve isteklerini yönet.',
-        Icon: Archive,
-      },
-      {
-        href: '/wear',
-        label: UI.navWearRoutine,
-        description: 'Günlük kullanım alışkanlığını ve özetlerini izle.',
-        Icon: CalendarDays,
-      },
-      {
-        href: '/layering',
-        label: UI.navLayeringLab,
-        description: 'İki parfümün birlikte vereceği etkiyi keşfet.',
-        Icon: Layers,
-      },
+      { label: 'Koku Dolabım', href: '/dolap', Icon: Archive },
+      { label: 'Koku Rutinim', href: '/wear', Icon: CalendarDays },
+      { label: 'Katmanlama Lab', href: '/layering', Icon: Layers },
     ],
   },
   {
-    key: 'kesfet',
-    label: 'Keşfet',
-    aria: 'Keşfet bölümü',
-    Icon: ExploreIcon,
+    section: 'keşfet',
     items: [
-      {
-        href: '/notalar',
-        label: UI.navNoteFinder,
-        description: 'Aradığın profile yakın kokuları filtrele ve bul.',
-        Icon: Search,
-      },
-      {
-        href: '/haftalik-molekul',
-        label: 'Haftalık Molekül',
-        description: 'Her hafta öne çıkan imza molekülü ve kullanan parfümleri keşfet.',
-        Icon: FlaskConical,
-      },
-      {
-        href: '/barkod',
-        label: UI.navBarcode,
-        description: 'Barkod üzerinden hızlı ürün araması yap.',
-        Icon: ScanLine,
-      },
-      {
-        href: '/akis',
-        label: UI.navFeed,
-        description: 'Topluluk hareketlerini ve son etkinlikleri gör.',
-        Icon: Wind,
-      },
+      { label: 'Nota Avcısı', href: '/notalar', Icon: Search },
+      { label: 'Haftalık Molekül', href: '/haftalik-molekul', Icon: FlaskConical },
+      { label: 'Barkod Tara', href: '/barkod', Icon: ScanLine },
+      { label: 'Koku Akışı', href: '/akis', Icon: Wind },
     ],
   },
-  {
-    key: 'profil',
-    label: 'Profil',
-    aria: 'Profil bölümü',
-    Icon: ProfileIcon,
-    items: [
-      {
-        href: '/profil' as Route,
-        label: 'Hesap',
-        description: 'Giriş, tercih ve kişisel profil ayarlarını yönet.',
-        Icon: UserRound,
-      },
-      {
-        href: '/paketler',
-        label: 'Paketler',
-        description: 'Ücretsiz ve Pro planları karşılaştır, yükselt.',
-        Icon: WalletCards,
-      },
-    ],
-  },
-] as const;
+];
 
 export function MobileNav() {
-  const path = usePathname();
-  const [openGroup, setOpenGroup] = useState<GroupKey | null>(null);
-
-  const activeGroupKey = useMemo<GroupKey>(() => {
-    const match = GROUPS.find((group) => group.items.some((item) => item.href === path));
-    return match?.key ?? 'analiz';
-  }, [path]);
-
-  const currentGroup = useMemo(() => {
-    const targetKey = openGroup ?? activeGroupKey;
-    return GROUPS.find((group) => group.key === targetKey) ?? GROUPS[0];
-  }, [activeGroupKey, openGroup]);
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    setOpenGroup(null);
-  }, [path]);
+    const openMenu = () => setOpen(true);
+    window.addEventListener('kd-mobile-nav:open', openMenu);
+    return () => window.removeEventListener('kd-mobile-nav:open', openMenu);
+  }, []);
 
-  const sheetOpen = openGroup !== null;
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   return (
     <>
-      {sheetOpen ? (
+      {open ? (
         <button
           type="button"
-          aria-label="Mobil menüyü kapat"
-          className="fixed inset-0 z-40 bg-black/55 backdrop-blur-[2px] md:hidden"
-          onClick={() => setOpenGroup(null)}
+          aria-label="Menüyü kapat"
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[1px] md:hidden"
         />
       ) : null}
 
-      {sheetOpen ? (
-        <section
-          className="fixed left-3 right-3 z-50 rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(26,23,31,0.98),rgba(15,13,19,0.98))] shadow-[0_28px_80px_rgba(0,0,0,0.48)] backdrop-blur-2xl md:hidden"
-          style={{ bottom: 'calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 12px)' }}
-          aria-label={`${currentGroup.label} hızlı erişim paneli`}
-        >
-          <div className="flex items-center justify-between border-b border-white/[0.07] px-4 pb-3 pt-4">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.24em] text-white/30">Mobil kısayollar</p>
-              <h3 className="mt-1 text-base font-medium text-white">{currentGroup.label}</h3>
-            </div>
-            <button
-              type="button"
-              onClick={() => setOpenGroup(null)}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-white/50 transition-colors hover:text-white active:bg-white/[0.08]"
-              aria-label="Paneli kapat"
-            >
-              <X className="h-4 w-4" strokeWidth={1.8} />
-            </button>
-          </div>
-
-          <div className="scrollbar-none flex max-h-[min(58vh,420px)] flex-col gap-2 overflow-y-auto px-3 py-3">
-            {currentGroup.items.map((item) => {
-              const isActive = path === item.href;
-              const ItemIcon = item.Icon;
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpenGroup(null)}
-                  className={`flex items-start gap-3 rounded-2xl border px-3 py-3.5 transition-all duration-200 ${
-                    isActive
-                      ? 'border-amber-500/35 bg-amber-500/10'
-                      : 'border-white/[0.08] bg-white/[0.03] active:bg-white/[0.08]'
-                  }`}
-                >
-                  <div
-                    className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${
-                      isActive
-                        ? 'border-amber-500/30 bg-amber-500/12 text-amber-400'
-                        : 'border-white/[0.08] bg-white/[0.05] text-white/50'
-                    }`}
-                  >
-                    <ItemIcon className="h-4 w-4" strokeWidth={1.9} />
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className={`truncate text-sm font-medium ${isActive ? 'text-white' : 'text-white/88'}`}>
-                        {item.label}
-                      </p>
-                      {isActive ? (
-                        <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-amber-300">
-                          Aktif
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-1 text-xs leading-relaxed text-white/42">{item.description}</p>
-                  </div>
-
-                  <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-white/28" strokeWidth={1.8} />
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
-
-      <nav
-        className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[.06] bg-[var(--bg-card)]/95 backdrop-blur-xl md:hidden"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-        role="navigation"
+      <aside
         aria-label="Mobil menü"
+        className={`fixed inset-y-0 left-0 z-50 w-[min(86vw,320px)] border-r border-white/[.08] bg-[rgba(11,11,18,0.96)] shadow-[0_20px_80px_rgba(0,0,0,.55)] backdrop-blur-xl transition-transform duration-300 ease-out md:hidden ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        }`}
       >
-        <div className="grid grid-cols-4">
-          {GROUPS.map(({ key, label, aria, Icon }) => {
-            const isActive = activeGroupKey === key;
-            const isOpen = openGroup === key;
-
-            return (
-              <button
-                key={key}
-                type="button"
-                aria-label={aria}
-                aria-expanded={isOpen}
-                className={`mnav-item relative flex flex-col items-center gap-1 py-3 text-[9px] font-mono uppercase tracking-[.06em] transition-colors ${
-                  isActive || isOpen ? 'text-gold' : 'text-muted hover:text-cream'
-                }`}
-                onClick={() => setOpenGroup((current) => (current === key ? null : key))}
-              >
-                <Icon size={18} strokeWidth={1.45} />
-                <span>{label}</span>
-                <span
-                  className={`absolute left-4 right-4 top-0 h-px ${
-                    isActive || isOpen ? 'bg-[var(--gold-line)]' : 'bg-transparent'
-                  }`}
-                />
-              </button>
-            );
-          })}
+        <div className="flex h-[88px] items-center justify-between border-b border-white/[.06] px-4">
+          <Logo size="sm" />
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/[.08] bg-white/[.03] text-muted transition-colors hover:text-cream hover:border-white/[.15]"
+            aria-label="Kapat"
+          >
+            <X className="h-[16px] w-[16px]" strokeWidth={1.9} />
+          </button>
         </div>
-      </nav>
+
+        <nav className="scrollbar-none h-[calc(100dvh-88px)] overflow-y-auto px-3 py-4">
+          {NAV.map((group, groupIndex) => (
+            <div key={group.section} className={groupIndex === 0 ? '' : 'mt-4'}>
+              <p
+                className="mb-2 px-2 text-[10px] font-mono tracking-[.16em] text-hint uppercase"
+                style={{ textTransform: 'uppercase' }}
+              >
+                {group.section}
+              </p>
+
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const isActive = pathname === item.href;
+                  const Icon = item.Icon;
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex min-h-[48px] items-center gap-3 rounded-2xl px-3 py-2 transition-colors ${
+                        isActive
+                          ? 'border border-amber-500/25 bg-amber-500/10 text-amber-300'
+                          : 'border border-white/[.06] bg-white/[.02] text-white/75'
+                      }`}
+                    >
+                      <span
+                        className={`inline-flex h-9 w-9 items-center justify-center rounded-xl ${
+                          isActive ? 'bg-amber-500/15 text-amber-300' : 'bg-white/[.03] text-white/55'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" strokeWidth={1.9} />
+                      </span>
+                      <span className="text-[14px] font-medium">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+      </aside>
     </>
   );
 }
 
-function AnalysisIcon({ size, strokeWidth }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth={strokeWidth} aria-hidden="true" focusable="false">
-      <circle cx="9" cy="9" r="7" />
-      <circle cx="9" cy="9" r="2.2" />
-    </svg>
-  );
-}
-
-function WardrobeIcon({ size, strokeWidth }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth={strokeWidth} aria-hidden="true" focusable="false">
-      <path d="M3 15V7l6-5 6 5v8" />
-      <rect x="6" y="10" width="6" height="5" />
-    </svg>
-  );
-}
-
-function ExploreIcon({ size, strokeWidth }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth={strokeWidth} aria-hidden="true" focusable="false">
-      <circle cx="9" cy="9" r="3" />
-      <path d="M9 2v2M9 14v2M2 9h2M14 9h2M4.2 4.2l1.4 1.4M12.4 12.4l1.4 1.4M4.2 13.8l1.4-1.4M12.4 5.6l1.4-1.4" />
-    </svg>
-  );
-}
-
-function ProfileIcon({ size, strokeWidth }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth={strokeWidth} aria-hidden="true" focusable="false">
-      <circle cx="9" cy="6" r="3" />
-      <path d="M2 17c0-4 3.13-6 7-6s7 2 7 6" />
-    </svg>
-  );
-}

@@ -123,7 +123,7 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`relative flex min-h-[72px] flex-1 flex-col items-center justify-center gap-1.5 px-2 py-2 text-center transition-colors md:min-h-[62px] md:flex-row md:gap-2 ${
+      className={`relative flex min-h-[72px] w-[44%] min-w-[132px] shrink-0 flex-col items-center justify-center gap-1.5 px-2 py-2 text-center transition-colors md:min-h-[62px] md:w-auto md:min-w-0 md:flex-1 md:flex-row md:gap-2 ${
         active ? 'text-cream' : 'text-muted hover:text-cream'
       }`}
     >
@@ -197,7 +197,7 @@ export function HeroInput({
       <p className="mb-8 max-w-[620px] text-[13px] text-muted">{UI.heroSubtitle}</p>
 
       <div className="glass-panel input-card overflow-hidden rounded-2xl shadow-[0_26px_54px_rgba(0,0,0,.44)]">
-        <div className="grid grid-cols-3 border-b border-white/[.06] bg-black/10">
+        <div className="scrollbar-none flex gap-1 overflow-x-auto border-b border-white/[.06] bg-black/10 px-2 md:grid md:grid-cols-3 md:gap-0 md:px-0">
           <TabButton tabMode="photo" activeMode={mode} onClick={() => onModeChange('photo')} label={UI.photoTab} />
           <TabButton tabMode="text" activeMode={mode} onClick={() => onModeChange('text')} label={UI.textTab} />
           <TabButton tabMode="notes" activeMode={mode} onClick={() => onModeChange('notes')} label={UI.notesTab} />

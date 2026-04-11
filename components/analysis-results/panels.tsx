@@ -564,7 +564,7 @@ export function MoleculePanel({
             </div>
           ) : null}
 
-          <div className="mt-auto pt-5">
+          <div className="mt-5 pb-1 pt-1 sm:mt-auto sm:pb-0 sm:pt-5">
             <div className="flex flex-col gap-2 overflow-hidden sm:flex-row sm:flex-wrap">
               {molecule.slug ? (
                 <Link

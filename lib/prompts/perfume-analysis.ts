@@ -34,6 +34,33 @@ export function buildPerfumeAnalysisSystemPrompt(params: {
     ? `PARFUM KAYNAK VERISI (oncelikli baglam):\n${params.perfumeContext}\n`
     : 'PARFUM KAYNAK VERISI: Eslesen parfum bulunamazsa sadece verilen girise dayan.\n';
 
+  const scoringRubric = [
+    'SKOR KURALLARI (1-10, tam sayi):',
+    '',
+    'valueScore — Fiyat/performans dengesi:',
+    '- 1-3: Cok pahali, alternatifler cok daha ucuz',
+    '- 4-6: Fiyatina deger ama rakipler var',
+    '- 7-8: Fiyatina gore ustun performans',
+    '- 9-10: Kategorisinde en iyi deger',
+    '',
+    'uniquenessScore — Karakterin ayirt ediciligi:',
+    '- 1-3: Cok bilinen, jenerik profil',
+    '- 4-6: Tanidik ama kendi yorumu var',
+    '- 7-8: Belirgin kimlik, kalabalikta fark edilir',
+    '- 9-10: Tamamen ozgun, kopyasi yok',
+    '',
+    'wearabilityScore — Gunluk kullanim esnekligi:',
+    '- 1-3: Cok spesifik (sadece gece / kis)',
+    '- 4-6: Belirli durumlar icin ideal',
+    '- 7-8: Cogu durumda giyilebilir',
+    '- 9-10: Her mevsim, her ortam',
+    '',
+    'SKORLAMA BAGLAMI:',
+    '- perfumeContext varsa rating ve price_tier bilgisini mutlaka skor kararina dahil et.',
+    '- rating yuksek + fiyat seviyesi dengeliyse valueScore artir.',
+    '- fiyat cok yuksek ve karakter jenerikse valueScore ile uniquenessScore dusur.',
+  ].join('\n');
+
   return [
     'Sen bir parfum kimyagerisin.',
     'Gorevin kokularin tam formulasini degil, molekuler yapisini aciklamaktir.',
@@ -54,6 +81,8 @@ export function buildPerfumeAnalysisSystemPrompt(params: {
     '- "Bu koku karakteri..." dili kullan.',
     '',
     contextBlock,
+    scoringRubric,
+    '',
     'NOTA-MOLEKUL REFERANSI:',
     mapBlock,
     '',
@@ -85,10 +114,9 @@ export function buildPerfumeAnalysisSystemPrompt(params: {
     '  "similarFragrances": [',
     '    { "name": "string", "brand": "string", "reason": "string", "priceRange": "string" }',
     '  ],',
-    '  "valueScore": 1,',
-    '  "uniquenessScore": 1,',
-    '  "wearabilityScore": 1',
+    '  "valueScore": "number (1-10, tam sayi) // fiyat/performans rubrigi ile",',
+    '  "uniquenessScore": "number (1-10, tam sayi) // ayirt edicilik rubrigi ile",',
+    '  "wearabilityScore": "number (1-10, tam sayi) // gunluk kullanim rubrigi ile"',
     '}'
   ].join('\n');
 }
-

@@ -329,11 +329,31 @@ export function WheelPanel({ wheelValues, scores, intensity, scoreCards, style }
 
       {scoreCards ? (
         <div className="mt-5 border-t border-white/[.06] pt-5">
-          <CardTitle className="mb-3">Skor Kartları</CardTitle>
+          <CardTitle className="mb-3">Sana Yakışır mı?</CardTitle>
           <div className="grid grid-cols-1 gap-3">
-            <WheelMetricRail label="Değer" value={scoreCards.value * 10} tone="var(--gold)" note="Fiyat / performans dengesi" />
-            <WheelMetricRail label="Özgünlük" value={scoreCards.uniqueness * 10} tone="#9377d6" note="Karakterin ayırt ediciliği" />
-            <WheelMetricRail label="Giyilebilirlik" value={scoreCards.wearability * 10} tone="#4a86f5" note="Günlük kullanımdaki esneklik" />
+            {[
+              { label: 'Değer', value: scoreCards.value, note: 'Fiyat ve performans dengesi.' },
+              { label: 'Özgünlük', value: scoreCards.uniqueness, note: 'Karakterin ayırt edici gücü.' },
+              { label: 'Giyilebilirlik', value: scoreCards.wearability, note: 'Günlük kullanım esnekliği.' },
+            ].map((item) => (
+              <div key={item.label} className="rounded-[16px] border border-white/[.07] bg-white/[.02] px-4 py-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">{item.label}</p>
+                  <p className="text-[12px] font-semibold text-cream">{item.value}/10</p>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-white/[.08]">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{
+                      width: `${Math.max(10, Math.min(100, item.value * 10))}%`,
+                      background: 'var(--gold)',
+                      boxShadow: '0 0 10px color-mix(in srgb, var(--gold) 36%, transparent)',
+                    }}
+                  />
+                </div>
+                <p className="mt-2 text-[12px] text-cream/78">{item.note}</p>
+              </div>
+            ))}
           </div>
         </div>
       ) : null}

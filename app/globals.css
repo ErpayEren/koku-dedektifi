@@ -449,6 +449,13 @@ select:focus-visible {
   contain-intrinsic-size: 520px;
 }
 
+@media (max-width: 1024px) {
+  .content-auto-panel {
+    content-visibility: visible;
+    contain-intrinsic-size: auto;
+  }
+}
+
 .interactive-surface {
   will-change: transform, opacity;
   transform: translateZ(0);

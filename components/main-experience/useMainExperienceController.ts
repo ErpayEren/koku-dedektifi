@@ -10,6 +10,10 @@ import { findHistoryById, getWardrobe, pushFeed, saveHistoryRow, upsertWardrobe 
 import type { AnalysisResult, InputMode, WardrobeItem } from '@/lib/client/types';
 import { useProGate } from '@/hooks/useProGate';
 import { useUserStore } from '@/lib/store/userStore';
+import type { MainStatusCard } from './status-types';
+
+const API_RETRY_LIMIT = 3;
+const RATE_LIMIT_FALLBACK_SECONDS = 60;
 
 function toWardrobeItem(result: AnalysisResult): WardrobeItem {
   const key = result.name.toLowerCase().replace(/\s+/g, '-');
@@ -37,6 +41,48 @@ function replaceModeInUrl(nextMode: InputMode): void {
   window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
 }
 
+function parseRetryAfterSeconds(rawRetryAfter: unknown): number {
+  if (typeof rawRetryAfter === 'number' && Number.isFinite(rawRetryAfter)) {
+    return Math.max(1, Math.round(rawRetryAfter));
+  }
+
+  if (typeof rawRetryAfter !== 'string') return RATE_LIMIT_FALLBACK_SECONDS;
+  const trimmed = rawRetryAfter.trim();
+  if (!trimmed) return RATE_LIMIT_FALLBACK_SECONDS;
+
+  const numeric = Number(trimmed);
+  if (Number.isFinite(numeric) && numeric > 0) return Math.round(numeric);
+
+  const asDate = Date.parse(trimmed);
+  if (Number.isFinite(asDate)) {
+    const deltaSeconds = Math.ceil((asDate - Date.now()) / 1000);
+    if (deltaSeconds > 0) return deltaSeconds;
+  }
+
+  return RATE_LIMIT_FALLBACK_SECONDS;
+}
+
+function isDailyQuotaError(error: ApiError): boolean {
+  if (typeof error.payload.limit === 'number') return true;
+  const retryAfter = String(error.payload.retryAfter || '').toLocaleLowerCase('tr-TR');
+  return retryAfter.includes('yarin') || retryAfter.includes('yarın');
+}
+
+function shouldShowNotFoundCard(analysis: AnalysisResult): boolean {
+  const moleculeCount = Array.isArray(analysis.molecules) ? analysis.molecules.length : 0;
+  const similarCount =
+    Array.isArray(analysis.similarFragrances) && analysis.similarFragrances.length > 0
+      ? analysis.similarFragrances.length
+      : Array.isArray(analysis.similar)
+        ? analysis.similar.length
+        : 0;
+
+  if (moleculeCount > 0 || similarCount > 0) return false;
+
+  const text = `${analysis.description || ''} ${analysis.moodProfile || ''}`.toLocaleLowerCase('tr-TR');
+  return text.includes('emin') || text.includes('sınırlı') || text.includes('tanıyamad');
+}
+
 export function useMainExperienceController() {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -56,6 +102,8 @@ export function useMainExperienceController() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [statusCard, setStatusCard] = useState<MainStatusCard | null>(null);
+  const [apiRetryCount, setApiRetryCount] = useState(0);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -77,6 +125,7 @@ export function useMainExperienceController() {
         if (hydrated) setResult(hydrated);
         setNotice('Geçmiş analiz yüklendi.');
         setError('');
+        setStatusCard(null);
       } else {
         void (async () => {
           try {
@@ -87,6 +136,7 @@ export function useMainExperienceController() {
             if (hydrated) setResult(hydrated);
             setNotice('Paylaşılan analiz yüklendi.');
             setError('');
+            setStatusCard(null);
           } catch (requestError) {
             setError(readableError(requestError));
           }
@@ -107,14 +157,57 @@ export function useMainExperienceController() {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  const handleAnalyzeError = useCallback(
+    (err: unknown): void => {
+      if (err instanceof ApiError && err.status === 404) {
+        setStatusCard({ kind: 'not-found' });
+        setError('');
+        return;
+      }
+
+      if (err instanceof ApiError && err.status === 429) {
+        if (isDailyQuotaError(err)) {
+          setStatusCard({ kind: 'daily-limit' });
+          setError('');
+          return;
+        }
+
+        const retryAfterSeconds = parseRetryAfterSeconds(err.payload.retryAfter);
+        setStatusCard({ kind: 'rate-limit', untilMs: Date.now() + retryAfterSeconds * 1000 });
+        setError('');
+        return;
+      }
+
+      const message = readableError(err);
+      if (/tan[iı]yamad[ıi]|bulunamad[ıi]/i.test(message)) {
+        setStatusCard({ kind: 'not-found' });
+        setError('');
+        return;
+      }
+
+      const nextRetryCount = Math.min(API_RETRY_LIMIT, apiRetryCount + 1);
+      setApiRetryCount(nextRetryCount);
+      setStatusCard({
+        kind: 'api-error',
+        retryCount: nextRetryCount,
+        retryLimit: API_RETRY_LIMIT,
+      });
+      setError(message);
+    },
+    [apiRetryCount],
+  );
+
   const runAnalyze = useCallback(async (): Promise<void> => {
     if (dailyLimit !== Number.POSITIVE_INFINITY && dailyUsed >= dailyLimit) {
-      requirePro('Sınırsız günlük analiz');
+      setStatusCard({ kind: 'daily-limit' });
+      setNotice('');
+      setError('');
       return;
     }
 
     setError('');
     setNotice('');
+    setStatusCard(null);
     setIsAnalyzing(true);
 
     try {
@@ -137,23 +230,26 @@ export function useMainExperienceController() {
         detail: 'Yeni analiz tamamlandı',
         perfume: analysis.name,
       });
-      setNotice('Analiz tamamlandı.');
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 429) {
-        requirePro('Sınırsız günlük analiz');
-        setError('');
+      setApiRetryCount(0);
+
+      if (shouldShowNotFoundCard(analysis)) {
+        setStatusCard({ kind: 'not-found' });
+        setNotice('');
       } else {
-        setError(readableError(err));
+        setStatusCard(null);
+        setNotice('Analiz tamamlandı.');
       }
+    } catch (err) {
+      handleAnalyzeError(err);
     } finally {
       setIsAnalyzing(false);
     }
-  }, [dailyLimit, dailyUsed, imagePreview, incrementUsage, isPro, mode, notesValue, requirePro, textValue]);
+  }, [dailyLimit, dailyUsed, handleAnalyzeError, imagePreview, incrementUsage, isPro, mode, notesValue, textValue]);
 
   const onAnalyzeSimilar = useCallback(
     async (name: string): Promise<void> => {
       if (dailyLimit !== Number.POSITIVE_INFINITY && dailyUsed >= dailyLimit) {
-        requirePro('Sınırsız günlük analiz');
+        setStatusCard({ kind: 'daily-limit' });
         return;
       }
 
@@ -162,6 +258,7 @@ export function useMainExperienceController() {
         setMode('text');
         replaceModeInUrl('text');
         setNotice(`"${name}" için yeniden analiz çalıştırılıyor...`);
+        setStatusCard(null);
       });
       setIsAnalyzing(true);
       setError('');
@@ -176,17 +273,17 @@ export function useMainExperienceController() {
           detail: 'Benzer profil analizi',
           perfume: analysis.name,
         });
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 429) {
-          requirePro('Sınırsız günlük analiz');
-        } else {
-          setError(readableError(err));
+        setApiRetryCount(0);
+        if (shouldShowNotFoundCard(analysis)) {
+          setStatusCard({ kind: 'not-found' });
         }
+      } catch (err) {
+        handleAnalyzeError(err);
       } finally {
         setIsAnalyzing(false);
       }
     },
-    [dailyLimit, dailyUsed, incrementUsage, isPro, requirePro, startTransition],
+    [dailyLimit, dailyUsed, handleAnalyzeError, incrementUsage, isPro, startTransition],
   );
 
   const handleModeChange = useCallback(
@@ -194,6 +291,7 @@ export function useMainExperienceController() {
       startTransition(() => {
         setMode(next);
         replaceModeInUrl(next);
+        setStatusCard(null);
       });
     },
     [startTransition],
@@ -233,10 +331,30 @@ export function useMainExperienceController() {
         setImagePreview(dataUrl);
         setMode('photo');
         replaceModeInUrl('photo');
+        setStatusCard(null);
       });
     },
     [startTransition],
   );
+
+  const openNotesMode = useCallback((): void => {
+    startTransition(() => {
+      setMode('notes');
+      replaceModeInUrl('notes');
+      setStatusCard(null);
+      setNotice('');
+    });
+  }, [startTransition]);
+
+  const openPackages = useCallback((): void => {
+    router.push('/paketler');
+  }, [router]);
+
+  const retryAnalyze = useCallback((): void => {
+    if (isAnalyzing) return;
+    if (statusCard?.kind === 'api-error' && statusCard.retryCount >= statusCard.retryLimit) return;
+    void runAnalyze();
+  }, [isAnalyzing, runAnalyze, statusCard]);
 
   const addToWardrobe = useCallback((): void => {
     if (!result) {
@@ -305,12 +423,16 @@ export function useMainExperienceController() {
     isAnalyzing,
     notice,
     error,
+    statusCard,
     setTextValue,
     setNotesValue,
     handleModeChange,
     handleChipPick,
     handleImageChange,
     runAnalyze,
+    retryAnalyze,
+    openNotesMode,
+    openPackages,
     onAnalyzeSimilar,
     addToWardrobe,
     compareNow,
@@ -318,3 +440,4 @@ export function useMainExperienceController() {
     saveResultFile,
   };
 }
+

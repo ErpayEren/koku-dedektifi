@@ -51,7 +51,14 @@ export function MainExperience({ featuredMolecules }: MainExperienceProps) {
 
       <MoleculePreviewStrip molecules={featuredMolecules} />
 
-      <StatusBanners error={controller.error} notice={controller.notice} />
+      <StatusBanners
+        error={controller.error}
+        notice={controller.notice}
+        statusCard={controller.statusCard}
+        onRetry={controller.retryAnalyze}
+        onOpenNotesMode={controller.openNotesMode}
+        onOpenPackages={controller.openPackages}
+      />
 
       <AnalysisResults
         result={controller.result}

@@ -28,6 +28,10 @@ interface PanelMotionProps {
 interface OverviewPanelProps extends PanelMotionProps {
   result: AnalysisResult;
   confidence: number;
+  dataTrustBadge: {
+    label: string;
+    tone: 'verified' | 'database' | 'ai';
+  };
   glowColor: string;
   season: string[];
   longevityScore: number;
@@ -42,6 +46,7 @@ interface OverviewPanelProps extends PanelMotionProps {
 export function OverviewPanel({
   result,
   confidence,
+  dataTrustBadge,
   glowColor,
   season,
   longevityScore,
@@ -53,6 +58,10 @@ export function OverviewPanel({
   onOpenShare,
   style,
 }: OverviewPanelProps) {
+  const badgeColor =
+    dataTrustBadge.tone === 'verified' ? '#67d394' : dataTrustBadge.tone === 'database' ? '#7fb6ff' : '#9ca3af';
+  const badgeIsAi = dataTrustBadge.tone === 'ai';
+
   return (
     <Card
       className="relative h-full overflow-hidden p-7 md:p-9"
@@ -91,6 +100,19 @@ export function OverviewPanel({
             {typeof result.year === 'number' ? <span>{result.year}</span> : null}
             {result.concentration ? <span>{result.concentration}</span> : null}
             <span className="text-gold">{result.family || 'Aromatik'}</span>
+          </div>
+          <div className="mt-2">
+            <span
+              className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] leading-none"
+              style={{
+                borderColor: 'var(--gold-line)',
+                background: 'rgba(12,11,16,0.75)',
+                color: badgeColor,
+                fontStyle: badgeIsAi ? 'italic' : 'normal',
+              }}
+            >
+              {dataTrustBadge.label}
+            </span>
           </div>
         </div>
       </div>
@@ -564,7 +586,7 @@ export function MoleculePanel({
             </div>
           ) : null}
 
-          <div className="mt-5 pb-1 pt-1 sm:mt-auto sm:pb-0 sm:pt-5">
+          <div className="mt-3 pb-2 pt-1 sm:mt-auto sm:pb-0 sm:pt-5">
             <div className="flex flex-col gap-2 overflow-hidden sm:flex-row sm:flex-wrap">
               {molecule.slug ? (
                 <Link

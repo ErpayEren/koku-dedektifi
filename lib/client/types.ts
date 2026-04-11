@@ -62,6 +62,21 @@ export interface AnalysisTimeline {
   t3: string;
 }
 
+export interface AnalysisDataConfidence {
+  hasDbMatch: boolean;
+  source: 'db' | 'ai';
+}
+
+export interface AnalysisVoteSummary {
+  analysisId: string;
+  total: number;
+  accurate: number;
+  partial: number;
+  wrong: number;
+  accuratePct: number;
+  updatedAt?: string;
+}
+
 export interface AnalysisResult {
   id: string;
   iconToken: string;
@@ -107,6 +122,7 @@ export interface AnalysisResult {
   technical: TechnicalItem[];
   molecules: MoleculeItem[];
   confidence?: number;
+  dataConfidence?: AnalysisDataConfidence;
   analysisMode?: AnalysisMode;
   inputText?: string;
   createdAt: string;

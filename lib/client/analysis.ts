@@ -202,6 +202,15 @@ function normalizeScoreCards(value: unknown, source?: Record<string, unknown>): 
   };
 }
 
+function normalizeDataConfidence(value: unknown): AnalysisResult['dataConfidence'] {
+  if (!value || typeof value !== 'object') return undefined;
+  const entry = value as Record<string, unknown>;
+  const hasDbMatch = Boolean(entry.hasDbMatch ?? entry.has_db_match);
+  const sourceRaw = cleanText(entry.source, hasDbMatch ? 'db' : 'ai').toLowerCase();
+  const source = sourceRaw === 'db' ? 'db' : 'ai';
+  return { hasDbMatch, source };
+}
+
 function normalizeSimilarFragrances(value: unknown): NonNullable<AnalysisResult['similarFragrances']> {
   if (!Array.isArray(value)) return [];
   return value
@@ -291,6 +300,7 @@ export function hydrateAnalysisResult(value: unknown): AnalysisResult | null {
     technical,
     molecules,
     confidence: extractConfidenceScore(raw.confidence),
+    dataConfidence: normalizeDataConfidence(raw.dataConfidence ?? raw.data_confidence),
     analysisMode: normalizeMode(raw.analysisMode ?? raw.mode ?? raw.inputMode ?? raw.input_mode),
     inputText: cleanText(raw.inputText ?? raw.input_text),
     createdAt: cleanText(raw.createdAt ?? raw.created_at, new Date().toISOString()),
@@ -410,6 +420,7 @@ export function normalizeAnalysisPayload(data: unknown): AnalysisResult {
     technical,
     molecules,
     confidence,
+    dataConfidence: normalizeDataConfidence(raw.dataConfidence ?? raw.data_confidence),
     createdAt: now,
   };
 }

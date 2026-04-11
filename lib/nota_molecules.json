@@ -11294,5 +11294,53 @@
       "cis-Jasmone",
       "Methyl Salicylate"
     ]
+  },
+  "inci-cicegi": {
+    "accord_family": "Ciceksi",
+    "molecules": [
+      "Hydroxycitronellal",
+      "Florhydral",
+      "Linalool"
+    ]
+  },
+  "ethyl maltol": {
+    "accord_family": "Gourmand",
+    "molecules": [
+      "Ethyl Maltol",
+      "Maltol",
+      "Furaneol"
+    ]
+  },
+  "frankincense resin": {
+    "accord_family": "Oryantal",
+    "molecules": [
+      "Alpha-Pinene",
+      "Incensole Acetate",
+      "Limonene"
+    ]
+  },
+  "myrrh resin": {
+    "accord_family": "Oryantal",
+    "molecules": [
+      "Furanoeudesma-1,3-diene",
+      "Curzerene",
+      "Heerabolene"
+    ]
+  },
+  "rose oxide": {
+    "accord_family": "Ciceksi",
+    "molecules": [
+      "Rose Oxide",
+      "Geraniol",
+      "Citronellol"
+    ]
+  },
+  "oak moss": {
+    "accord_family": "Chypre",
+    "molecules": [
+      "Atranol",
+      "Chloroatranol",
+      "Evernyl"
+    ]
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { fetchAnalysisVoteSummary, submitAnalysisVote } from '@/lib/client/api';
 import { getOnboardingPreferences } from '@/lib/client/storage';
 import type { AnalysisResult } from '@/lib/client/types';
 import type { OnboardingPreferences } from '@/lib/client/types';
@@ -25,6 +26,19 @@ interface UseAnalysisResultsModelArgs {
   isAnalyzing: boolean;
 }
 
+type AnalysisVoteValue = 'accurate' | 'partial' | 'wrong';
+
+function voteStorageKey(analysisId: string): string {
+  return `kd-analysis-vote:${analysisId}`;
+}
+
+function readStoredAnalysisVote(analysisId: string): AnalysisVoteValue | null {
+  if (typeof window === 'undefined' || !analysisId) return null;
+  const raw = window.localStorage.getItem(voteStorageKey(analysisId));
+  if (raw === 'accurate' || raw === 'partial' || raw === 'wrong') return raw;
+  return null;
+}
+
 export function useAnalysisResultsModel({ result, isAnalyzing }: UseAnalysisResultsModelArgs) {
   const entitlement = useBillingEntitlement();
   const [moleculeIndex, setMoleculeIndex] = useState(0);
@@ -37,6 +51,18 @@ export function useAnalysisResultsModel({ result, isAnalyzing }: UseAnalysisResu
   const [moleculeLookup, setMoleculeLookup] = useState<Record<string, MoleculeLookupRow>>({});
   const [onboardingPreferences, setOnboardingPreferences] = useState<OnboardingPreferences | null>(null);
   const [moleculeShareBusy, setMoleculeShareBusy] = useState(false);
+  const [analysisVoteSummary, setAnalysisVoteSummary] = useState<{
+    analysisId: string;
+    total: number;
+    accurate: number;
+    partial: number;
+    wrong: number;
+    accuratePct: number;
+  } | null>(null);
+  const [analysisVote, setAnalysisVote] = useState<AnalysisVoteValue | null>(null);
+  const [analysisVoteBusy, setAnalysisVoteBusy] = useState(false);
+  const [analysisVoteError, setAnalysisVoteError] = useState('');
+  const [analysisVoteThanks, setAnalysisVoteThanks] = useState(false);
 
   const shareCardRef = useRef<HTMLDivElement>(null);
   const storyShareRef = useRef<HTMLDivElement>(null);
@@ -84,6 +110,41 @@ export function useAnalysisResultsModel({ result, isAnalyzing }: UseAnalysisResu
 
   useEffect(() => {
     setOnboardingPreferences(getOnboardingPreferences());
+  }, [result?.id]);
+
+  useEffect(() => {
+    const analysisId = result?.id ? String(result.id) : '';
+    if (!analysisId) {
+      setAnalysisVoteSummary(null);
+      setAnalysisVote(null);
+      setAnalysisVoteBusy(false);
+      setAnalysisVoteError('');
+      setAnalysisVoteThanks(false);
+      return;
+    }
+
+    const stored = readStoredAnalysisVote(analysisId);
+    setAnalysisVote(stored);
+    setAnalysisVoteThanks(Boolean(stored));
+    setAnalysisVoteError('');
+
+    let cancelled = false;
+    async function hydrateVoteSummary(): Promise<void> {
+      try {
+        const summary = await fetchAnalysisVoteSummary(analysisId);
+        if (cancelled) return;
+        setAnalysisVoteSummary(summary);
+      } catch (error) {
+        if (cancelled) return;
+        console.error('[analysis-results] vote summary fetch failed.', error);
+      }
+    }
+
+    void hydrateVoteSummary();
+
+    return () => {
+      cancelled = true;
+    };
   }, [result?.id]);
 
   const activeResult = result;
@@ -161,6 +222,25 @@ export function useAnalysisResultsModel({ result, isAnalyzing }: UseAnalysisResu
   };
   const wheelValues = [scores.freshness, scores.sweetness, scores.warmth, clampPercent(activeResult?.intensity, 65)];
   const confidence = activeResult ? resolveConfidence(activeResult) : 0;
+  const analysisVoteCount = analysisVoteSummary?.total ?? 0;
+  const dataTrustBadge = (() => {
+    if (analysisVoteCount > 5) {
+      return {
+        label: `${analysisVoteCount} kullanıcı doğruladı`,
+        tone: 'verified' as const,
+      };
+    }
+    if (activeResult?.dataConfidence?.hasDbMatch) {
+      return {
+        label: 'Veritabanı eşleşmesi',
+        tone: 'database' as const,
+      };
+    }
+    return {
+      label: 'AI tahmini — doğruluk değişken',
+      tone: 'ai' as const,
+    };
+  })();
   const preferenceMatch = activeResult ? resolvePreferenceMatch(activeResult, onboardingPreferences) : { score: 0, summary: '' };
   const heartNotes = activeResult?.pyramid?.middle ?? [];
   const glowColor = activeResult ? FAMILY_GLOW[activeResult.family] ?? 'rgba(201,169,110,.06)' : 'rgba(201,169,110,.06)';
@@ -304,6 +384,27 @@ export function useAnalysisResultsModel({ result, isAnalyzing }: UseAnalysisResu
     }
   }
 
+  async function sendAnalysisVote(vote: AnalysisVoteValue): Promise<void> {
+    if (!activeResult?.id || analysisVoteBusy || analysisVote) return;
+
+    setAnalysisVoteBusy(true);
+    setAnalysisVoteError('');
+    try {
+      const summary = await submitAnalysisVote(activeResult.id, vote);
+      setAnalysisVoteSummary(summary);
+      setAnalysisVote(vote);
+      setAnalysisVoteThanks(true);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(voteStorageKey(activeResult.id), vote);
+      }
+    } catch (error) {
+      console.error('[analysis-results] vote submit failed.', error);
+      setAnalysisVoteError('Oy gönderilemedi. Lütfen tekrar dene.');
+    } finally {
+      setAnalysisVoteBusy(false);
+    }
+  }
+
   return {
     entitlement,
     activeResult,
@@ -348,5 +449,13 @@ export function useAnalysisResultsModel({ result, isAnalyzing }: UseAnalysisResu
     visibleMoleculeCount,
     onboardingPreferences,
     scoreCards: activeResult?.scoreCards ?? null,
+    analysisVoteSummary,
+    analysisVote,
+    analysisVoteBusy,
+    analysisVoteError,
+    analysisVoteThanks,
+    analysisVoteCount,
+    dataTrustBadge,
+    sendAnalysisVote,
   };
 }

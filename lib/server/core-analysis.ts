@@ -679,6 +679,10 @@ export function normalizeAiAnalysisToResult(input: {
     technical: buildTechnicalItems(concentration, sillage, longevityHours, scoreCards),
     molecules,
     confidence: undefined,
+    dataConfidence: {
+      hasDbMatch: Boolean(matchedFragrance),
+      source: matchedFragrance ? 'db' : 'ai',
+    },
     analysisMode: input.mode,
     inputText: input.inputText,
     createdAt: new Date().toISOString(),

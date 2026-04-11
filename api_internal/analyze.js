@@ -787,6 +787,10 @@ module.exports = async function analyzeHandler(req, res) {
       const dbSimilarFallback = await getDBSimilarFragrances(fallbackAnalysis, isPro);
       applySimilarFragrances(fallbackAnalysis, dbSimilarFallback, isPro);
       const stableFallback = applySafetyFallbacks(fallbackAnalysis, perfumeContext, isPro);
+      stableFallback.dataConfidence = {
+        hasDbMatch: Boolean(perfumeContext),
+        source: perfumeContext ? 'db' : 'ai',
+      };
 
       const persisted = await persistAnalysisRecord({
         analysis: stableFallback,
@@ -845,6 +849,10 @@ module.exports = async function analyzeHandler(req, res) {
       : analysis;
 
     const stableResult = applySafetyFallbacks(finalResult, perfumeContext, isPro);
+    stableResult.dataConfidence = {
+      hasDbMatch: Boolean(perfumeContext),
+      source: perfumeContext ? 'db' : 'ai',
+    };
 
     return res.status(200).json({
       analysis: stableResult,

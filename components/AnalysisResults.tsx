@@ -2,6 +2,7 @@
 
 import { memo, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { Card } from './ui/Card';
 import { SectionDivider } from './ui/SectionDivider';
 import { AnalysisLoadingState } from './analysis-results/AnalysisLoadingState';
 import { ShareCanvases } from './analysis-results/ShareCanvases';
@@ -23,6 +24,82 @@ interface AnalysisResultsProps {
   result: import('@/lib/client/types').AnalysisResult | null;
   isAnalyzing: boolean;
   onAnalyzeSimilar: (name: string) => void;
+}
+
+type AnalysisVoteValue = 'accurate' | 'partial' | 'wrong';
+
+interface AnalysisAccuracyFeedbackProps {
+  analysisId: string;
+  voteSummary: {
+    total: number;
+    accurate: number;
+    accuratePct: number;
+  } | null;
+  selectedVote: AnalysisVoteValue | null;
+  voteBusy: boolean;
+  voteError: string;
+  voteThanks: boolean;
+  onVote: (vote: AnalysisVoteValue) => void;
+}
+
+function AnalysisAccuracyFeedback({
+  analysisId,
+  voteSummary,
+  selectedVote,
+  voteBusy,
+  voteError,
+  voteThanks,
+  onVote,
+}: AnalysisAccuracyFeedbackProps) {
+  if (!analysisId) return null;
+
+  const total = voteSummary?.total ?? 0;
+  const accurate = voteSummary?.accurate ?? 0;
+  const accuratePct = voteSummary?.accuratePct ?? (total > 0 ? Math.round((accurate / total) * 100) : 0);
+  const showAggregate = total >= 50;
+
+  return (
+    <Card className="mt-4 p-5 md:p-6">
+      <p className="text-[10px] font-mono uppercase tracking-[.14em] text-gold">Kullanıcı Doğrulaması</p>
+      <h3 className="mt-3 text-[18px] font-semibold text-cream">Bu analiz ne kadar doğru?</h3>
+
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        {[
+          { value: 'accurate' as const, label: '👍 Doğru' },
+          { value: 'partial' as const, label: '👎 Kısmen' },
+          { value: 'wrong' as const, label: '❌ Yanlış' },
+        ].map((item) => {
+          const active = selectedVote === item.value;
+          return (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => onVote(item.value)}
+              disabled={voteBusy || Boolean(selectedVote)}
+              className={`rounded-xl border px-3 py-3 text-[13px] transition-colors ${
+                active
+                  ? 'border-[var(--gold-line)] bg-[var(--gold-dim)]/25 text-gold'
+                  : 'border-white/[.09] bg-black/20 text-cream/88 hover:border-[var(--gold-line)]'
+              } disabled:cursor-not-allowed disabled:opacity-75`}
+            >
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {voteThanks ? (
+        <p className="mt-4 text-[13px] text-sage">Teşekkürler — bu verilerle analizleri iyileştiriyoruz.</p>
+      ) : null}
+      {voteError ? <p className="mt-3 text-[13px] text-rose-300">{voteError}</p> : null}
+
+      {showAggregate ? (
+        <p className="mt-3 text-[13px] text-cream/85">
+          {total} kullanıcıdan {accurate}&apos;u doğru buldu (%{accuratePct})
+        </p>
+      ) : null}
+    </Card>
+  );
 }
 
 export const AnalysisResults = memo(function AnalysisResults({
@@ -58,7 +135,7 @@ export const AnalysisResults = memo(function AnalysisResults({
     <section
       ref={sectionRef}
       id="analysis-results"
-      className="anim-up-2 scroll-mt-24 px-5 pb-8 md:px-12"
+      className="anim-up-2 scroll-mt-24 px-5 pb-[calc(var(--mobile-nav-h)+9rem)] md:px-12 md:pb-8"
     >
       <SectionDivider label={isAnalyzing ? 'Analiz İşleniyor' : 'Analiz Sonucu'} />
 
@@ -70,6 +147,7 @@ export const AnalysisResults = memo(function AnalysisResults({
             <OverviewPanel
               result={model.activeResult}
               confidence={model.confidence}
+              dataTrustBadge={model.dataTrustBadge}
               glowColor={model.glowColor}
               season={model.season}
               longevityScore={model.longevityScore}
@@ -126,6 +204,18 @@ export const AnalysisResults = memo(function AnalysisResults({
               style={model.cardMotion(4)}
             />
           </div>
+
+          <AnalysisAccuracyFeedback
+            analysisId={model.activeResult.id}
+            voteSummary={model.analysisVoteSummary}
+            selectedVote={model.analysisVote}
+            voteBusy={model.analysisVoteBusy}
+            voteError={model.analysisVoteError}
+            voteThanks={model.analysisVoteThanks}
+            onVote={(vote) => {
+              void model.sendAnalysisVote(vote);
+            }}
+          />
 
           <ShareCanvases
             result={model.activeResult}

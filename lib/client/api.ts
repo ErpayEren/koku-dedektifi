@@ -1,5 +1,5 @@
 import { hydrateAnalysisResult, normalizeAnalysisPayload } from './analysis';
-import type { AnalysisMode, AnalysisResult, FinderCandidate } from './types';
+import type { AnalysisMode, AnalysisResult, AnalysisVoteSummary, FinderCandidate } from './types';
 
 export interface ApiErrorPayload {
   error?: string;
@@ -224,4 +224,50 @@ export async function authAction<T>(body: unknown, method: 'GET' | 'POST' | 'PAT
 
 export function readableError(error: unknown): string {
   return toErrorMessage(error);
+}
+
+function normalizeAnalysisVoteSummary(input: unknown): AnalysisVoteSummary {
+  const payload = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
+  const total = Math.max(0, Number(payload.total || 0));
+  const accurate = Math.max(0, Number(payload.accurate || 0));
+  const partial = Math.max(0, Number(payload.partial || 0));
+  const wrong = Math.max(0, Number(payload.wrong || 0));
+  const accuratePct =
+    Number.isFinite(Number(payload.accuratePct)) && Number(payload.accuratePct) >= 0
+      ? Number(payload.accuratePct)
+      : total > 0
+        ? Math.round((accurate / total) * 100)
+        : 0;
+
+  return {
+    analysisId: typeof payload.analysisId === 'string' ? payload.analysisId : '',
+    total,
+    accurate,
+    partial,
+    wrong,
+    accuratePct: Math.max(0, Math.min(100, Math.round(accuratePct))),
+    updatedAt: typeof payload.updatedAt === 'string' ? payload.updatedAt : undefined,
+  };
+}
+
+export async function fetchAnalysisVoteSummary(analysisId: string): Promise<AnalysisVoteSummary> {
+  const data = await jsonRequest<unknown>(`/api/perfume-vote?analysisId=${encodeURIComponent(analysisId)}`, {
+    method: 'GET',
+  });
+  return normalizeAnalysisVoteSummary(data);
+}
+
+export async function submitAnalysisVote(
+  analysisId: string,
+  vote: 'accurate' | 'partial' | 'wrong',
+): Promise<AnalysisVoteSummary> {
+  const data = await jsonRequest<unknown>('/api/perfume-vote', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      analysisId,
+      vote,
+    }),
+  });
+  return normalizeAnalysisVoteSummary(data);
 }

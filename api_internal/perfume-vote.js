@@ -19,6 +19,7 @@ const SECURITY_HEADERS = {
 
 const LONGEVITY_OPTIONS = ['weak', 'balanced', 'strong'];
 const SILLAGE_OPTIONS = ['soft', 'moderate', 'loud'];
+const ANALYSIS_VOTE_OPTIONS = ['accurate', 'partial', 'wrong'];
 
 const votesStore = createRuntimeStore({
   cacheTtlMs: 365 * 24 * 60 * 60 * 1000,
@@ -135,6 +136,26 @@ function emptyAggregate(displayName = '') {
   };
 }
 
+function normalizeAnalysisId(value) {
+  return cleanString(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 120);
+}
+
+function emptyAnalysisAggregate(analysisId = '') {
+  return {
+    analysisId,
+    total: 0,
+    accurate: 0,
+    partial: 0,
+    wrong: 0,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 function normalizeAggregate(raw, fallbackName = '') {
   const src = raw && typeof raw === 'object' ? raw : {};
   const out = emptyAggregate(cleanString(src.displayName) || fallbackName);
@@ -144,6 +165,17 @@ function normalizeAggregate(raw, fallbackName = '') {
   });
   SILLAGE_OPTIONS.forEach((key) => {
     out.sillage[key] = Math.max(0, Number(src.sillage?.[key] || 0));
+  });
+  out.updatedAt = cleanString(src.updatedAt) || out.updatedAt;
+  return out;
+}
+
+function normalizeAnalysisAggregate(raw, fallbackId = '') {
+  const src = raw && typeof raw === 'object' ? raw : {};
+  const out = emptyAnalysisAggregate(normalizeAnalysisId(src.analysisId) || fallbackId);
+  out.total = Math.max(0, Number(src.total || 0));
+  ANALYSIS_VOTE_OPTIONS.forEach((key) => {
+    out[key] = Math.max(0, Number(src[key] || 0));
   });
   out.updatedAt = cleanString(src.updatedAt) || out.updatedAt;
   return out;
@@ -178,6 +210,26 @@ function enrichAggregate(payload, slug) {
   };
 }
 
+function enrichAnalysisAggregate(payload) {
+  const total = Math.max(0, Number(payload.total || 0));
+  const accurate = Math.max(0, Number(payload.accurate || 0));
+  const partial = Math.max(0, Number(payload.partial || 0));
+  const wrong = Math.max(0, Number(payload.wrong || 0));
+  const accuratePct = total > 0 ? Math.round((accurate / total) * 100) : 0;
+
+  return {
+    ok: true,
+    analysisId: payload.analysisId,
+    total,
+    accurate,
+    partial,
+    wrong,
+    accuratePct,
+    updatedAt: payload.updatedAt,
+    store: votesStore.getBackendName(),
+  };
+}
+
 async function getAggregate(perfumeName) {
   const displayName = cleanString(perfumeName).slice(0, 120);
   const slug = slugify(displayName);
@@ -186,6 +238,22 @@ async function getAggregate(perfumeName) {
   return {
     slug,
     aggregate: normalizeAggregate(row, displayName),
+  };
+}
+
+async function getAnalysisAggregate(analysisId) {
+  const normalizedAnalysisId = normalizeAnalysisId(analysisId);
+  if (!normalizedAnalysisId) {
+    return {
+      analysisId: '',
+      aggregate: emptyAnalysisAggregate(''),
+    };
+  }
+
+  const row = await votesStore.getCache(`analysis-aggregate:${normalizedAnalysisId}`);
+  return {
+    analysisId: normalizedAnalysisId,
+    aggregate: normalizeAnalysisAggregate(row, normalizedAnalysisId),
   };
 }
 
@@ -205,10 +273,28 @@ async function putVote(perfumeName, longevity, sillage) {
   return { slug, aggregate: next };
 }
 
+async function putAnalysisVote(analysisId, vote) {
+  const normalizedAnalysisId = normalizeAnalysisId(analysisId);
+  if (!normalizedAnalysisId) throw new Error('invalid_analysis_id');
+
+  const row = await votesStore.getCache(`analysis-aggregate:${normalizedAnalysisId}`);
+  const next = normalizeAnalysisAggregate(row, normalizedAnalysisId);
+  next.total += 1;
+  next[vote] += 1;
+  next.updatedAt = new Date().toISOString();
+  await votesStore.setCache(`analysis-aggregate:${normalizedAnalysisId}`, next);
+  return { analysisId: normalizedAnalysisId, aggregate: next };
+}
+
 function getVoteLockKey(slug, req) {
   const dateKey = new Date().toISOString().slice(0, 10);
   const fingerprint = getClientFingerprint(req);
   return `vote-lock:${slug}:${fingerprint}:${dateKey}`;
+}
+
+function getAnalysisVoteLockKey(analysisId, req) {
+  const fingerprint = getClientFingerprint(req);
+  return `analysis-vote-lock:${analysisId}:${fingerprint}`;
 }
 
 async function handler(req, res) {
@@ -228,6 +314,12 @@ async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
+    const analysisId = normalizeAnalysisId(req.query?.analysisId || req.query?.analysis_id);
+    if (analysisId) {
+      const result = await getAnalysisAggregate(analysisId);
+      return res.status(200).json(enrichAnalysisAggregate(result.aggregate));
+    }
+
     const perfumeName = cleanString(req.query?.perfume || req.query?.name);
     if (!perfumeName) return res.status(400).json({ error: 'perfume gerekli' });
     const result = await getAggregate(perfumeName);
@@ -236,6 +328,38 @@ async function handler(req, res) {
 
   const body = parseBody(req);
   if (!body) return res.status(400).json({ error: 'Gecersiz JSON govdesi' });
+
+  const analysisId = normalizeAnalysisId(body.analysisId || body.analysis_id);
+  const analysisVote = cleanString(body.vote).toLowerCase();
+
+  if (analysisId || analysisVote) {
+    if (!analysisId) return res.status(400).json({ error: 'analysisId gerekli' });
+    if (!ANALYSIS_VOTE_OPTIONS.includes(analysisVote)) {
+      return res.status(400).json({
+        error: `vote gecersiz (izinli: ${ANALYSIS_VOTE_OPTIONS.join(', ')})`,
+      });
+    }
+
+    const lockKey = getAnalysisVoteLockKey(analysisId, req);
+    const alreadyVoted = await votesStore.getCache(lockKey);
+    if (alreadyVoted) {
+      const current = await getAnalysisAggregate(analysisId);
+      return res.status(200).json({
+        ...enrichAnalysisAggregate(current.aggregate),
+        duplicate: true,
+        message: 'Bu analiz icin zaten oy verdin.',
+      });
+    }
+
+    const result = await putAnalysisVote(analysisId, analysisVote);
+    await votesStore.setCache(lockKey, {
+      ts: new Date().toISOString(),
+      analysisId,
+      vote: analysisVote,
+    });
+
+    return res.status(200).json(enrichAnalysisAggregate(result.aggregate));
+  }
 
   const perfumeName = cleanString(body.perfume || body.name).slice(0, 120);
   const longevity = cleanString(body.longevity).toLowerCase();

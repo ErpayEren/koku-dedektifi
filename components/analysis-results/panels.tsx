@@ -565,11 +565,11 @@ export function MoleculePanel({
           ) : null}
 
           <div className="mt-auto pt-5">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2 overflow-hidden sm:flex-row sm:flex-wrap">
               {molecule.slug ? (
                 <Link
                   href={`/molekuller/${molecule.slug}`}
-                  className="rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)]/20 px-3.5 py-2 text-[10px] font-mono uppercase tracking-[.08em] text-gold transition-colors hover:bg-[var(--gold-dim)]/35"
+                  className="inline-flex w-full max-w-full items-center justify-center overflow-hidden truncate rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)]/20 px-3.5 py-2 text-center text-[10px] font-mono uppercase tracking-[.08em] text-gold transition-colors hover:bg-[var(--gold-dim)]/35 sm:w-auto sm:max-w-none"
                 >
                   Detay sayfasına git
                 </Link>
@@ -578,7 +578,7 @@ export function MoleculePanel({
                 type="button"
                 onClick={() => void onShare()}
                 disabled={moleculeShareBusy}
-                className="rounded-full border border-white/[.08] bg-black/20 px-3.5 py-2 text-[10px] font-mono uppercase tracking-[.08em] text-muted transition-colors hover:border-[var(--gold-line)] hover:text-cream disabled:opacity-50"
+                className="inline-flex w-full max-w-full items-center justify-center overflow-hidden truncate rounded-full border border-white/[.08] bg-black/20 px-3.5 py-2 text-center text-[10px] font-mono uppercase tracking-[.08em] text-muted transition-colors hover:border-[var(--gold-line)] hover:text-cream disabled:opacity-50 sm:w-auto sm:max-w-none"
               >
                 {moleculeShareBusy ? 'Hazırlanıyor' : 'Bu molekülleri paylaş'}
               </button>

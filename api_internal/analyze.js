@@ -1237,17 +1237,15 @@ module.exports = async function analyzeHandler(req, res) {
     try {
       const parsedInputNotes = parseInputNotes(input);
       const contextMatchScore = computeContextMatchScore(input, perfumeContext);
-      const textTokenCount = normalizeToken(input).split(/\s+/).filter(Boolean).length;
       const hasReliableFallbackBasis =
         Boolean(perfumeContext) ||
         parsedInputNotes.length >= 2 ||
-        body.mode === 'image' ||
-        (body.mode === 'text' && textTokenCount >= 2);
+        body.mode === 'image';
 
       if (!hasReliableFallbackBasis) {
         return res.status(providerResponse.status || 503).json({
           error:
-            'Saglayici su an yogun ve bu girdi icin guvenilir fallback olusturulamadi. Lutfen 20-30 saniye sonra tekrar dene.',
+            'Saglayici su an yogun ve bu girdi icin guvenilir fallback olusturulamadi. Lutfen 20-30 saniye sonra tekrar dene veya notalari yazarak tekrar analiz et.',
           providerError: providerResponse.error || 'provider_unavailable',
         });
       }

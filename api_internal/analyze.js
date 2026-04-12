@@ -544,8 +544,8 @@ async function getDBSimilarFragrances(analysis, isPro) {
   if (!config.url || !config.serviceRoleKey) return [];
 
   const table =
-    cleanString(process.env.SUPABASE_PERFUMES_TABLE) ||
     cleanString(process.env.SUPABASE_FRAGRANCES_TABLE) ||
+    cleanString(process.env.SUPABASE_PERFUMES_TABLE) ||
     'fragrances';
 
   const notes = collectAnalysisNotes(analysis);

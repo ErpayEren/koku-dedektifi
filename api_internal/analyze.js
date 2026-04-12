@@ -1088,6 +1088,7 @@ module.exports = async function analyzeHandler(req, res) {
   const isPro = entitlement?.tier === 'pro';
   const perfumeContext = await findPerfumeContextByInput(input, {
     allowVector: body.mode === 'text' || body.mode === 'notes',
+    mode: body.mode,
   });
   const systemPrompt = buildPerfumeAnalysisSystemPrompt({
     isPro,

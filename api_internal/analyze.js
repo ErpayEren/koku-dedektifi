@@ -89,6 +89,237 @@ const FAMILY_NOTE_FALLBACKS = {
   },
 };
 
+const PRICE_TIER_VALUE_BASE = {
+  budget: 9,
+  mid: 8,
+  premium: 7,
+  luxury: 6,
+  ultraluxury: 5,
+};
+
+const FAMILY_WEARABILITY_BASE = {
+  aromatik: 8,
+  fresh: 8,
+  aquatik: 8,
+  ciceksi: 7,
+  gourmand: 6,
+  odunsu: 6,
+  oryantal: 5,
+  oud: 4,
+};
+
+function clampTenScore(value, fallback = 7) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return fallback;
+  return Math.max(1, Math.min(10, Math.round(num)));
+}
+
+function parseInputNotes(input) {
+  const text = cleanString(input);
+  if (!text) return [];
+
+  const hasExplicitSeparator = /[,;|/\n]/.test(text);
+  if (hasExplicitSeparator) {
+    const explicitNotes = text
+      .split(/[,;|/\n]/)
+      .map((item) => cleanString(item))
+      .filter(Boolean);
+    if (explicitNotes.length > 0) {
+      return uniqueValues(explicitNotes).slice(0, 8);
+    }
+  }
+
+  const normalized = normalizeToken(text);
+  if (!normalized) return [];
+
+  const discovered = [];
+  const seen = new Set();
+  Object.keys(noteMoleculeMap).forEach((noteKey) => {
+    const normalizedKey = normalizeToken(noteKey);
+    if (!normalizedKey) return;
+    if (!normalized.includes(normalizedKey)) return;
+    if (seen.has(normalizedKey)) return;
+    seen.add(normalizedKey);
+    discovered.push(noteKey);
+  });
+
+  return discovered.slice(0, 8);
+}
+
+function deriveFamilyFromNotes(noteList, fallback = 'Aromatik') {
+  const text = (Array.isArray(noteList) ? noteList : [])
+    .map((item) => normalizeToken(item))
+    .join(' ');
+  if (!text) return fallback;
+  if (/(oud|agarwood)/.test(text)) return 'Oud';
+  if (/(amber|incense|safran|saffron|labdanum|myrrh|benzoin|oriental)/.test(text)) return 'Oryantal';
+  if (/(patchouli|vetiver|cedar|sedir|sandal|wood|woody|oakmoss|guaiac)/.test(text)) return 'Odunsu';
+  if (/(lavender|bergamot|lemon|limon|mint|marine|aquatic|fresh|aromatic|fougere)/.test(text)) return 'Aromatik';
+  if (/(rose|gul|jasmine|yasemin|iris|ylang|floral|violet|peony)/.test(text)) return 'Ciceksi';
+  if (/(vanilla|tonka|praline|caramel|coumarin|gourmand|honey)/.test(text)) return 'Gourmand';
+  return fallback;
+}
+
+function scoreFromRating(rawRating) {
+  const numeric = Number(rawRating);
+  if (!Number.isFinite(numeric)) return 0;
+  const normalized = numeric > 10 ? 10 : numeric <= 5 ? numeric * 2 : numeric;
+  return Math.max(-2, Math.min(3, Math.round((normalized - 6.2) / 1.3)));
+}
+
+function countDistinctiveNotes(notes) {
+  const text = (Array.isArray(notes) ? notes : [])
+    .map((item) => normalizeToken(item))
+    .join(' ');
+  const patterns = [
+    'oud',
+    'saffron',
+    'safran',
+    'incense',
+    'labdanum',
+    'oakmoss',
+    'iris',
+    'myrrh',
+    'leather',
+    'tobacco',
+    'benzoin',
+    'patchouli',
+    'vetiver',
+  ];
+  return patterns.reduce((acc, token) => (text.includes(token) ? acc + 1 : acc), 0);
+}
+
+function deriveScoreCardsFromSignals({ family, priceTier, rating, notes, contextMatched }) {
+  const normalizedFamily = normalizeToken(family).replace(/\s+/g, '');
+  const normalizedTier = normalizeToken(priceTier).replace(/\s+/g, '');
+  const ratingDelta = scoreFromRating(rating);
+  const noteCount = uniqueValues(Array.isArray(notes) ? notes : []).length;
+  const distinctives = countDistinctiveNotes(notes);
+
+  const valueBase = PRICE_TIER_VALUE_BASE[normalizedTier] || 7;
+  const wearBase = FAMILY_WEARABILITY_BASE[normalizedFamily] || 7;
+  const uniquenessBase =
+    normalizedFamily === 'oud' ? 9 : normalizedFamily === 'oryantal' ? 8 : normalizedFamily === 'gourmand' ? 7 : 6;
+
+  const value = clampTenScore(
+    valueBase + ratingDelta + (contextMatched ? 1 : 0) + (noteCount >= 6 ? 1 : 0) - (normalizedTier === 'ultraluxury' ? 1 : 0),
+    7,
+  );
+  const uniqueness = clampTenScore(
+    uniquenessBase + Math.min(2, distinctives) + (noteCount >= 8 ? 1 : 0) + (contextMatched ? 1 : 0),
+    7,
+  );
+  const wearability = clampTenScore(
+    wearBase + (normalizedFamily === 'oud' || normalizedFamily === 'oryantal' ? -1 : 0) + (noteCount >= 7 ? -1 : 0) + ratingDelta,
+    7,
+  );
+
+  return { value, uniqueness, wearability };
+}
+
+function patchTechnicalScores(analysis) {
+  if (!analysis || !analysis.scoreCards || !Array.isArray(analysis.technical)) return;
+  analysis.technical = analysis.technical.map((item) => {
+    const label = normalizeToken(item?.label);
+    if (label === 'deger') {
+      return { ...item, value: `${analysis.scoreCards.value}/10`, score: analysis.scoreCards.value * 10 };
+    }
+    if (label === 'ozgunluk') {
+      return { ...item, value: `${analysis.scoreCards.uniqueness}/10`, score: analysis.scoreCards.uniqueness * 10 };
+    }
+    if (label === 'giyilebilirlik') {
+      return { ...item, value: `${analysis.scoreCards.wearability}/10`, score: analysis.scoreCards.wearability * 10 };
+    }
+    return item;
+  });
+}
+
+function scoreCardsLookGeneric(analysis) {
+  const value = Number(analysis?.scoreCards?.value);
+  const uniqueness = Number(analysis?.scoreCards?.uniqueness);
+  const wearability = Number(analysis?.scoreCards?.wearability);
+  if (!Number.isFinite(value) || !Number.isFinite(uniqueness) || !Number.isFinite(wearability)) return true;
+  return value === 7 && uniqueness === 7 && wearability === 7;
+}
+
+function computeContextMatchScore(inputText, perfumeContext) {
+  const query = normalizeToken(inputText);
+  if (!query || !perfumeContext) return 0;
+  const contextName = normalizeToken(perfumeContext.name);
+  const contextBrand = normalizeToken(perfumeContext.brand);
+  const full = normalizeToken(`${contextBrand} ${contextName}`);
+
+  if (full && (full === query || query === full)) return 1;
+  if (contextName && (contextName === query || query.includes(contextName) || contextName.includes(query))) return 0.88;
+
+  const queryTokens = query.split(' ').filter(Boolean);
+  const targetTokens = uniqueValues([contextBrand, contextName].join(' ').split(' '));
+  const overlap = queryTokens.filter((token) => targetTokens.includes(token)).length;
+  return queryTokens.length > 0 ? overlap / queryTokens.length : 0;
+}
+
+function toSillageLabelFromScore(score) {
+  const numeric = Number(score);
+  if (!Number.isFinite(numeric)) return '';
+  if (numeric >= 9) return 'cok guclu';
+  if (numeric >= 7) return 'guclu';
+  if (numeric >= 4) return 'orta';
+  return 'yakin';
+}
+
+function toLongevityHoursFromScore(score) {
+  const numeric = Number(score);
+  if (!Number.isFinite(numeric)) return null;
+  const min = Math.max(2, Math.round(numeric * 0.8));
+  const max = Math.max(min + 1, Math.round(numeric * 1.35));
+  return { min, max };
+}
+
+function applyPerfumeContextAnchors(analysis, perfumeContext, options = {}) {
+  if (!analysis || !perfumeContext) return;
+  const enforceIdentity = Boolean(options.enforceIdentity);
+  const contextFamily = cleanString(perfumeContext.family) || deriveFamilyFromNotes(perfumeContext.accords, analysis.family || 'Aromatik');
+
+  if (enforceIdentity) {
+    analysis.name = cleanString(perfumeContext.name) || analysis.name;
+    analysis.brand = cleanString(perfumeContext.brand) || analysis.brand;
+    analysis.year = Number.isFinite(Number(perfumeContext.year)) ? Number(perfumeContext.year) : analysis.year;
+  }
+
+  if (!cleanString(analysis.family) || cleanString(analysis.family).toLowerCase() === 'aromatik') {
+    analysis.family = contextFamily || analysis.family;
+  }
+
+  if (!cleanString(analysis.concentration)) {
+    analysis.concentration = cleanString(perfumeContext.concentration) || analysis.concentration || null;
+  }
+  if (!cleanString(analysis.genderProfile)) {
+    analysis.genderProfile = cleanString(perfumeContext.genderProfile) || analysis.genderProfile || 'Unisex';
+  }
+  if ((!Array.isArray(analysis.season) || analysis.season.length === 0) && Array.isArray(perfumeContext.seasons)) {
+    analysis.season = uniqueValues(perfumeContext.seasons).slice(0, 4);
+  }
+  if ((!Array.isArray(analysis.occasions) || analysis.occasions.length === 0) && Array.isArray(perfumeContext.occasions)) {
+    analysis.occasions = uniqueValues(perfumeContext.occasions).slice(0, 6);
+    analysis.occasion = analysis.occasions[0] || analysis.occasion;
+  }
+
+  if (!analysis.pyramid || enforceIdentity) {
+    analysis.pyramid = {
+      top: uniqueValues(perfumeContext.top || []).slice(0, 6),
+      middle: uniqueValues(perfumeContext.heart || []).slice(0, 8),
+      base: uniqueValues(perfumeContext.base || []).slice(0, 8),
+    };
+  }
+
+  if (!cleanString(analysis.sillage)) {
+    analysis.sillage = toSillageLabelFromScore(perfumeContext.sillageScore) || analysis.sillage || 'orta';
+  }
+  if (!analysis.longevityHours) {
+    analysis.longevityHours = toLongevityHoursFromScore(perfumeContext.longevityScore) || analysis.longevityHours;
+  }
+}
+
 function parseBody(req) {
   let body = req.body;
   if (typeof body === 'string') {
@@ -619,8 +850,15 @@ function fillPyramidFromFamilyFallback(analysis) {
   }
 }
 
-function applySafetyFallbacks(analysis, perfumeContext, isPro) {
+function applySafetyFallbacks(analysis, perfumeContext, isPro, options = {}) {
   if (!analysis) return analysis;
+
+  const contextMatchScore =
+    Number.isFinite(Number(options.contextMatchScore))
+      ? Number(options.contextMatchScore)
+      : computeContextMatchScore(options.inputText, perfumeContext);
+  const enforceIdentity = options.mode === 'text' && contextMatchScore >= 0.72;
+  applyPerfumeContextAnchors(analysis, perfumeContext, { enforceIdentity });
 
   ensurePyramidNotes(analysis, perfumeContext);
   fillPyramidFromFamilyFallback(analysis);
@@ -647,6 +885,23 @@ function applySafetyFallbacks(analysis, perfumeContext, isPro) {
 
   enrichSimilarFragrances(analysis, perfumeContext, isPro);
   fallbackSimilarByFamily(analysis, isPro);
+
+  const notesForScoring = [
+    ...(Array.isArray(analysis?.pyramid?.top) ? analysis.pyramid.top : []),
+    ...(Array.isArray(analysis?.pyramid?.middle) ? analysis.pyramid.middle : []),
+    ...(Array.isArray(analysis?.pyramid?.base) ? analysis.pyramid.base : []),
+  ];
+  if (scoreCardsLookGeneric(analysis)) {
+    analysis.scoreCards = deriveScoreCardsFromSignals({
+      family: analysis.family,
+      priceTier: perfumeContext?.priceTier || '',
+      rating: perfumeContext?.rating,
+      notes: notesForScoring,
+      contextMatched: contextMatchScore >= 0.55,
+    });
+    patchTechnicalScores(analysis);
+  }
+
   return analysis;
 }
 
@@ -713,6 +968,87 @@ function buildEmergencyPayload({ input, mode, isPro, perfumeContext, providerErr
   };
 }
 
+function buildEmergencyPayloadV2({ input, mode, isPro, perfumeContext, providerError }) {
+  const parsedInputNotes = parseInputNotes(input);
+  const guessedFamily = deriveFamilyFromNotes(parsedInputNotes, 'Aromatik');
+  const name = cleanString(perfumeContext?.name) || cleanString(input) || 'Bilinmeyen Koku';
+  const brand = cleanString(perfumeContext?.brand) || null;
+  const family = cleanString(perfumeContext?.family) || guessedFamily || 'Aromatik';
+
+  const top =
+    Array.isArray(perfumeContext?.top) && perfumeContext.top.length > 0
+      ? perfumeContext.top.slice(0, 6)
+      : parsedInputNotes.slice(0, 3);
+  const heart =
+    Array.isArray(perfumeContext?.heart) && perfumeContext.heart.length > 0
+      ? perfumeContext.heart.slice(0, 8)
+      : parsedInputNotes.slice(3, 6);
+  const base =
+    Array.isArray(perfumeContext?.base) && perfumeContext.base.length > 0
+      ? perfumeContext.base.slice(0, 8)
+      : parsedInputNotes.slice(6, 9);
+
+  const fallbackContext = perfumeContext || { top, heart, base, evidenceMolecules: [] };
+  const fallbackMolecules = buildFallbackMolecules(fallbackContext, isPro).slice(0, isPro ? 6 : 2);
+
+  const fallbackSimilar = (Array.isArray(perfumeContext?.similar) ? perfumeContext.similar : [])
+    .slice(0, isPro ? 10 : 6)
+    .map((item) => ({
+      name: cleanString(item?.name),
+      brand: cleanString(item?.brand),
+      reason: cleanString(item?.reason) || 'Benzer profil omurgasi.',
+      priceRange: cleanString(item?.priceTier) || 'Fiyat bilgisi yok',
+    }))
+    .filter((item) => item.name && !isSameFragrance({ name, brand }, item.name, item.brand));
+
+  const signalScores = deriveScoreCardsFromSignals({
+    family,
+    priceTier: perfumeContext?.priceTier || '',
+    rating: perfumeContext?.rating,
+    notes: [...top, ...heart, ...base],
+    contextMatched: Boolean(perfumeContext),
+  });
+
+  return {
+    name,
+    brand,
+    year: Number.isFinite(Number(perfumeContext?.year)) ? Number(perfumeContext.year) : null,
+    family,
+    concentration: cleanString(perfumeContext?.concentration) || null,
+    topNotes: top,
+    heartNotes: heart,
+    baseNotes: base,
+    keyMolecules: fallbackMolecules.map((item, index) => ({
+      name: item.name,
+      effect: item.effect || item.contribution || `${item.name} bu koku omurgasini destekler.`,
+      percentage: index > 0 && !isPro ? 'Pro ile goruntule' : item.percentage || 'Akor tasiyici',
+    })),
+    sillage: toSillageLabelFromScore(perfumeContext?.sillageScore) || cleanString(perfumeContext?.sillage) || 'orta',
+    longevityHours: toLongevityHoursFromScore(perfumeContext?.longevityScore) || { min: 4, max: 7 },
+    seasons:
+      Array.isArray(perfumeContext?.seasons) && perfumeContext.seasons.length > 0
+        ? perfumeContext.seasons
+        : ['Ilkbahar', 'Sonbahar'],
+    occasions:
+      Array.isArray(perfumeContext?.occasions) && perfumeContext.occasions.length > 0
+        ? perfumeContext.occasions
+        : ['Gunluk'],
+    ageProfile: cleanString(perfumeContext?.ageProfile) || 'Yetiskin profil',
+    genderProfile: cleanString(perfumeContext?.genderProfile) || cleanString(perfumeContext?.gender) || 'Unisex',
+    moodProfile: `${name} icin dataset destekli acil analiz uretildi. Profil ${family.toLowerCase()} omurgada konumlaniyor.`,
+    expertComment:
+      'Saglayici yogunlugu nedeniyle bu cevap dataset tabanli acil katmandan olusturuldu. Nota ve molekul baglari katalogdaki kanitlarla esitlenerek secildi. Sonuc, girdiye ozel omurgaya gore kuruldu ve ilk firsatta AI yorumu ile guncellenecektir.',
+    layeringTip: isPro ? 'Benzer ailede temiz bir acilis notasiyla katmanlayarak derinligi dengede tut.' : 'Pro ile goruntule',
+    applicationTip: isPro ? 'Tenin sicak noktalarina 2-3 fis uygula, 20 dakika sonra ikinci katmani degerlendir.' : 'Pro ile goruntule',
+    similarFragrances: fallbackSimilar,
+    valueScore: signalScores.value,
+    uniquenessScore: signalScores.uniqueness,
+    wearabilityScore: signalScores.wearability,
+    __fallbackReason: cleanString(providerError) || 'provider_unavailable',
+    __fallbackMode: mode,
+  };
+}
+
 module.exports = async function analyzeHandler(req, res) {
   setSecurityHeaders(res);
   if (!setCorsHeaders(req, res, { methods: 'POST, OPTIONS', headers: 'Content-Type' })) {
@@ -771,7 +1107,19 @@ module.exports = async function analyzeHandler(req, res) {
 
   if (!providerResponse.ok || !providerResponse.formatted) {
     try {
-      const fallbackPayload = buildEmergencyPayload({
+      const parsedInputNotes = parseInputNotes(input);
+      const contextMatchScore = computeContextMatchScore(input, perfumeContext);
+      const hasReliableFallbackBasis = Boolean(perfumeContext) || parsedInputNotes.length >= 2 || body.mode === 'image';
+
+      if (!hasReliableFallbackBasis) {
+        return res.status(providerResponse.status || 503).json({
+          error:
+            'Saglayici su an yogun ve bu girdi icin guvenilir fallback olusturulamadi. Lutfen 20-30 saniye sonra tekrar dene.',
+          providerError: providerResponse.error || 'provider_unavailable',
+        });
+      }
+
+      const fallbackPayload = buildEmergencyPayloadV2({
         input,
         mode: body.mode,
         isPro,
@@ -786,7 +1134,12 @@ module.exports = async function analyzeHandler(req, res) {
       });
       const dbSimilarFallback = await getDBSimilarFragrances(fallbackAnalysis, isPro);
       applySimilarFragrances(fallbackAnalysis, dbSimilarFallback, isPro);
-      const stableFallback = applySafetyFallbacks(fallbackAnalysis, perfumeContext, isPro);
+      const stableFallback = applySafetyFallbacks(fallbackAnalysis, perfumeContext, isPro, {
+        inputText: input,
+        mode: body.mode,
+        providerHealthy: false,
+        contextMatchScore,
+      });
       stableFallback.dataConfidence = {
         hasDbMatch: Boolean(perfumeContext),
         source: perfumeContext ? 'db' : 'ai',
@@ -832,9 +1185,18 @@ module.exports = async function analyzeHandler(req, res) {
     });
     const dbSimilar = await getDBSimilarFragrances(analysis, isPro);
     applySimilarFragrances(analysis, dbSimilar, isPro);
+    const stableResult = applySafetyFallbacks(analysis, perfumeContext, isPro, {
+      inputText: input,
+      mode: body.mode,
+      providerHealthy: true,
+    });
+    stableResult.dataConfidence = {
+      hasDbMatch: Boolean(perfumeContext),
+      source: perfumeContext ? 'db' : 'ai',
+    };
 
     const persisted = await persistAnalysisRecord({
-      analysis,
+      analysis: stableResult,
       mode: body.mode,
       inputText: input,
       appUserId: auth?.user?.id || null,
@@ -842,20 +1204,14 @@ module.exports = async function analyzeHandler(req, res) {
 
     const finalResult = persisted
       ? {
-          ...analysis,
+          ...stableResult,
           id: persisted.id,
           createdAt: persisted.createdAt,
         }
-      : analysis;
-
-    const stableResult = applySafetyFallbacks(finalResult, perfumeContext, isPro);
-    stableResult.dataConfidence = {
-      hasDbMatch: Boolean(perfumeContext),
-      source: perfumeContext ? 'db' : 'ai',
-    };
+      : stableResult;
 
     return res.status(200).json({
-      analysis: stableResult,
+      analysis: finalResult,
       plan: isPro ? 'pro' : 'free',
       stored: Boolean(persisted),
     });

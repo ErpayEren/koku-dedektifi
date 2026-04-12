@@ -240,6 +240,7 @@ export function useMainExperienceController() {
         setNotice('Analiz tamamlandı.');
       }
     } catch (err) {
+      setResult(null);
       handleAnalyzeError(err);
     } finally {
       setIsAnalyzing(false);
@@ -277,11 +278,12 @@ export function useMainExperienceController() {
         if (shouldShowNotFoundCard(analysis)) {
           setStatusCard({ kind: 'not-found' });
         }
-      } catch (err) {
-        handleAnalyzeError(err);
-      } finally {
-        setIsAnalyzing(false);
-      }
+    } catch (err) {
+      setResult(null);
+      handleAnalyzeError(err);
+    } finally {
+      setIsAnalyzing(false);
+    }
     },
     [dailyLimit, dailyUsed, handleAnalyzeError, incrementUsage, isPro, startTransition],
   );

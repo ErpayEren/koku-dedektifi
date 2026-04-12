@@ -552,10 +552,7 @@ async function findCatalogContextByIdentity(inputText, analysis) {
     'fragrances',
     'perfumes',
   ]);
-  const selectConfigs = [
-    'id, name, brand, year, top_notes, heart_notes, base_notes, character_tags, rating, price_tier',
-    'id, name, brand, year, top_notes, heart_notes, base_notes, accords, rating, price_tier',
-  ];
+  const selectColumns = 'id, name, brand, year, top_notes, heart_notes, base_notes';
   const rawAnalysisName = cleanString(analysis?.name);
   const rawAnalysisBrand = cleanString(analysis?.brand);
   const compactAnalysisName =
@@ -578,40 +575,38 @@ async function findCatalogContextByIdentity(inputText, analysis) {
 
   let bestMatch = null;
   for (const table of tableCandidates) {
-    for (const selectColumns of selectConfigs) {
-      for (const term of identityTerms) {
-        const tokens = normalizeToken(term).split(/\s+/).filter(Boolean).slice(0, 5);
-        const pattern = tokens.join('%');
-        if (!pattern || pattern.length < 2) continue;
-        const filters = [`name.ilike.*${pattern}*`, `brand.ilike.*${pattern}*`];
-        tokens.forEach((token) => {
-          if (token.length < 2) return;
-          filters.push(`name.ilike.*${token}*`);
-          filters.push(`brand.ilike.*${token}*`);
-        });
-        const filter = `(${filters.join(',')})`;
-        const query = new URLSearchParams({
-          select: selectColumns,
-          or: filter,
-          limit: '36',
-        });
-        const url = `${config.url}/rest/v1/${encodeURIComponent(table)}?${query.toString()}`;
-        const response = await fetch(url, {
-          method: 'GET',
-          headers,
-        });
-        if (!response.ok) continue;
+    for (const term of identityTerms) {
+      const tokens = normalizeToken(term).split(/\s+/).filter(Boolean).slice(0, 5);
+      const pattern = tokens.join('%');
+      if (!pattern || pattern.length < 2) continue;
+      const filters = [`name.ilike.*${pattern}*`, `brand.ilike.*${pattern}*`];
+      tokens.forEach((token) => {
+        if (token.length < 2) return;
+        filters.push(`name.ilike.*${token}*`);
+        filters.push(`brand.ilike.*${token}*`);
+      });
+      const filter = `(${filters.join(',')})`;
+      const query = new URLSearchParams({
+        select: selectColumns,
+        or: filter,
+        limit: '36',
+      });
+      const url = `${config.url}/rest/v1/${encodeURIComponent(table)}?${query.toString()}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+      if (!response.ok) continue;
 
-        const rows = await response.json().catch(() => []);
-        if (!Array.isArray(rows) || rows.length === 0) continue;
+      const rows = await response.json().catch(() => []);
+      if (!Array.isArray(rows) || rows.length === 0) continue;
 
-        rows.forEach((row) => {
-          const score = scoreCatalogIdentityRow(row, inputText, analysis);
-          if (!bestMatch || score > bestMatch.score) {
-            bestMatch = { row, score };
-          }
-        });
-      }
+      rows.forEach((row) => {
+        const score = scoreCatalogIdentityRow(row, inputText, analysis);
+        if (!bestMatch || score > bestMatch.score) {
+          bestMatch = { row, score };
+        }
+      });
     }
   }
 

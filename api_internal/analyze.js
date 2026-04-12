@@ -555,12 +555,20 @@ async function findCatalogContextByIdentity(inputText, analysis) {
     'perfumes',
   ]);
   const selectConfigs = [
-    'id, name, brand, year, top_notes, heart_notes, base_notes, character_tags, rating, price_tier, concentration, gender_profile, seasons, occasions, longevity_score, sillage_score',
+    'id, name, brand, year, top_notes, heart_notes, base_notes, character_tags, rating, price_tier',
     'id, name, brand, year, top_notes, heart_notes, base_notes, accords, rating, price_tier',
   ];
+  const rawAnalysisName = cleanString(analysis?.name);
+  const rawAnalysisBrand = cleanString(analysis?.brand);
+  const compactAnalysisName =
+    rawAnalysisBrand && rawAnalysisName.toLowerCase().startsWith(rawAnalysisBrand.toLowerCase())
+      ? rawAnalysisName.slice(rawAnalysisBrand.length).trim()
+      : rawAnalysisName;
   const identityTerms = uniqueValues([
-    `${cleanString(analysis?.brand)} ${cleanString(analysis?.name)}`.trim(),
-    cleanString(analysis?.name),
+    `${rawAnalysisBrand} ${compactAnalysisName}`.trim(),
+    compactAnalysisName,
+    rawAnalysisName,
+    rawAnalysisBrand,
     cleanString(inputText),
   ]);
 
@@ -568,9 +576,16 @@ async function findCatalogContextByIdentity(inputText, analysis) {
   for (const table of tableCandidates) {
     for (const selectColumns of selectConfigs) {
       for (const term of identityTerms) {
-        const pattern = normalizeToken(term).split(/\s+/).filter(Boolean).join('%');
+        const tokens = normalizeToken(term).split(/\s+/).filter(Boolean).slice(0, 5);
+        const pattern = tokens.join('%');
         if (!pattern || pattern.length < 2) continue;
-        const filter = `name.ilike.%${pattern}%,brand.ilike.%${pattern}%`;
+        const filters = [`name.ilike.%${pattern}%`, `brand.ilike.%${pattern}%`];
+        tokens.forEach((token) => {
+          if (token.length < 2) return;
+          filters.push(`name.ilike.%${token}%`);
+          filters.push(`brand.ilike.%${token}%`);
+        });
+        const filter = filters.join(',');
         const { data, error } = await client.from(table).select(selectColumns).or(filter).limit(36);
         if (error || !Array.isArray(data) || data.length === 0) continue;
 

@@ -488,6 +488,106 @@ function collectAnalysisNotes(analysis) {
   return uniqueValues([...top, ...middle, ...base]).slice(0, 16);
 }
 
+function resolveAccordTagsFromRow(row) {
+  if (!row || typeof row !== 'object') return [];
+  return uniqueValues([...toStringArray(row.character_tags), ...toStringArray(row.accords)]);
+}
+
+function scoreCatalogIdentityRow(row, inputText, analysis) {
+  const rowName = normalizeFragranceKey(row?.name);
+  const rowBrand = normalizeFragranceKey(row?.brand);
+  const targetName = normalizeFragranceKey(analysis?.name);
+  const targetBrand = normalizeFragranceKey(analysis?.brand);
+  const inputKey = normalizeFragranceKey(inputText);
+  const fullRow = normalizeFragranceKey(`${cleanString(row?.brand)} ${cleanString(row?.name)}`);
+  const fullTarget = normalizeFragranceKey(`${cleanString(analysis?.brand)} ${cleanString(analysis?.name)}`);
+
+  let score = 0;
+  if (rowName && targetName && rowName === targetName) score += 95;
+  if (rowBrand && targetBrand && rowBrand === targetBrand) score += 32;
+  if (fullRow && fullTarget && fullRow === fullTarget) score += 140;
+  if (rowName && inputKey.includes(rowName)) score += 60;
+  if (rowBrand && inputKey.includes(rowBrand)) score += 20;
+  if (fullRow && inputKey.includes(fullRow)) score += 120;
+  if (targetName && rowName && (targetName.includes(rowName) || rowName.includes(targetName))) score += 28;
+
+  return score;
+}
+
+function buildPerfumeContextFromRow(row) {
+  if (!row || typeof row !== 'object') return null;
+  const top = uniqueValues(toStringArray(row.top_notes)).slice(0, 6);
+  const heart = uniqueValues(toStringArray(row.heart_notes)).slice(0, 8);
+  const base = uniqueValues(toStringArray(row.base_notes)).slice(0, 8);
+  const accords = resolveAccordTagsFromRow(row);
+  return {
+    name: cleanString(row.name),
+    brand: cleanString(row.brand),
+    year: Number.isFinite(Number(row.year)) ? Number(row.year) : null,
+    family: deriveFamilyFromNotes(accords),
+    rating: Number.isFinite(Number(row.rating)) ? Number(row.rating) : null,
+    priceTier: cleanString(row.price_tier) || null,
+    concentration: cleanString(row.concentration) || null,
+    genderProfile: cleanString(row.gender_profile) || null,
+    seasons: toStringArray(row.seasons),
+    occasions: toStringArray(row.occasions),
+    longevityScore: Number.isFinite(Number(row.longevity_score)) ? Number(row.longevity_score) : null,
+    sillageScore: Number.isFinite(Number(row.sillage_score)) ? Number(row.sillage_score) : null,
+    top,
+    heart,
+    base,
+    accords,
+    mapped: [],
+    similar: [],
+    evidenceMolecules: [],
+  };
+}
+
+async function findCatalogContextByIdentity(inputText, analysis) {
+  const config = resolveSupabaseConfig();
+  if (!config.url || !config.serviceRoleKey) return null;
+
+  const client = createClient(config.url, config.serviceRoleKey, { auth: { persistSession: false } });
+  const tableCandidates = uniqueValues([
+    cleanString(process.env.SUPABASE_FRAGRANCES_TABLE),
+    cleanString(process.env.SUPABASE_PERFUMES_TABLE),
+    'fragrances',
+    'perfumes',
+  ]);
+  const selectConfigs = [
+    'id, name, brand, year, top_notes, heart_notes, base_notes, character_tags, rating, price_tier, concentration, gender_profile, seasons, occasions, longevity_score, sillage_score',
+    'id, name, brand, year, top_notes, heart_notes, base_notes, accords, rating, price_tier',
+  ];
+  const identityTerms = uniqueValues([
+    `${cleanString(analysis?.brand)} ${cleanString(analysis?.name)}`.trim(),
+    cleanString(analysis?.name),
+    cleanString(inputText),
+  ]);
+
+  let bestMatch = null;
+  for (const table of tableCandidates) {
+    for (const selectColumns of selectConfigs) {
+      for (const term of identityTerms) {
+        const pattern = normalizeToken(term).split(/\s+/).filter(Boolean).join('%');
+        if (!pattern || pattern.length < 2) continue;
+        const filter = `name.ilike.%${pattern}%,brand.ilike.%${pattern}%`;
+        const { data, error } = await client.from(table).select(selectColumns).or(filter).limit(36);
+        if (error || !Array.isArray(data) || data.length === 0) continue;
+
+        data.forEach((row) => {
+          const score = scoreCatalogIdentityRow(row, inputText, analysis);
+          if (!bestMatch || score > bestMatch.score) {
+            bestMatch = { row, score };
+          }
+        });
+      }
+    }
+  }
+
+  if (!bestMatch || bestMatch.score < 70) return null;
+  return buildPerfumeContextFromRow(bestMatch.row);
+}
+
 function getFamilyAccordHints(family) {
   const normalized = normalizeToken(family).replace(/\s+/g, '');
   const entries = Object.entries(FAMILY_TO_ACCORD_HINTS);
@@ -1110,7 +1210,12 @@ module.exports = async function analyzeHandler(req, res) {
     try {
       const parsedInputNotes = parseInputNotes(input);
       const contextMatchScore = computeContextMatchScore(input, perfumeContext);
-      const hasReliableFallbackBasis = Boolean(perfumeContext) || parsedInputNotes.length >= 2 || body.mode === 'image';
+      const textTokenCount = normalizeToken(input).split(/\s+/).filter(Boolean).length;
+      const hasReliableFallbackBasis =
+        Boolean(perfumeContext) ||
+        parsedInputNotes.length >= 2 ||
+        body.mode === 'image' ||
+        (body.mode === 'text' && textTokenCount >= 2);
 
       if (!hasReliableFallbackBasis) {
         return res.status(providerResponse.status || 503).json({
@@ -1133,17 +1238,18 @@ module.exports = async function analyzeHandler(req, res) {
         inputText: input,
         isPro,
       });
+      const identityContext = perfumeContext || (await findCatalogContextByIdentity(input, fallbackAnalysis));
       const dbSimilarFallback = await getDBSimilarFragrances(fallbackAnalysis, isPro);
       applySimilarFragrances(fallbackAnalysis, dbSimilarFallback, isPro);
-      const stableFallback = applySafetyFallbacks(fallbackAnalysis, perfumeContext, isPro, {
+      const stableFallback = applySafetyFallbacks(fallbackAnalysis, identityContext, isPro, {
         inputText: input,
         mode: body.mode,
         providerHealthy: false,
         contextMatchScore,
       });
       stableFallback.dataConfidence = {
-        hasDbMatch: Boolean(perfumeContext),
-        source: perfumeContext ? 'db' : 'ai',
+        hasDbMatch: Boolean(identityContext),
+        source: identityContext ? 'db' : 'ai',
       };
 
       const persisted = await persistAnalysisRecord({
@@ -1184,16 +1290,17 @@ module.exports = async function analyzeHandler(req, res) {
       inputText: input,
       isPro,
     });
+    const identityContext = perfumeContext || (await findCatalogContextByIdentity(input, analysis));
     const dbSimilar = await getDBSimilarFragrances(analysis, isPro);
     applySimilarFragrances(analysis, dbSimilar, isPro);
-    const stableResult = applySafetyFallbacks(analysis, perfumeContext, isPro, {
+    const stableResult = applySafetyFallbacks(analysis, identityContext, isPro, {
       inputText: input,
       mode: body.mode,
       providerHealthy: true,
     });
     stableResult.dataConfidence = {
-      hasDbMatch: Boolean(perfumeContext),
-      source: perfumeContext ? 'db' : 'ai',
+      hasDbMatch: Boolean(identityContext),
+      source: identityContext ? 'db' : 'ai',
     };
 
     const persisted = await persistAnalysisRecord({

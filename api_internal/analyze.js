@@ -520,11 +520,12 @@ function buildPerfumeContextFromRow(row) {
   const heart = uniqueValues(toStringArray(row.heart_notes)).slice(0, 8);
   const base = uniqueValues(toStringArray(row.base_notes)).slice(0, 8);
   const accords = resolveAccordTagsFromRow(row);
+  const familySignals = accords.length > 0 ? accords : [...top, ...heart, ...base];
   return {
     name: cleanString(row.name),
     brand: cleanString(row.brand),
     year: Number.isFinite(Number(row.year)) ? Number(row.year) : null,
-    family: deriveFamilyFromNotes(accords),
+    family: deriveFamilyFromNotes(familySignals),
     rating: Number.isFinite(Number(row.rating)) ? Number(row.rating) : null,
     priceTier: cleanString(row.price_tier) || null,
     concentration: cleanString(row.concentration) || null,

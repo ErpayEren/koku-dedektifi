@@ -546,8 +546,6 @@ function buildPerfumeContextFromRow(row) {
 async function findCatalogContextByIdentity(inputText, analysis) {
   const config = resolveSupabaseConfig();
   if (!config.url || !config.serviceRoleKey) return null;
-
-  const client = createClient(config.url, config.serviceRoleKey, { auth: { persistSession: false } });
   const tableCandidates = uniqueValues([
     cleanString(process.env.SUPABASE_FRAGRANCES_TABLE),
     cleanString(process.env.SUPABASE_PERFUMES_TABLE),
@@ -572,6 +570,12 @@ async function findCatalogContextByIdentity(inputText, analysis) {
     cleanString(inputText),
   ]);
 
+  const headers = {
+    apikey: config.serviceRoleKey,
+    Authorization: `Bearer ${config.serviceRoleKey}`,
+    'Content-Type': 'application/json',
+  };
+
   let bestMatch = null;
   for (const table of tableCandidates) {
     for (const selectColumns of selectConfigs) {
@@ -579,17 +583,29 @@ async function findCatalogContextByIdentity(inputText, analysis) {
         const tokens = normalizeToken(term).split(/\s+/).filter(Boolean).slice(0, 5);
         const pattern = tokens.join('%');
         if (!pattern || pattern.length < 2) continue;
-        const filters = [`name.ilike.%${pattern}%`, `brand.ilike.%${pattern}%`];
+        const filters = [`name.ilike.*${pattern}*`, `brand.ilike.*${pattern}*`];
         tokens.forEach((token) => {
           if (token.length < 2) return;
-          filters.push(`name.ilike.%${token}%`);
-          filters.push(`brand.ilike.%${token}%`);
+          filters.push(`name.ilike.*${token}*`);
+          filters.push(`brand.ilike.*${token}*`);
         });
-        const filter = filters.join(',');
-        const { data, error } = await client.from(table).select(selectColumns).or(filter).limit(36);
-        if (error || !Array.isArray(data) || data.length === 0) continue;
+        const filter = `(${filters.join(',')})`;
+        const query = new URLSearchParams({
+          select: selectColumns,
+          or: filter,
+          limit: '36',
+        });
+        const url = `${config.url}/rest/v1/${encodeURIComponent(table)}?${query.toString()}`;
+        const response = await fetch(url, {
+          method: 'GET',
+          headers,
+        });
+        if (!response.ok) continue;
 
-        data.forEach((row) => {
+        const rows = await response.json().catch(() => []);
+        if (!Array.isArray(rows) || rows.length === 0) continue;
+
+        rows.forEach((row) => {
           const score = scoreCatalogIdentityRow(row, inputText, analysis);
           if (!bestMatch || score > bestMatch.score) {
             bestMatch = { row, score };

@@ -1235,10 +1235,19 @@ module.exports = async function analyzeHandler(req, res) {
 
   if (!providerResponse.ok || !providerResponse.formatted) {
     try {
+      let fallbackContext = perfumeContext;
+      if (!fallbackContext && body.mode === 'text') {
+        fallbackContext = await findCatalogContextByIdentity(input, {
+          name: input,
+          brand: '',
+          family: '',
+        });
+      }
+
       const parsedInputNotes = parseInputNotes(input);
-      const contextMatchScore = computeContextMatchScore(input, perfumeContext);
+      const contextMatchScore = computeContextMatchScore(input, fallbackContext);
       const hasReliableFallbackBasis =
-        Boolean(perfumeContext) ||
+        Boolean(fallbackContext) ||
         parsedInputNotes.length >= 2 ||
         body.mode === 'image';
 
@@ -1254,7 +1263,7 @@ module.exports = async function analyzeHandler(req, res) {
         input,
         mode: body.mode,
         isPro,
-        perfumeContext,
+        perfumeContext: fallbackContext,
         providerError: providerResponse.error,
       });
       const fallbackAnalysis = normalizeAiAnalysisToResult({
@@ -1263,7 +1272,7 @@ module.exports = async function analyzeHandler(req, res) {
         inputText: input,
         isPro,
       });
-      const identityContext = perfumeContext || (await findCatalogContextByIdentity(input, fallbackAnalysis));
+      const identityContext = fallbackContext || (await findCatalogContextByIdentity(input, fallbackAnalysis));
       const dbSimilarFallback = await getDBSimilarFragrances(fallbackAnalysis, isPro);
       applySimilarFragrances(fallbackAnalysis, dbSimilarFallback, isPro);
       const stableFallback = applySafetyFallbacks(fallbackAnalysis, identityContext, isPro, {

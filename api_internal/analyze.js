@@ -1217,6 +1217,66 @@ module.exports = async function analyzeHandler(req, res) {
     allowVector: body.mode === 'text' || body.mode === 'notes',
     mode: body.mode,
   });
+  const initialContextMatchScore = computeContextMatchScore(input, perfumeContext);
+  const shouldUseDbFirstPath =
+    body.mode === 'text' &&
+    Boolean(perfumeContext) &&
+    initialContextMatchScore >= 0.74;
+
+  if (shouldUseDbFirstPath) {
+    try {
+      const dbPayload = buildEmergencyPayloadV2({
+        input,
+        mode: body.mode,
+        isPro,
+        perfumeContext,
+        providerError: 'db_first',
+      });
+      const dbAnalysis = normalizeAiAnalysisToResult({
+        payload: dbPayload,
+        mode: body.mode,
+        inputText: input,
+        isPro,
+      });
+      const dbSimilar = await getDBSimilarFragrances(dbAnalysis, isPro);
+      applySimilarFragrances(dbAnalysis, dbSimilar, isPro);
+      const stableDbResult = applySafetyFallbacks(dbAnalysis, perfumeContext, isPro, {
+        inputText: input,
+        mode: body.mode,
+        providerHealthy: true,
+        contextMatchScore: initialContextMatchScore,
+      });
+      stableDbResult.dataConfidence = {
+        hasDbMatch: true,
+        source: 'db',
+      };
+
+      const persisted = await persistAnalysisRecord({
+        analysis: stableDbResult,
+        mode: body.mode,
+        inputText: input,
+        appUserId: auth?.user?.id || null,
+      });
+
+      const finalDbResult = persisted
+        ? {
+            ...stableDbResult,
+            id: persisted.id,
+            createdAt: persisted.createdAt,
+          }
+        : stableDbResult;
+
+      return res.status(200).json({
+        analysis: finalDbResult,
+        plan: isPro ? 'pro' : 'free',
+        stored: Boolean(persisted),
+        dbFirst: true,
+      });
+    } catch (dbFirstError) {
+      console.error('[api/analyze] db-first path failed:', dbFirstError);
+    }
+  }
+
   const systemPrompt = buildPerfumeAnalysisSystemPrompt({
     isPro,
     perfumeContext,

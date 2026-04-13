@@ -4,6 +4,7 @@ const routeMap = {
   'perfume-vote': require('../api_internal/perfume-vote'),
   'perfume-finder': require('../api_internal/perfume-finder'),
   'layering-lab': require('../api_internal/layering-lab'),
+  'layering-catalog': require('../api_internal/layering-catalog'),
   'barcode-lookup': require('../api_internal/barcode-lookup'),
 };
 

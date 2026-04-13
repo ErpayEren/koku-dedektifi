@@ -214,7 +214,16 @@ export function useAnalysisResultsModel({ result, isAnalyzing }: UseAnalysisResu
   const molecule = moleculeData[moleculeSafeIndex] || null;
   const similarItems = allSimilarItems.slice(0, entitlement.similarLimit);
   const hiddenSimilarCount = Math.max(0, allSimilarItems.length - similarItems.length);
-  const occasionList = activeResult ? toList(activeResult.persona?.occasions, 5) : [];
+  const occasionList = activeResult
+    ? toList(
+        [
+          ...(Array.isArray(activeResult.occasions) ? activeResult.occasions : []),
+          ...(Array.isArray(activeResult.persona?.occasions) ? activeResult.persona.occasions : []),
+          activeResult.occasion || '',
+        ],
+        6,
+      )
+    : [];
   const scores = {
     freshness: clampPercent(activeResult?.scores?.freshness, 50),
     sweetness: clampPercent(activeResult?.scores?.sweetness, 50),

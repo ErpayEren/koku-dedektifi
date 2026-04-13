@@ -250,6 +250,22 @@ function normalizeAnalysisVoteSummary(input: unknown): AnalysisVoteSummary {
   };
 }
 
+export async function fetchLayeringCatalogOptions(input?: {
+  q?: string;
+  limit?: number;
+}): Promise<string[]> {
+  const params = new URLSearchParams();
+  if (input?.q && input.q.trim()) params.set('q', input.q.trim());
+  if (typeof input?.limit === 'number' && Number.isFinite(input.limit)) {
+    params.set('limit', String(Math.max(10, Math.min(150, Math.round(input.limit)))));
+  }
+  const query = params.toString();
+  const data = await jsonRequest<{ options?: string[] }>(`/api/layering-catalog${query ? `?${query}` : ''}`, {
+    method: 'GET',
+  });
+  return Array.isArray(data.options) ? data.options.filter((item) => typeof item === 'string') : [];
+}
+
 export async function fetchAnalysisVoteSummary(analysisId: string): Promise<AnalysisVoteSummary> {
   const data = await jsonRequest<unknown>(`/api/perfume-vote?analysisId=${encodeURIComponent(analysisId)}`, {
     method: 'GET',

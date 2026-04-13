@@ -101,6 +101,10 @@
       "destination": "/api/labs?r=layering-lab"
     },
     {
+      "source": "/api/layering-catalog",
+      "destination": "/api/labs?r=layering-catalog"
+    },
+    {
       "source": "/api/notalar",
       "destination": "/api/labs?r=perfume-finder"
     },

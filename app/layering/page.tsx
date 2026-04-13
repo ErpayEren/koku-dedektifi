@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { CardTitle } from '@/components/ui/CardTitle';
 import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { useProGate } from '@/hooks/useProGate';
-import { readableError, runLayering } from '@/lib/client/api';
+import { fetchLayeringCatalogOptions, readableError, runLayering } from '@/lib/client/api';
 import { useToastSync } from '@/lib/client/useToastSync';
 import { syncWardrobeFromRemote } from '@/lib/client/wardrobe';
 import type { AnalysisResult, WardrobeItem } from '@/lib/client/types';
@@ -25,10 +25,11 @@ const FALLBACK = [
 export default function LayeringPage() {
   const { requirePro } = useProGate();
   const [wardrobe, setWardrobe] = useState<WardrobeItem[]>([]);
-  const [left, setLeft] = useState('');
-  const [right, setRight] = useState('');
-  const [manualLeft, setManualLeft] = useState('');
-  const [manualRight, setManualRight] = useState('');
+  const [leftInput, setLeftInput] = useState('');
+  const [rightInput, setRightInput] = useState('');
+  const [catalogOptions, setCatalogOptions] = useState<string[]>([]);
+  const [catalogQuery, setCatalogQuery] = useState('');
+  const [catalogLoading, setCatalogLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -41,28 +42,52 @@ export default function LayeringPage() {
     void (async () => {
       const rows = await syncWardrobeFromRemote();
       setWardrobe(rows);
-      if (rows[0]) setLeft(rows[0].name);
-      if (rows[1]) setRight(rows[1].name);
+      if (rows[0]) setLeftInput(rows[0].name);
+      if (rows[1]) setRightInput(rows[1].name);
     })();
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        setCatalogLoading(true);
+        try {
+          const options = await fetchLayeringCatalogOptions({
+            q: catalogQuery,
+            limit: catalogQuery.trim() ? 120 : 80,
+          });
+          if (!cancelled) setCatalogOptions(options);
+        } catch {
+          if (!cancelled) setCatalogOptions([]);
+        } finally {
+          if (!cancelled) setCatalogLoading(false);
+        }
+      })();
+    }, 260);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [catalogQuery]);
+
   const nameOptions = useMemo(
-    () => Array.from(new Set([...wardrobe.map((item) => item.name), ...FALLBACK])),
-    [wardrobe],
+    () => Array.from(new Set([...wardrobe.map((item) => item.name), ...catalogOptions, ...FALLBACK])),
+    [wardrobe, catalogOptions],
   );
-  const useManualMode = wardrobe.length === 0;
 
   async function run(): Promise<void> {
     if (!requirePro('Katmanlama Lab')) return;
-    const leftValue = (useManualMode ? manualLeft : left).trim();
-    const rightValue = (useManualMode ? manualRight : right).trim();
+    const leftValue = leftInput.trim();
+    const rightValue = rightInput.trim();
 
     if (!leftValue || !rightValue) {
       setError('İki parfüm de gerekli.');
       return;
     }
 
-    if (leftValue === rightValue) {
+    if (leftValue.toLocaleLowerCase('tr-TR') === rightValue.toLocaleLowerCase('tr-TR')) {
       setError('Katmanlama için iki farklı parfüm seçmelisin.');
       return;
     }
@@ -94,20 +119,65 @@ export default function LayeringPage() {
             <Card className="h-fit p-5 md:p-6 hover-lift">
               <CardTitle>Katmanlama Lab</CardTitle>
               <p className="mb-5 text-[13px] text-muted">
-                Dolabından iki parfüm seç. Sistem ortak notaları ve karakter uyumunu hesaplayıp tek bir blend profili çıkarır.
+                Dolabından iki parfüm seç. İstersen elle yaz, istersen katalogdan öneri seç. Sistem ortak notaları ve
+                karakter uyumunu hesaplayıp tek bir blend profili çıkarır.
               </p>
 
-              {useManualMode ? (
-                <div className="space-y-4">
-                  <InputField label="Sol parfüm" value={manualLeft} onChange={setManualLeft} />
-                  <InputField label="Sağ parfüm" value={manualRight} onChange={setManualRight} />
+              <div className="space-y-4">
+                <InputField
+                  label="Sol parfüm"
+                  value={leftInput}
+                  onChange={setLeftInput}
+                  options={nameOptions}
+                  placeholder="Örn. Dior Sauvage"
+                />
+                <InputField
+                  label="Sağ parfüm"
+                  value={rightInput}
+                  onChange={setRightInput}
+                  options={nameOptions}
+                  placeholder="Örn. Creed Aventus"
+                />
+              </div>
+
+              <div className="mt-4 rounded-xl border border-white/[.08] bg-white/[.02] p-3.5">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-[11px] text-muted">Katalogdan hızlı seç</p>
+                  <span className="text-[10px] font-mono uppercase tracking-[.08em] text-gold/80">
+                    {catalogLoading ? 'Yükleniyor' : `${catalogOptions.length} seçenek`}
+                  </span>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <SelectField label="Sol parfüm" value={left} onChange={setLeft} options={nameOptions} />
-                  <SelectField label="Sağ parfüm" value={right} onChange={setRight} options={nameOptions} />
+                <input
+                  value={catalogQuery}
+                  onChange={(event) => setCatalogQuery(event.target.value)}
+                  placeholder="Parfüm veya marka ara..."
+                  className="mb-3 w-full rounded-lg border border-white/[.08] bg-transparent px-3 py-2 text-[13px] text-cream outline-none focus:border-[var(--gold-line)]"
+                />
+                <div className="max-h-[140px] overflow-auto pr-1">
+                  <div className="flex flex-wrap gap-2">
+                    {nameOptions.slice(0, 40).map((name) => (
+                      <button
+                        key={`quick-${name}`}
+                        type="button"
+                        onClick={() => {
+                          if (!leftInput.trim()) {
+                            setLeftInput(name);
+                            return;
+                          }
+                          if (!rightInput.trim()) {
+                            setRightInput(name);
+                            return;
+                          }
+                          setRightInput(name);
+                        }}
+                        className="rounded-full border border-[var(--gold-line)]/50 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[.08em] text-gold/90 transition-colors hover:bg-[var(--gold-dim)]/30"
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              )}
+              </div>
 
               <button
                 type="button"
@@ -127,7 +197,9 @@ export default function LayeringPage() {
               <Card className="p-5 md:p-6 hover-lift">
                 <CardTitle>Katmanlama Sonucu</CardTitle>
                 {!result ? (
-                  <p className="text-[13px] text-muted">Sol ve sağ parfümü seçip analizi çalıştırdığında sonuç burada görünür.</p>
+                  <p className="text-[13px] text-muted">
+                    Sol ve sağ parfümü seçip analizi çalıştırdığında sonuç burada görünür.
+                  </p>
                 ) : (
                   <div>
                     <p className="text-[2rem] font-semibold leading-[1.05] text-cream">{result.name}</p>
@@ -188,45 +260,35 @@ export default function LayeringPage() {
   );
 }
 
-function InputField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+function InputField({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  placeholder?: string;
+}) {
+  const listId = `${label.toLowerCase().replace(/\s+/g, '-')}-layering-options`;
   return (
     <div>
       <label className="mb-1.5 block text-[11px] text-muted">{label}</label>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        list={listId}
         className="w-full rounded-xl border border-white/[.08] bg-transparent p-3.5 text-[14px] text-cream outline-none focus:border-[var(--gold-line)]"
-        placeholder="Parfüm adı"
+        placeholder={placeholder || 'Parfüm adı'}
       />
-    </div>
-  );
-}
-
-function SelectField({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: string[];
-}) {
-  return (
-    <div>
-      <label className="mb-1.5 block text-[11px] text-muted">{label}</label>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-white/[.08] bg-[#15131a] p-3 text-cream outline-none focus:border-[var(--gold-line)]"
-      >
-        {options.map((name) => (
-          <option key={`${label}-${name}`} value={name}>
-            {name}
-          </option>
+      <datalist id={listId}>
+        {options.slice(0, 120).map((item) => (
+          <option key={`${listId}-${item}`} value={item} />
         ))}
-      </select>
+      </datalist>
     </div>
   );
 }
@@ -239,3 +301,4 @@ function InfoBox({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+

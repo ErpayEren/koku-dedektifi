@@ -324,6 +324,42 @@ export function WheelPanel({
       : 'Unisex';
   const suggestedOccasions = Array.isArray(occasionList) && occasionList.length > 0 ? occasionList.slice(0, 4) : ['Günlük'];
   const styleLine = (styleSuggestion || '').trim() || 'Kendine güvenli, modern ve dengeli bir karakter.';
+  const vibeScore = clampPercent((scores.warmth + scores.sweetness + intensity) / 3, 50);
+  const isWarmDense = vibeScore >= 66;
+  const isFreshAiry = scores.freshness >= 66 && intensity <= 70;
+  const resolvedGenderRecommendation = normalizedGender.includes('mask')
+    ? 'Erkek'
+    : normalizedGender.includes('fem')
+      ? 'Kadın'
+      : normalizedGender.includes('uni')
+        ? isWarmDense
+          ? 'Erkek / Unisex'
+          : isFreshAiry
+            ? 'Kadın / Unisex'
+            : 'Unisex'
+        : isWarmDense
+          ? 'Erkek / Unisex'
+          : isFreshAiry
+            ? 'Kadın / Unisex'
+            : 'Unisex';
+  const resolvedOccasionList =
+    Array.isArray(occasionList) && occasionList.length > 0
+      ? occasionList.slice(0, 4)
+      : isWarmDense
+        ? ['Akşam', 'Özel', 'Gece']
+        : isFreshAiry
+          ? ['Günlük', 'İş', 'Sosyal']
+          : ['Günlük', 'Akşam'];
+  const resolvedStyleLine =
+    (styleSuggestion || '').trim() ||
+    (isWarmDense
+      ? 'Karizmatik, etkileyici ve dikkat çeken bir stil çizgisine uyuyor.'
+      : isFreshAiry
+        ? 'Temiz, dinamik ve modern bir stil karakteriyle daha iyi oturuyor.'
+        : 'Dengeli, özgüvenli ve çok yönlü bir karaktere uygun.');
+  void genderRecommendation;
+  void suggestedOccasions;
+  void styleLine;
   const metricRows = [
     { label: 'Tazelik', value: scores.freshness, tone: 'var(--sage)', note: scores.freshness >= 70 ? 'Canlı ve ferah' : 'Daha sakin ve yumuşak' },
     { label: 'Tatlılık', value: scores.sweetness, tone: '#d58ebb', note: scores.sweetness >= 60 ? 'Tatlı akor belirgin' : 'Tatlılık geri planda' },
@@ -370,14 +406,14 @@ export function WheelPanel({
           <div className="grid grid-cols-1 gap-3">
             <div className="rounded-[16px] border border-white/[.07] bg-white/[.02] px-4 py-3">
               <p className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">Cinsiyet önerisi</p>
-              <p className="mt-2 text-[18px] font-semibold text-cream">{genderRecommendation}</p>
+              <p className="mt-2 text-[18px] font-semibold text-cream">{resolvedGenderRecommendation}</p>
               <p className="mt-1 text-[12px] text-cream/76">Koku profilinde en doğal oturan kullanım yönü.</p>
             </div>
 
             <div className="rounded-[16px] border border-white/[.07] bg-white/[.02] px-4 py-3">
               <p className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">Ortam önerisi</p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {suggestedOccasions.map((occasion) => (
+                {resolvedOccasionList.map((occasion) => (
                   <span
                     key={occasion}
                     className="rounded-full border border-[var(--gold-line)] px-2.5 py-1 text-[10px] font-mono uppercase tracking-[.1em] text-gold"
@@ -390,7 +426,7 @@ export function WheelPanel({
 
             <div className="rounded-[16px] border border-white/[.07] bg-white/[.02] px-4 py-3">
               <p className="text-[10px] font-mono uppercase tracking-[.12em] text-muted">Stil önerisi</p>
-              <p className="mt-2 text-[13px] leading-relaxed text-cream/84">{styleLine}</p>
+              <p className="mt-2 text-[13px] leading-relaxed text-cream/84">{resolvedStyleLine}</p>
             </div>
 
           </div>

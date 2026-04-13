@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
@@ -55,6 +56,16 @@ bool shouldOpenExternally(String rawUrl) {
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      statusBarBrightness: Brightness.dark,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
   runApp(const KokuDedektifiApp());
 }
 
@@ -97,9 +108,7 @@ class _KokuWebShellState extends State<KokuWebShell> {
   int _progress = 0;
   bool _hasError = false;
   bool _canGoBack = false;
-  bool _canGoForward = false;
   String _errorMessage = '';
-  String _currentUrl = kAppUrl;
 
   @override
   void initState() {
@@ -130,7 +139,6 @@ class _KokuWebShellState extends State<KokuWebShell> {
             setState(() {
               _hasError = false;
               _errorMessage = '';
-              _currentUrl = url;
             });
           },
           onPageFinished: (String url) {
@@ -166,11 +174,7 @@ class _KokuWebShellState extends State<KokuWebShell> {
             });
           },
           onUrlChange: (UrlChange change) {
-            final String? url = change.url;
-            if (url == null || !mounted) return;
-            setState(() {
-              _currentUrl = url;
-            });
+            if (!mounted) return;
             _syncNavState();
           },
         ),
@@ -291,11 +295,9 @@ class _KokuWebShellState extends State<KokuWebShell> {
 
   Future<void> _syncNavState() async {
     final bool canGoBack = await _controller.canGoBack();
-    final bool canGoForward = await _controller.canGoForward();
     if (!mounted) return;
     setState(() {
       _canGoBack = canGoBack;
-      _canGoForward = canGoForward;
     });
   }
 
@@ -350,23 +352,6 @@ class _KokuWebShellState extends State<KokuWebShell> {
     return true;
   }
 
-  Future<void> _goBack() async {
-    if (!_canGoBack) return;
-    await _controller.goBack();
-    await _syncNavState();
-  }
-
-  Future<void> _goForward() async {
-    if (!_canGoForward) return;
-    await _controller.goForward();
-    await _syncNavState();
-  }
-
-  Future<void> _goHome() async {
-    await _controller.loadRequest(Uri.parse(kAppUrl));
-    await _syncNavState();
-  }
-
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -380,49 +365,28 @@ class _KokuWebShellState extends State<KokuWebShell> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Koku Dedektifi'),
-          actions: <Widget>[
-            IconButton(
-              tooltip: 'Geri',
-              onPressed: _canGoBack ? _goBack : null,
-              icon: const Icon(Icons.arrow_back_ios_new_rounded),
+        body: Stack(
+          children: <Widget>[
+            Positioned.fill(
+              child: WebViewWidget(controller: _controller),
             ),
-            IconButton(
-              tooltip: 'Ileri',
-              onPressed: _canGoForward ? _goForward : null,
-              icon: const Icon(Icons.arrow_forward_ios_rounded),
-            ),
-            IconButton(
-              tooltip: 'Ana Sayfa',
-              onPressed: _goHome,
-              icon: const Icon(Icons.home_outlined),
-            ),
-            IconButton(
-              tooltip: 'Yenile',
-              onPressed: _reload,
-              icon: const Icon(Icons.refresh),
-            ),
-          ],
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(2),
-            child: _progress < 100
-                ? LinearProgressIndicator(
+            if (_progress < 100)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: SafeArea(
+                  bottom: false,
+                  child: LinearProgressIndicator(
                     value: _progress / 100,
                     minHeight: 2,
                     backgroundColor: const Color(0x332E2630),
                     valueColor: const AlwaysStoppedAnimation<Color>(
                       Color(0xFFC8A97E),
                     ),
-                  )
-                : const SizedBox(height: 2),
-          ),
-        ),
-        body: Stack(
-          children: <Widget>[
-            Positioned.fill(
-              child: WebViewWidget(controller: _controller),
-            ),
+                  ),
+                ),
+              ),
             if (_hasError)
               Positioned.fill(
                 child: Container(
@@ -465,7 +429,7 @@ class _KokuWebShellState extends State<KokuWebShell> {
                             child: const Text('Tekrar Dene'),
                           ),
                           OutlinedButton(
-                            onPressed: _goHome,
+                            onPressed: () => _controller.loadRequest(Uri.parse(kAppUrl)),
                             child: const Text('Ana Sayfaya Don'),
                           ),
                         ],
@@ -474,30 +438,6 @@ class _KokuWebShellState extends State<KokuWebShell> {
                   ),
                 ),
               ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: SafeArea(
-                top: false,
-                child: Container(
-                  color: const Color(0x99110D14),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 6,
-                  ),
-                  child: Text(
-                    _currentUrl,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF8E8599),
-                    ),
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),

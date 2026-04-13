@@ -88,6 +88,7 @@ html {
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
   font-family: var(--font-sans, 'DM Sans', system-ui, sans-serif);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;

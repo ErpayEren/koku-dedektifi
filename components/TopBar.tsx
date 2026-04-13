@@ -13,19 +13,18 @@ export function TopBar({ title }: { title?: string }) {
 
   return (
     <header
-      className="flex h-[92px] items-center justify-between px-4 sm:px-5 md:px-12
-                 sticky top-0 bg-bg/85 backdrop-blur-xl z-10"
+      className="sticky top-0 z-10 flex min-h-[96px] items-center justify-between bg-bg/88 px-4 pb-3 pt-[max(env(safe-area-inset-top),12px)] backdrop-blur-xl sm:px-5 md:h-[92px] md:min-h-0 md:px-12 md:py-0"
     >
-      <div className="md:hidden flex items-center gap-2.5">
+      <div className="flex items-center gap-3 md:hidden">
         <button
           type="button"
           onClick={() => {
             window.dispatchEvent(new CustomEvent('kd-mobile-nav:open'));
           }}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/[.08] bg-white/[.03] text-muted transition-colors hover:text-cream hover:border-white/[.15]"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/[.08] bg-white/[.03] text-muted transition-colors hover:text-cream hover:border-white/[.15]"
           aria-label="Menüyü aç"
         >
-          <Menu className="h-[17px] w-[17px]" strokeWidth={1.9} />
+          <Menu className="h-[18px] w-[18px]" strokeWidth={1.9} />
         </button>
         <Logo size="sm" />
       </div>

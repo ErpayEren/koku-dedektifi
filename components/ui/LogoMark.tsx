@@ -8,7 +8,7 @@ export function LogoMark({ size = 44, glow = true }: LogoMarkProps) {
     <svg
       width={size}
       height={size}
-      viewBox="0 0 72 72"
+      viewBox="0 0 96 96"
       fill="none"
       aria-hidden="true"
       style={{ flexShrink: 0, overflow: 'visible' }}
@@ -30,43 +30,21 @@ export function LogoMark({ size = 44, glow = true }: LogoMarkProps) {
       </defs>
 
       <g filter={glow ? 'url(#kd-logo-glow)' : undefined}>
+        <rect width="96" height="96" rx="24" fill="#09080A" fillOpacity="0.01" />
         <path
-          d="M36 13 52 22 52 42 36 51 20 42 20 22Z"
+          d="M30 35 48 24l18 11v26L48 72 30 61V35Z"
           stroke="#C9A96E"
-          strokeWidth="3.4"
+          strokeWidth="3.8"
           strokeLinejoin="round"
           strokeLinecap="round"
         />
 
-        <circle cx="36" cy="13" r="5.6" fill="#111014" stroke="#C9A96E" strokeWidth="2.5" />
-        <circle cx="36" cy="51" r="5.6" fill="#111014" stroke="#C9A96E" strokeWidth="2.5" />
-        <circle cx="20" cy="22" r="3.5" fill="#16151a" stroke="#C9A96E" strokeWidth="1.8" />
-        <circle cx="20" cy="42" r="3.5" fill="#16151a" stroke="#C9A96E" strokeWidth="1.8" />
-        <circle cx="52" cy="22" r="3.5" fill="#16151a" stroke="#C9A96E" strokeWidth="1.8" />
-        <circle cx="52" cy="42" r="3.5" fill="#16151a" stroke="#C9A96E" strokeWidth="1.8" />
-
-        <text
-          x="36"
-          y="16.2"
-          textAnchor="middle"
-          fontSize="8.6"
-          fontWeight="700"
-          fill="#C9A96E"
-          fontFamily="Arial, sans-serif"
-        >
-          N
-        </text>
-        <text
-          x="36"
-          y="54.2"
-          textAnchor="middle"
-          fontSize="8.6"
-          fontWeight="700"
-          fill="#C9A96E"
-          fontFamily="Arial, sans-serif"
-        >
-          N
-        </text>
+        <circle cx="48" cy="24" r="6" fill="#C9A96E" />
+        <circle cx="48" cy="72" r="6" fill="#C9A96E" />
+        <circle cx="30" cy="35" r="3.3" fill="#C9A96E" />
+        <circle cx="30" cy="61" r="3.3" fill="#C9A96E" />
+        <circle cx="66" cy="35" r="3.3" fill="#C9A96E" />
+        <circle cx="66" cy="61" r="3.3" fill="#C9A96E" />
       </g>
     </svg>
   );

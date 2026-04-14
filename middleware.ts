@@ -3,7 +3,7 @@ import { Redis } from '@upstash/redis/cloudflare';
 
 let redisClient: Redis | null = null;
 const INTERNAL_AUTH_HEADER = 'x-kd-internal-auth-check';
-const AUTH_ONLY_ROUTES = new Set(['/dolap', '/wear', '/gecmis']);
+const AUTH_ONLY_ROUTES = new Set(['/wear', '/gecmis']);
 
 function resolveRedisEnv(): { url: string; token: string } {
   const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
@@ -173,7 +173,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/dolap',
     '/wear',
     '/gecmis',
     '/ops.html',

@@ -198,7 +198,6 @@ class _KokuWebShellState extends State<KokuWebShell> {
       }
       androidController.setVerticalScrollBarEnabled(false);
       androidController.setHorizontalScrollBarEnabled(false);
-      androidController.setOverScrollMode(WebViewOverScrollMode.never);
       androidController.setMediaPlaybackRequiresUserGesture(false);
       androidController.setOnPlatformPermissionRequest(
         (request) {
@@ -213,7 +212,7 @@ class _KokuWebShellState extends State<KokuWebShell> {
       final AndroidWebViewWidgetCreationParams widgetParams =
           AndroidWebViewWidgetCreationParams(
         controller: controller.platform,
-        displayWithHybridComposition: false,
+        displayWithHybridComposition: true,
       );
       _webView = WebViewWidget.fromPlatformCreationParams(params: widgetParams);
     } else {
@@ -237,7 +236,7 @@ class _KokuWebShellState extends State<KokuWebShell> {
       body.kd-mobile-shell {
         scrollbar-width: none !important;
         -ms-overflow-style: none !important;
-        overscroll-behavior-y: contain !important;
+        overflow-x: hidden !important;
       }
       html.kd-mobile-shell::-webkit-scrollbar,
       body.kd-mobile-shell::-webkit-scrollbar,
@@ -248,6 +247,17 @@ class _KokuWebShellState extends State<KokuWebShell> {
       }
       .kd-mobile-shell footer {
         display: none !important;
+      }
+      .kd-mobile-shell header {
+        padding-top: 22px !important;
+        min-height: 108px !important;
+      }
+      .kd-mobile-shell aside[aria-label="Mobil menü"] > div:first-child {
+        min-height: 102px !important;
+        padding-top: 18px !important;
+      }
+      .kd-mobile-shell aside[aria-label="Mobil menü"] nav {
+        height: calc(100dvh - 102px) !important;
       }
       .kd-mobile-shell [aria-current="page"] {
         box-shadow: inset 0 0 0 1px rgba(201,169,110,.28), 0 10px 22px rgba(201,169,110,.08) !important;

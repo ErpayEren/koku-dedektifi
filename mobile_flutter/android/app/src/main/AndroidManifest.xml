@@ -6,8 +6,8 @@
     <application
         android:label="Koku Dedektifi"
         android:name="${applicationName}"
-        android:icon="@drawable/ic_launcher_brand"
-        android:roundIcon="@drawable/ic_launcher_brand">
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round">
         <activity
             android:name=".MainActivity"
             android:exported="true"

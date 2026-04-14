@@ -289,8 +289,8 @@ body::after {
 }
 
 ::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -307,15 +307,8 @@ body::after {
 }
 
 html,
-body,
-* {
-  scrollbar-width: none;
-}
-
-*::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-  display: none;
+body {
+  scrollbar-width: thin;
 }
 
 @media (prefers-reduced-motion: reduce) {

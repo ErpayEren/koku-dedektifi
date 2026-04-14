@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -105,6 +106,7 @@ class KokuWebShell extends StatefulWidget {
 
 class _KokuWebShellState extends State<KokuWebShell> {
   late final WebViewController _controller;
+  late final Widget _webView;
   int _progress = 0;
   bool _hasError = false;
   bool _canGoBack = false;
@@ -117,7 +119,13 @@ class _KokuWebShellState extends State<KokuWebShell> {
   }
 
   void _initWebView() {
-    final WebViewController controller = WebViewController()
+    final PlatformWebViewControllerCreationParams params =
+        defaultTargetPlatform == TargetPlatform.android
+            ? AndroidWebViewControllerCreationParams()
+            : const PlatformWebViewControllerCreationParams();
+
+    final WebViewController controller =
+        WebViewController.fromPlatformCreationParams(params)
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFF0D0B0F))
       ..addJavaScriptChannel(
@@ -130,6 +138,7 @@ class _KokuWebShellState extends State<KokuWebShell> {
         NavigationDelegate(
           onProgress: (int progress) {
             if (!mounted) return;
+            if ((progress - _progress).abs() < 8 && progress != 100) return;
             setState(() {
               _progress = progress;
             });
@@ -184,7 +193,9 @@ class _KokuWebShellState extends State<KokuWebShell> {
     if (controller.platform is AndroidWebViewController) {
       final AndroidWebViewController androidController =
           controller.platform as AndroidWebViewController;
-      AndroidWebViewController.enableDebugging(true);
+      if (kDebugMode) {
+        AndroidWebViewController.enableDebugging(true);
+      }
       androidController.setMediaPlaybackRequiresUserGesture(false);
       androidController.setOnPlatformPermissionRequest(
         (request) {
@@ -195,6 +206,16 @@ class _KokuWebShellState extends State<KokuWebShell> {
     }
 
     _controller = controller;
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final AndroidWebViewWidgetCreationParams widgetParams =
+          AndroidWebViewWidgetCreationParams(
+        controller: controller.platform,
+        displayWithHybridComposition: false,
+      );
+      _webView = WebViewWidget.fromPlatformCreationParams(params: widgetParams);
+    } else {
+      _webView = WebViewWidget(controller: controller);
+    }
   }
 
   Future<void> _bindMobileBridge() async {
@@ -368,7 +389,7 @@ class _KokuWebShellState extends State<KokuWebShell> {
         body: Stack(
           children: <Widget>[
             Positioned.fill(
-              child: WebViewWidget(controller: _controller),
+              child: _webView,
             ),
             if (_progress < 100)
               Positioned(

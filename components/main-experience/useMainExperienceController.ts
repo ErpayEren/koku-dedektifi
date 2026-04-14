@@ -104,6 +104,7 @@ export function useMainExperienceController() {
   const [error, setError] = useState('');
   const [statusCard, setStatusCard] = useState<MainStatusCard | null>(null);
   const [apiRetryCount, setApiRetryCount] = useState(0);
+  const [wardrobeAdded, setWardrobeAdded] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -122,7 +123,10 @@ export function useMainExperienceController() {
         const row = findHistoryById(replayId);
         if (row) {
           const hydrated = hydrateAnalysisResult(row);
-          if (hydrated) setResult({ ...hydrated, viewSource: 'replay' });
+          if (hydrated) {
+            setResult({ ...hydrated, viewSource: 'replay' });
+            setWardrobeAdded(getWardrobe().some((item) => item.key === toWardrobeItem(hydrated).key));
+          }
         setNotice('Geçmiş analiz yüklendi.');
         setError('');
         setStatusCard(null);
@@ -133,7 +137,10 @@ export function useMainExperienceController() {
               if (!remote) return;
               saveHistoryRow(remote);
               const hydrated = hydrateAnalysisResult(remote);
-              if (hydrated) setResult({ ...hydrated, viewSource: 'replay' });
+              if (hydrated) {
+                setResult({ ...hydrated, viewSource: 'replay' });
+                setWardrobeAdded(getWardrobe().some((item) => item.key === toWardrobeItem(hydrated).key));
+              }
             setNotice('Paylaşılan analiz yüklendi.');
             setError('');
             setStatusCard(null);
@@ -223,6 +230,7 @@ export function useMainExperienceController() {
       }
 
       setResult({ ...analysis, viewSource: 'live' });
+      setWardrobeAdded(false);
       saveHistoryRow(analysis);
       incrementUsage();
       pushFeed({
@@ -267,6 +275,7 @@ export function useMainExperienceController() {
       try {
         const analysis = await analyzeText(name, isPro);
         setResult({ ...analysis, viewSource: 'live' });
+        setWardrobeAdded(false);
         saveHistoryRow(analysis);
         incrementUsage();
         pushFeed({
@@ -372,6 +381,7 @@ export function useMainExperienceController() {
     }
 
     upsertWardrobe(item);
+    setWardrobeAdded(true);
     pushFeed({
       event: 'wardrobe',
       detail: 'Dolaba eklendi',
@@ -437,6 +447,7 @@ export function useMainExperienceController() {
     openPackages,
     onAnalyzeSimilar,
     addToWardrobe,
+    wardrobeAdded,
     compareNow,
     openLayering,
     saveResultFile,

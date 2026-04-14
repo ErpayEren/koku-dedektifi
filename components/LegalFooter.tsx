@@ -10,19 +10,21 @@ const LINKS = [
 
 export function LegalFooter() {
   return (
-    <footer className="border-t border-white/[.06] px-6 py-8 md:px-12">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2">
-        <span className="text-[10px] font-mono text-hint">© 2026 Koku Dedektifi</span>
-        <div className="flex-1" />
-        {LINKS.map(({ href, label }) => (
-          <Link
-            key={href}
-            href={href as Route}
-            className="text-[11px] font-mono text-muted transition-colors no-underline hover:text-cream"
-          >
-            {label}
-          </Link>
-        ))}
+    <footer className="border-t border-white/[.06] px-5 py-7 md:px-12">
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <span className="text-[10px] font-mono tracking-[.08em] text-hint">© 2026 Koku Dedektifi</span>
+
+        <div className="grid grid-cols-2 gap-x-5 gap-y-3 sm:flex sm:flex-wrap sm:justify-end sm:gap-x-6 sm:gap-y-2">
+          {LINKS.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href as Route}
+              className="text-[11px] font-mono leading-5 text-muted no-underline transition-colors hover:text-cream"
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
       </div>
     </footer>
   );

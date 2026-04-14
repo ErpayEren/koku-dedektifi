@@ -69,6 +69,7 @@ export function MainExperience({ featuredMolecules }: MainExperienceProps) {
       <ActionBar
         hasResult={Boolean(controller.result)}
         disabled={controller.isAnalyzing}
+        wardrobeAdded={controller.wardrobeAdded}
         onAddWardrobe={controller.addToWardrobe}
         onCompare={controller.compareNow}
         onLayer={controller.openLayering}

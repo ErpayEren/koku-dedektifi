@@ -5,6 +5,7 @@ import { UI } from '@/lib/strings';
 interface ActionBarProps {
   hasResult: boolean;
   disabled: boolean;
+  wardrobeAdded: boolean;
   onAddWardrobe: () => void;
   onCompare: () => void;
   onLayer: () => void;
@@ -15,11 +16,13 @@ function ActionBtn({
   label,
   onClick,
   disabled,
+  active = false,
   icon,
 }: {
   label: string;
   onClick: () => void;
   disabled: boolean;
+  active?: boolean;
   icon: React.ReactNode;
 }) {
   return (
@@ -31,7 +34,9 @@ function ActionBtn({
       ${
         disabled
           ? 'text-muted border border-white/[.08] bg-white/[.02] cursor-not-allowed'
-          : 'text-cream border border-white/[.1] hover:border-[var(--gold-line)] hover:bg-[var(--gold-dim)] hover:-translate-y-[1px] active:translate-y-0'
+          : active
+            ? 'border border-amber-500/35 bg-amber-500/18 text-gold shadow-[0_0_0_1px_rgba(201,169,110,.18),0_10px_24px_rgba(201,169,110,.16)]'
+            : 'text-cream border border-white/[.1] hover:border-[var(--gold-line)] hover:bg-[var(--gold-dim)] hover:-translate-y-[1px] active:translate-y-0'
       }`}
     >
       <span className="inline-flex items-center justify-center w-[14px] h-[14px] text-current">{icon}</span>
@@ -40,7 +45,7 @@ function ActionBtn({
   );
 }
 
-export function ActionBar({ hasResult, disabled, onAddWardrobe, onCompare, onLayer, onSave }: ActionBarProps) {
+export function ActionBar({ hasResult, disabled, wardrobeAdded, onAddWardrobe, onCompare, onLayer, onSave }: ActionBarProps) {
   if (!hasResult) return null;
 
   return (
@@ -48,12 +53,13 @@ export function ActionBar({ hasResult, disabled, onAddWardrobe, onCompare, onLay
       className="sticky bottom-[var(--mobile-nav-h)] z-20 flex flex-wrap items-center gap-2 border-t border-white/[.06] bg-bg/90 px-5 py-3.5 backdrop-blur-xl md:bottom-0 md:px-12 anim-up-2"
     >
       <ActionBtn
-        label={UI.addToWardrobe}
+        label={wardrobeAdded ? 'Dolaba Eklendi ✓' : UI.addToWardrobe}
         onClick={onAddWardrobe}
         disabled={disabled}
+        active={wardrobeAdded}
         icon={(
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7">
-            <path d="M6 2v8M2 6h8" />
+            {wardrobeAdded ? <path d="M2.2 6.4 4.8 9 9.8 3.6" /> : <path d="M6 2v8M2 6h8" />}
           </svg>
         )}
       />

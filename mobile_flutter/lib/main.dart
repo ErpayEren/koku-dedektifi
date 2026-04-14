@@ -196,6 +196,9 @@ class _KokuWebShellState extends State<KokuWebShell> {
       if (kDebugMode) {
         AndroidWebViewController.enableDebugging(true);
       }
+      androidController.setVerticalScrollBarEnabled(false);
+      androidController.setHorizontalScrollBarEnabled(false);
+      androidController.setOverScrollMode(WebViewOverScrollMode.never);
       androidController.setMediaPlaybackRequiresUserGesture(false);
       androidController.setOnPlatformPermissionRequest(
         (request) {
@@ -223,6 +226,35 @@ class _KokuWebShellState extends State<KokuWebShell> {
       await _controller.runJavaScript(
         '''
 (() => {
+  document.documentElement.classList.add('kd-mobile-shell');
+  document.body.classList.add('kd-mobile-shell');
+  const styleId = 'kd-mobile-shell-style';
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      html.kd-mobile-shell,
+      body.kd-mobile-shell {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+        overscroll-behavior-y: contain !important;
+      }
+      html.kd-mobile-shell::-webkit-scrollbar,
+      body.kd-mobile-shell::-webkit-scrollbar,
+      .kd-mobile-shell *::-webkit-scrollbar {
+        width: 0 !important;
+        height: 0 !important;
+        display: none !important;
+      }
+      .kd-mobile-shell footer {
+        display: none !important;
+      }
+      .kd-mobile-shell [aria-current="page"] {
+        box-shadow: inset 0 0 0 1px rgba(201,169,110,.28), 0 10px 22px rgba(201,169,110,.08) !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
   if (!window.KokuMobile) {
     window.KokuMobile = {};
   }

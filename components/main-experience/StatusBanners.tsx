@@ -149,7 +149,7 @@ export function StatusBanners({
 
       {notice ? (
         <div className="px-5 pb-3 md:px-12">
-          <div className="mx-auto max-w-[920px] rounded-xl border border-[#2e6f5e] bg-[#112520] px-4 py-3 text-[12px] text-[#a6dfcf]">
+          <div className="mx-auto max-w-[920px] rounded-xl border border-amber-500/30 bg-[linear-gradient(135deg,rgba(201,169,110,.18),rgba(17,37,32,.72))] px-4 py-3 text-[12px] text-[#efe3c2] shadow-[0_10px_30px_rgba(201,169,110,.08)]">
             {notice}
           </div>
         </div>
@@ -157,4 +157,3 @@ export function StatusBanners({
     </>
   );
 }
-

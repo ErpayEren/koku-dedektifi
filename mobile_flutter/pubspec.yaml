@@ -15,9 +15,6 @@ dependencies:
   image_picker: ^1.0.7
   shared_preferences: ^2.2.2
   url_launcher: ^6.3.1
-  webview_flutter: ^4.9.0
-  webview_flutter_android: ^4.3.0
-  webview_flutter_wkwebview: ^3.16.0
 
 dev_dependencies:
   flutter_test:

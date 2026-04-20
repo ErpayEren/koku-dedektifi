@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Faz 2 — Veri Doğruluğu ve LLM Kararlılığı)
+- `api_internal/schemas/analysis.ts` — TypeScript Zod şemaları: AnalysisInputSchema, LLMRawOutputSchema, MoleculeSchema, SimilarFragranceSchema
+- `api_internal/schemas/analysis.js` — CJS runtime Zod validatörü: validateLLMOutput, validateAnalysisInput, formatZodError
+- `api_internal/prompts/analyze_v3.md` — Versiyonlu analiz promptu (few-shot örnekler, kurallar, versiyon geçmişi)
+- `supabase/migrations/20260421_phase2_analysis_telemetry.sql` — analysis_telemetry tablosu (latency_ms, model_version, prompt_version, confidence_score)
+- `docs/confidence_formula.md` — confidenceScore formülü: identityBonus + pyramidBonus + moleculeBonus + modeBonus (0-100)
+- `docs/rag_tuning.md` — RAG similarity threshold rehberi, embedding normalizasyonu, pgvector index konfigürasyonu
+- `tests/schemas.test.js` — 16 Zod şema test senaryosu
+- `zod@4.3.6` bağımlılığı eklendi
+
+### Changed (Faz 2)
+- `lib/server/provider-router.js` — Analysis temperature 0.35 → **0.2** (Gemini, OpenRouter, Anthropic)
+- `api_internal/analyze.js` — Zod input validation (400 + readable error)
+- `api_internal/analyze.js` — LLM output Zod validation + 1 kez retry (correction prompt ile)
+- `api_internal/analyze.js` — Idempotency cache: SHA256(mode+input) → analysis_cache tablosu (7 gün TTL)
+- `api_internal/analyze.js` — confidenceScore hesabı ve tüm yanıtlara eklenmesi
+- `api_internal/analyze.js` — Telemetri: analysis_telemetry tablosuna fire-and-forget loglama (latency, cache hit, degraded, retry count)
+
 ### Added
 - `docs/MASTER_PLAN.md` — full launch readiness plan (Faz 1-7)
 - `docs/PROGRESS.md` — phase-by-phase progress tracker with handoff notes

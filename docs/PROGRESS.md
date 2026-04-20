@@ -59,31 +59,55 @@
 
 ## FAZ 2 — VERİ DOĞRULUĞU VE LLM KARARLILIĞI
 
-**Status:** ⬜ Todo  
-**Başlangıç:** —  
-**Bitiş:** —
+**Status:** ✅ Done  
+**Başlangıç:** 2026-04-20  
+**Bitiş:** 2026-04-20
 
-### Yapılacaklar
-- [ ] `api_internal/schemas/analysis.ts` Zod şema katmanı
-- [ ] LLM structured output (responseSchema)
-- [ ] Prompt versiyonlama (`api_internal/prompts/`)
-- [ ] RAG similarity threshold tuning
-- [ ] Idempotency + cache (`analysis_cache` tablosu)
-- [ ] Offline/failure davranışı
-- [ ] `docs/confidence_formula.md`
-- [ ] `analysis_telemetry` tablosu + migration
+### Yapılan İşler
+- [x] `api_internal/schemas/analysis.ts` — TypeScript Zod şemaları (AnalysisInputSchema, LLMRawOutputSchema, MoleculeSchema, SimilarFragranceSchema)
+- [x] `api_internal/schemas/analysis.js` — CJS runtime validator (validateLLMOutput, validateAnalysisInput, formatZodError)
+- [x] LLM structured output: Gemini responseJsonSchema zaten aktifti; doğrulandı
+- [x] Prompt versiyonlama: `api_internal/prompts/analyze_v3.md` (few-shot örnekler, kurallar, versiyon geçmişi)
+- [x] Temperature 0.35 → **0.2** (Gemini, OpenRouter, Anthropic — tüm analiz çağrıları)
+- [x] `analyze.js` — Zod input validation (400 + readable error)
+- [x] `analyze.js` — LLM output Zod validation + **1 kez retry** (farklı prompt ile)
+- [x] `analyze.js` — **Idempotency cache**: SHA256(mode+input) → `analysis_cache` tablosu, 7 gün TTL
+- [x] `analyze.js` — **confidenceScore** hesabı (0-100): identity + pyramid + molecule + mode bonusları
+- [x] `analyze.js` — **Telemetri loglama** (fire-and-forget): `analysis_telemetry` tablosu
+- [x] `supabase/migrations/20260421_phase2_analysis_telemetry.sql` — telemetri tablosu
+- [x] `docs/confidence_formula.md` — formül dokümantasyonu
+- [x] `docs/rag_tuning.md` — RAG threshold, embedding normalizasyonu, tuning rehberi
+- [x] `tests/schemas.test.js` — 16 test senaryosu (hepsi geçiyor)
 
 ### Kritik Mimari Kararlar
-_Henüz başlanmadı_
+- **Zod v4 kullanıldı** (`zod@4.3.6`): `safeParse` yanıtında `error.errors` yerine `error.issues` kullanılıyor.
+- **TS şema + CJS runtime**: `analysis.ts` IDE/type-check için, `analysis.js` runtime validation için. İkili yaklaşım çünkü `api_internal/*.js` Next.js dışında CJS ortamında çalışıyor.
+- **Cache granülaritesi**: mode+input bazında (userId bağımsız) — aynı parfümü farklı kullanıcılar sorguladığında da cache'den döner. Pro/free farkı cache'lenmez, her zaman hesaplanır.
+- **Retry stratejisi**: 1 kez, farklı (correction) prompt ile. İkinci retry yok (maliyet kontrolü).
+- **Telemetri**: non-blocking (fire-and-forget), fail silently. Üretim metrikleri için temel.
 
 ### Oluşturulan / Değiştirilen Dosyalar
-_Henüz başlanmadı_
+- `api_internal/schemas/analysis.ts` — YENİ
+- `api_internal/schemas/analysis.js` — YENİ
+- `api_internal/prompts/analyze_v3.md` — YENİ
+- `api_internal/analyze.js` — DEĞİŞTİRİLDİ (cache, validation, telemetri, confidenceScore)
+- `lib/server/provider-router.js` — DEĞİŞTİRİLDİ (temperature 0.2)
+- `supabase/migrations/20260421_phase2_analysis_telemetry.sql` — YENİ
+- `docs/confidence_formula.md` — YENİ
+- `docs/rag_tuning.md` — YENİ
+- `tests/schemas.test.js` — YENİ
+- `package.json` / `package-lock.json` — DEĞİŞTİRİLDİ (zod eklendi)
 
 ### Bilinen Sorunlar / Ertelenenler
-_Henüz başlanmadı_
+- RAG similarity threshold empirik ölçümü (50 parfüm test seti): Faz 3 veya bağımsız görev
+- LLM re-rank (cross-encoder): Faz 3'e ertelendi
+- `perceptual hash` (görsel için tam idempotency): Şu an imageBase64'ün ilk 256 karakteri hash'leniyor; tam perceptual hash kütüphane gerektiriyor
+- IndexedDB offline cache (client-side): Faz 4 (UI) ile birlikte yapılacak
 
 ### Bir Sonraki Faza Handoff Notları
-_Henüz başlanmadı_
+- Faz 3 başlamadan önce: `npm run build` temiz, `npm test` yeşil ✅
+- Faz 3 odağı: /kesfet sayfası, barkod tarama, paylaşılabilir URL'ler, slug sistemi
+- `confidenceScore` alanı artık tüm analiz yanıtlarında mevcut — UI'da ring görselleştirmesi Faz 4'te
 
 ---
 

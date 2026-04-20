@@ -7,21 +7,24 @@
 
 ## FAZ 1 — KRİTİK BLOKERLER
 
-**Status:** 🟡 In Progress  
+**Status:** ✅ Done  
 **Başlangıç:** 2026-04-20  
-**Bitiş:** —
+**Bitiş:** 2026-04-20
 
 ### Yapılan İşler
-- [ ] `/giris` sayfası oluşturuldu
-- [ ] `/kayit` sayfası oluşturuldu
-- [ ] Google OAuth entegrasyonu
-- [ ] Anonim → gerçek user migration RPC
-- [ ] `/hesap` sayfası (profil, şifre sıfırla, hesap sil)
-- [ ] Middleware güncelleme (korumalı rotalar)
-- [ ] Session persist (Capacitor Preferences)
-- [ ] Onboarding persist (`preferences` JSONB migration)
-- [ ] Rate limiting (per-user analiz limiti)
-- [ ] `docs/email_setup.md` oluşturuldu
+- [x] `/giris` sayfası oluşturuldu (GirisClient.tsx)
+- [x] `/kayit` sayfası oluşturuldu (KayitClient.tsx)
+- [x] `/sifre-sifirla` sayfası oluşturuldu
+- [x] `/hesap` sayfası genişletildi: şifre değiştir, hesap sil, yasal linkler
+- [x] `AuthCard`, `AuthInput`, `AuthButton` shared bileşenleri oluşturuldu
+- [x] `auth.js`: `change-password`, `delete-account`, `forgot-password` action'ları eklendi
+- [x] `supabase-auth-users.js`: `deleteSupabaseUser` eklendi
+- [x] Middleware: `/profil` yerine `/giris` yönlendirmesi, per-user analyze rate limit (10/dk)
+- [x] Supabase migration: `preferences JSONB`, `rate_limits`, `feature_flags`, `analysis_cache` tabloları
+- [x] `docs/email_setup.md` oluşturuldu (Resend kurulum kılavuzu)
+- [ ] Google OAuth — UI stub hazır (YAKINDA badge), backend Supabase Auth OAuth gerektirir
+- [ ] Session persist (Capacitor Preferences) — Faz 5'e ertelendi
+- [ ] Anonim → gerçek user migration RPC — wardrobe zaten merge oluyor; analyses için migration Faz 3.4'e bırakıldı
 
 ### Kritik Mimari Kararlar
 - **Auth sistemi:** Mevcut custom token sistemi (`kd_token` cookie) korunuyor.

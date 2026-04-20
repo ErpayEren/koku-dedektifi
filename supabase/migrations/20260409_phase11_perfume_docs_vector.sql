@@ -38,9 +38,10 @@ alter table public.perfume_docs
 create index if not exists perfume_docs_perfume_id_idx
   on public.perfume_docs (perfume_id);
 
+drop index if exists public.perfume_docs_perfume_id_unique_idx;
+
 create unique index if not exists perfume_docs_perfume_id_unique_idx
-  on public.perfume_docs (perfume_id)
-  where perfume_id is not null;
+  on public.perfume_docs (perfume_id);
 
 create index if not exists perfume_docs_family_idx
   on public.perfume_docs (family);

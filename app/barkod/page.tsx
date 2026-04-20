@@ -33,6 +33,8 @@ export default function BarkodPage() {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [error, setError] = useState('');
+  const [torchOn, setTorchOn] = useState(false);
+  const streamRef = useRef<MediaStream | null>(null);
   const [lookupResult, setLookupResult] = useState<BarcodeLookupResult | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -50,7 +52,24 @@ export default function BarkodPage() {
   function stopCamera(): void {
     controlsRef.current?.stop();
     controlsRef.current = null;
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
     setCameraOpen(false);
+    setTorchOn(false);
+  }
+
+  async function toggleTorch(): Promise<void> {
+    if (!streamRef.current) return;
+    const track = streamRef.current.getVideoTracks()[0];
+    if (!track) return;
+    const next = !torchOn;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await track.applyConstraints({ advanced: [{ torch: next } as any] });
+      setTorchOn(next);
+    } catch {
+      // Torch not supported on this device — silently ignore
+    }
   }
 
   async function runAnalyzeByName(name: string): Promise<void> {
@@ -110,6 +129,12 @@ export default function BarkodPage() {
     }
 
     try {
+      // Request camera stream first so we can hold a ref for torch control
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+      });
+      streamRef.current = stream;
+
       const reader = new BrowserMultiFormatReader();
       readerRef.current = reader;
       setCameraOpen(true);
@@ -173,7 +198,29 @@ export default function BarkodPage() {
 
               {cameraOpen ? (
                 <div className="mt-5 overflow-hidden rounded-2xl border border-white/[.08] bg-black/25">
-                  <video ref={videoRef} className="aspect-[4/3] w-full object-cover" muted playsInline />
+                  <div className="relative">
+                    <video ref={videoRef} className="aspect-[4/3] w-full object-cover" muted playsInline />
+                    {/* Torch toggle */}
+                    <button
+                      type="button"
+                      onClick={() => void toggleTorch()}
+                      className={`absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
+                        torchOn
+                          ? 'border-[var(--gold-line)] bg-gold text-bg'
+                          : 'border-white/20 bg-black/40 text-cream'
+                      }`}
+                      aria-label={torchOn ? 'Flaşı kapat' : 'Flaşı aç'}
+                      title={torchOn ? 'Flaşı kapat' : 'Flaşı aç'}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill={torchOn ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                        <path d="M13 2L4.5 13H11L10 22L20.5 11H14L13 2Z" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                    {/* Scan guide overlay */}
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <div className="h-28 w-48 rounded-lg border-2 border-gold/60 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
+                    </div>
+                  </div>
                 </div>
               ) : null}
 

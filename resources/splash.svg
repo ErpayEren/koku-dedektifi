@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1600" fill="none">
+  <rect width="1600" height="1600" fill="#09080A" />
+  <defs>
+    <radialGradient id="warmGlow" cx="50%" cy="40%" r="45%">
+      <stop offset="0%" stop-color="rgba(214,181,121,0.18)" />
+      <stop offset="100%" stop-color="rgba(214,181,121,0)" />
+    </radialGradient>
+    <filter id="heroBloom" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0.84 0 1 0 0 0.71 0 0 1 0 0.47 0 0 0 0.30 0" result="warmGlowPass" />
+      <feMerge>
+        <feMergeNode in="warmGlowPass" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="1600" height="1600" fill="url(#warmGlow)" />
+  <g transform="translate(348 372)" filter="url(#heroBloom)">
+    <g transform="translate(0 24)">
+      <path d="M118 148 256 64l138 84v200L256 432 118 348V148Z" stroke="#D6B579" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="256" cy="64" r="44" fill="#09080A" stroke="#D6B579" stroke-width="12" />
+      <circle cx="256" cy="432" r="44" fill="#09080A" stroke="#D6B579" stroke-width="12" />
+      <circle cx="118" cy="148" r="22" fill="#D6B579" />
+      <circle cx="118" cy="348" r="22" fill="#D6B579" />
+      <circle cx="394" cy="148" r="22" fill="#D6B579" />
+      <circle cx="394" cy="348" r="22" fill="#D6B579" />
+      <text x="256" y="80" text-anchor="middle" font-family="DM Sans, Arial, sans-serif" font-size="48" font-weight="700" fill="#D6B579">N</text>
+      <text x="256" y="448" text-anchor="middle" font-family="DM Sans, Arial, sans-serif" font-size="48" font-weight="700" fill="#D6B579">N</text>
+    </g>
+    <text x="504" y="292" fill="#EBE4D8" font-family="Cormorant Garamond, Georgia, serif" font-size="164" font-style="italic">Koku</text>
+    <text x="778" y="292" fill="#D6B579" font-family="Cormorant Garamond, Georgia, serif" font-size="164" font-style="italic">Dedektifi</text>
+  </g>
+</svg>

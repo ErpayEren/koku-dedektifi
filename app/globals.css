@@ -64,12 +64,14 @@
   --info: #5a9fd4;
 
   --sidebar-w: 260px;
-  --mobile-nav-h: 68px;
+  --mobile-nav-h: 88px;
   --topbar-h: 65px;
 
   --transition-base: .15s;
   --transition-slow: .25s;
   --ease: cubic-bezier(.22, .68, 0, 1.2);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .scrollbar-none {
@@ -97,6 +99,8 @@ body {
     radial-gradient(1200px 760px at 120% -15%, rgba(201, 169, 110, 0.06), transparent 60%),
     radial-gradient(860px 540px at -20% 105%, rgba(126, 184, 164, 0.08), transparent 65%),
     var(--bg);
+  overscroll-behavior-y: auto;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body::before {
@@ -311,6 +315,30 @@ body {
   scrollbar-width: thin;
 }
 
+html.kd-capacitor-app,
+html.kd-capacitor-app body {
+  background:
+    radial-gradient(1200px 760px at 120% -15%, rgba(201, 169, 110, 0.06), transparent 60%),
+    radial-gradient(860px 540px at -20% 105%, rgba(126, 184, 164, 0.08), transparent 65%),
+    var(--bg);
+}
+
+html.kd-capacitor-app body {
+  padding-top: 0;
+  overscroll-behavior-y: auto;
+  touch-action: auto;
+}
+
+html.kd-capacitor-app ::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+html.kd-capacitor-app,
+html.kd-capacitor-app body {
+  scrollbar-width: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation: none !important;
@@ -319,6 +347,13 @@ body {
 }
 
 @media (max-width: 640px) {
+  body {
+    background:
+      radial-gradient(720px 520px at 50% -12%, rgba(201, 169, 110, 0.08), transparent 60%),
+      radial-gradient(520px 360px at -10% 105%, rgba(126, 184, 164, 0.08), transparent 64%),
+      var(--bg);
+  }
+
   .hero {
     padding: 40px 20px 32px;
   }

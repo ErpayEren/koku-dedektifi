@@ -77,6 +77,10 @@
       "destination": "/api/ops?r=analyses"
     },
     {
+      "source": "/api/perfumes",
+      "destination": "/api/ops?r=perfumes"
+    },
+    {
       "source": "/api/community-hub",
       "destination": "/api/ops?r=community-hub"
     },

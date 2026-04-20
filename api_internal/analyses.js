@@ -1,6 +1,6 @@
 const { setCorsHeaders, setSecurityHeaders } = require('../lib/server/config');
 const { readAuthSession } = require('../lib/server/auth-session');
-const { getAnalysisById, listAnalysesForUser } = require('../lib/server/core-analysis.cjs');
+const { getAnalysisById, listAnalysesForUser, getAnalysisBySlug } = require('../lib/server/core-analysis.cjs');
 
 module.exports = async function analysesHandler(req, res) {
   setSecurityHeaders(res);
@@ -12,6 +12,15 @@ module.exports = async function analysesHandler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   const analysisId = String(req.query?.id || '').trim();
+  const analysisSlug = String(req.query?.slug || '').trim();
+
+  if (analysisSlug) {
+    const analysis = await getAnalysisBySlug(analysisSlug);
+    if (!analysis) return res.status(404).json({ error: 'Analiz bulunamadı.' });
+    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+    return res.status(200).json({ analysis });
+  }
+
   if (analysisId) {
     const analysis = await getAnalysisById(analysisId);
     if (!analysis) {

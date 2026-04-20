@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { createPortal } from 'react-dom';
+import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { MoleculeData } from '@/components/MoleculeCard';
 import { MoleculeVisual } from '@/components/MoleculeVisual';
@@ -435,6 +437,102 @@ export function WheelPanel({
   );
 }
 
+const EVIDENCE_LEVELS = [
+  {
+    key: 'verified_component',
+    dot: '#67d394',
+    label: 'Doğrulanmış',
+    desc: 'Bu molekül parfümün resmi bileşen listesinde yer alıyor veya güvenilir kaynaklarla teyit edildi.',
+  },
+  {
+    key: 'note_match',
+    dot: '#D4AF55',
+    label: 'Nota Eşleşmesi',
+    desc: 'Bu molekül parfümün ilan ettiği notalarla eşleşiyor; bileşen listesinde doğrudan geçmiyor.',
+  },
+  {
+    key: 'inferred',
+    dot: '#9ca3af',
+    label: 'Tahmini',
+    desc: 'Bu molekül benzer parfümler ve kimyasal profil analizi ile çıkarsandı; kesin değil.',
+  },
+] as const;
+
+function EvidenceInfoModal({ onClose }: { onClose: () => void }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+      <div
+        className="fixed inset-0 z-[130] flex items-end justify-center p-4 sm:items-center"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Kanıt seviyeleri bilgisi"
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-[420px] rounded-[28px] border border-white/[.08] bg-[var(--bg-card)] p-6 shadow-2xl anim-up"
+        >
+          <div className="mb-5 flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-[17px] font-semibold text-cream">Kanıt Seviyeleri</h3>
+              <p className="mt-1 text-[12px] text-muted">Her molekülün ne kadar güvenilir olduğu</p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[.08] text-muted transition-colors hover:text-cream"
+              aria-label="Kapat"
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M1 1l8 8M9 1 1 9" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {EVIDENCE_LEVELS.map((ev) => (
+              <div key={ev.key} className="flex gap-3">
+                <div className="mt-0.5 shrink-0">
+                  <span
+                    className="inline-block h-3 w-3 rounded-full"
+                    style={{ background: ev.dot }}
+                    aria-hidden="true"
+                  />
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-cream">{ev.label}</p>
+                  <p className="mt-0.5 text-[12px] leading-relaxed text-muted">{ev.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>,
+    document.body,
+  );
+}
+
+function EvidenceDot({ level }: { level: string | undefined }) {
+  const color =
+    level === 'verified_component' || level === 'signature_molecule'
+      ? '#67d394'
+      : level === 'note_match' || level === 'accord_component'
+        ? '#D4AF55'
+        : '#9ca3af';
+  return (
+    <span
+      className="inline-block h-2 w-2 shrink-0 rounded-full"
+      style={{ background: color }}
+      aria-hidden="true"
+    />
+  );
+}
+
 interface MoleculePanelProps extends PanelMotionProps {
   molecule: MoleculeData | null;
   moleculeData: MoleculeData[];
@@ -467,9 +565,26 @@ export function MoleculePanel({
   moleculeShareBusy,
   style,
 }: MoleculePanelProps) {
+  const [showEvidenceInfo, setShowEvidenceInfo] = useState(false);
+
   return (
     <Card className="h-full p-6 content-auto-panel" style={style}>
-      <CardTitle className="mb-4">{UI.keyMolecules}</CardTitle>
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <CardTitle>{UI.keyMolecules}</CardTitle>
+        <button
+          type="button"
+          onClick={() => setShowEvidenceInfo(true)}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/[.08] text-muted transition-colors hover:border-[var(--gold-line)] hover:text-gold"
+          aria-label="Kanıt seviyeleri nedir?"
+          title="Kanıt seviyeleri nedir?"
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <circle cx="5" cy="5" r="4" />
+            <path d="M5 4.5v2M5 3.2v.1" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
+      {showEvidenceInfo ? <EvidenceInfoModal onClose={() => setShowEvidenceInfo(false)} /> : null}
       {molecule ? (
         <div className="flex h-full flex-col">
           <button
@@ -571,7 +686,10 @@ export function MoleculePanel({
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <span className="block truncate text-[12px] text-cream">{item.name}</span>
+                          <div className="flex items-center gap-1.5">
+                            <EvidenceDot level={item.evidenceLevel} />
+                            <span className="block truncate text-[12px] text-cream">{item.name}</span>
+                          </div>
                           {item.evidenceLabel ? (
                             <span
                               className="mt-1 inline-flex rounded-full px-2 py-1 text-[9px] font-mono uppercase tracking-[.1em]"

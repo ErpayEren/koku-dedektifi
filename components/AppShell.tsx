@@ -1,4 +1,5 @@
 import { MobileNav } from './MobileNav';
+import { MobileTabBar } from './mobile/MobileTabBar';
 import { BillingReturnHandler } from './BillingReturnHandler';
 import { ProModal } from './ProModal';
 import { Sidebar } from './Sidebar';
@@ -22,11 +23,12 @@ export function AppShell({
 
       {hideSidebar ? null : <Sidebar />}
 
-      <main className="order-1 flex min-h-0 w-full min-w-0 flex-col overflow-x-clip pb-24 md:order-2 md:flex-1 md:overflow-visible md:pb-0">
+      <main className="order-1 flex min-h-[100dvh] w-full min-w-0 flex-col overflow-x-clip pb-[calc(var(--mobile-nav-h)+40px)] md:order-2 md:min-h-0 md:flex-1 md:overflow-visible md:pb-0">
         {children}
       </main>
 
       <MobileNav />
+      <MobileTabBar />
       <ProModal />
     </div>
   );

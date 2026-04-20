@@ -333,7 +333,9 @@ export function useAnalysisResultsModel({ result, isAnalyzing }: UseAnalysisResu
     if (!activeResult || shareBusy) return;
     setShareBusy(true);
     try {
-      const link = `${window.location.origin}/?replay=${encodeURIComponent(activeResult.id)}`;
+      const link = activeResult.slug
+        ? `${window.location.origin}/analiz/${activeResult.slug}`
+        : `${window.location.origin}/?replay=${encodeURIComponent(activeResult.id)}`;
       await navigator.clipboard.writeText(link);
       window.alert('Bağlantı kopyalandı.');
       setShareModalOpen(false);

@@ -273,6 +273,59 @@ export async function fetchAnalysisVoteSummary(analysisId: string): Promise<Anal
   return normalizeAnalysisVoteSummary(data);
 }
 
+export interface PerfumeSearchResult {
+  id: string;
+  name: string;
+  brand: string;
+  gender?: string | null;
+  rating?: number | null;
+  top_notes?: string[];
+  heart_notes?: string[];
+  base_notes?: string[];
+  cover_image_url?: string | null;
+  price_tier?: string | null;
+  popularity_score?: number;
+  analysis_count_7d?: number;
+}
+
+export async function searchPerfumes(params: {
+  q?: string;
+  gender?: string;
+  brand?: string;
+  price_tier?: string;
+  page?: number;
+}): Promise<{ results: PerfumeSearchResult[]; total: number; page: number }> {
+  const qs = new URLSearchParams();
+  if (params.q) qs.set('q', params.q);
+  if (params.gender) qs.set('gender', params.gender);
+  if (params.brand) qs.set('brand', params.brand);
+  if (params.price_tier) qs.set('price_tier', params.price_tier);
+  if (params.page) qs.set('page', String(params.page));
+  const data = await jsonRequest<{ results?: PerfumeSearchResult[]; total?: number; page?: number }>(
+    `/api/perfumes?${qs.toString()}`,
+    { method: 'GET' },
+  );
+  return { results: data?.results ?? [], total: data?.total ?? 0, page: data?.page ?? 1 };
+}
+
+export async function getTrendingPerfumes(): Promise<PerfumeSearchResult[]> {
+  const data = await jsonRequest<{ trending?: PerfumeSearchResult[] }>('/api/perfumes?mode=trending', {
+    method: 'GET',
+  });
+  return data?.trending ?? [];
+}
+
+export async function getAnalysisBySlug(slug: string): Promise<AnalysisResult | null> {
+  try {
+    const data = await jsonRequest<{ analysis?: AnalysisResult }>(`/api/analyses?slug=${encodeURIComponent(slug)}`, {
+      method: 'GET',
+    });
+    return data?.analysis ? hydrateAnalysisResult(data.analysis) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function submitAnalysisVote(
   analysisId: string,
   vote: 'accurate' | 'partial' | 'wrong',

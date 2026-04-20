@@ -17,6 +17,7 @@ const routeMap = {
   'weekly-molecule': () => require('../api_internal/weekly-molecule'),
   analyze: () => require('../api_internal/analyze'),
   analyses: () => require('../api_internal/analyses'),
+  perfumes: () => require('../api_internal/perfumes'),
   'client-config': () => require('../api_internal/client-config'),
   event: () => require('../api_internal/event'),
   metrics: () => require('../api_internal/metrics'),

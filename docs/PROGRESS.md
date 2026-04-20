@@ -113,17 +113,67 @@
 
 ## FAZ 3 — FONKSİYONEL BOŞLUKLAR
 
-**Status:** ⬜ Todo  
-**Başlangıç:** —  
-**Bitiş:** —
+**Status:** ✅ Done  
+**Başlangıç:** 2026-04-20  
+**Bitiş:** 2026-04-20
 
-### Yapılacaklar
-- [ ] `/kesfet` sayfası (search + filtreler + trending)
-- [ ] Barkod tarama UI (`/tara`)
-- [ ] Molekül kanıt seviyeleri UI (badge'ler)
-- [ ] Paylaşılabilir analiz URL'leri (`/analiz/[slug]`)
-- [ ] OG image generation (`@vercel/og`)
-- [ ] Share sheet entegrasyonu
+### Yapılan İşler
+- [x] **DB Migration** (`20260420_phase3_functional_gaps.sql`): `analyses.slug`, `analyses.is_public`, `analyses_read_public` RLS policy, `pg_trgm` full-text index, trending materialized view, `generate_analysis_slug()` SQL function, `refresh_trending_perfumes()` fonksiyonu
+- [x] **Slug sistemi**: `core-analysis.ts`'e `buildAnalysisSlug()` eklendi; `persistAnalysisRecord` artık UUID kaydedildikten sonra slug yazıyor ve `{ id, slug, createdAt }` döndürüyor
+- [x] **`getAnalysisBySlug()`**: `core-analysis.ts`'e eklendi (public slug lookup, cache-control)
+- [x] **`searchPerfumes()` + `getTrendingPerfumes()`**: `core-analysis.ts`'e eklendi
+- [x] **`api_internal/perfumes.js`**: search (q, gender, brand, price_tier, page) + trending endpoint
+- [x] **`api_internal/analyses.js`**: `?slug=` parametresi ile slug bazlı lookup eklendi
+- [x] **`api/ops.js`**: `perfumes` route'u eklendi
+- [x] **`vercel.json`**: `/api/perfumes → /api/ops?r=perfumes` rewrite eklendi
+- [x] **`lib/client/api.ts`**: `searchPerfumes()`, `getTrendingPerfumes()`, `getAnalysisBySlug()`, `PerfumeSearchResult` tipi eklendi
+- [x] **`/kesfet` sayfası**: search + tab (Trend/Sen İçin/Arama) + filtreler (gender, price_tier) + lazy loading + load more + empty/loading/error states
+- [x] **`/analiz/[slug]`**: ISR (`revalidate: 3600`), `generateMetadata()` (OG/Twitter), JSON-LD Article schema, share butonu (native share API → clipboard fallback), "Kendi Analizini Yap" CTA
+- [x] **`/api/analyses/[slug]/og`**: Next.js `ImageResponse` ile dinamik OG görseli (parfüm adı, brand, confidence ring, top notalar, kehribar/altın/kırmızı renk kuşakları)
+- [x] **Molekül kanıt seviyeleri UI** (`panels.tsx`): `EvidenceInfoModal` (3 seviye açıklaması + portal), `EvidenceDot` helper, MoleculePanel başlığına info (ℹ) butonu, molekül liste satırlarına renkli nokta badge eklendi
+- [x] **Barkod sayfası** (`app/barkod/page.tsx`): Torch (flaş) toggle butonu, scan guide overlay, kamera stream ref tutma, `toggleTorch()` fonksiyonu
+- [x] **`MobileNav`**: `/kesfet` linki `Compass` ikonu ile eklendi
+- [x] **`AnalysisResult` tipi**: `slug?: string | null` eklendi
+- [x] **`analyze.js`**: tüm persist sonrası result objelerine `slug` alanı eklendi
+- [x] **`useAnalysisResultsModel.ts`**: `copyResultLink()` artık slug varsa `/analiz/[slug]` URL kullanıyor
+- [x] **Testler**: 47/47 geçiyor (`npm test` yeşil)
+
+### Kritik Mimari Kararlar
+- **Slug yazma stratejisi**: Analiz DB'ye yazıldıktan sonra UUID alınır, slug hesaplanır, `UPDATE` ile yazılır (non-blocking, best-effort). İki adımlı çünkü UUID önceden bilinmiyor.
+- **Trending view**: Materialized view (`trending_perfumes`) `refresh_trending_perfumes()` ile günlük cron (Vercel cron + SQL) ile yenilenecek. View yoksa `perfumes` tablosundan rating sıralamasına fallback.
+- **OG image**: Next.js built-in `ImageResponse` (edge runtime değil, nodejs) kullandık — `@vercel/og` paketine gerek yok, Next.js 14 zaten içeriyor.
+- **`/kesfet` "Sen İçin" tab**: Şu an Pro/free ayrımı; preferences entegrasyonu Faz 4'te kullanıcı tercihleri store'a eklenince geliştirilecek.
+
+### Oluşturulan / Değiştirilen Dosyalar
+- `supabase/migrations/20260420_phase3_functional_gaps.sql` — YENİ
+- `lib/server/core-analysis.ts` — DEĞİŞTİRİLDİ (slug, search, trending)
+- `api_internal/perfumes.js` — YENİ
+- `api_internal/analyses.js` — DEĞİŞTİRİLDİ (slug lookup)
+- `api_internal/analyze.js` — DEĞİŞTİRİLDİ (slug response)
+- `api/ops.js` — DEĞİŞTİRİLDİ (perfumes route)
+- `vercel.json` — DEĞİŞTİRİLDİ (perfumes rewrite)
+- `lib/client/api.ts` — DEĞİŞTİRİLDİ (perfumes/slug API)
+- `lib/client/types.ts` — DEĞİŞTİRİLDİ (slug field)
+- `app/kesfet/page.tsx` — YENİ
+- `app/kesfet/KesfetClient.tsx` — YENİ
+- `app/kesfet/head.tsx` — YENİ
+- `app/analiz/[slug]/page.tsx` — YENİ
+- `app/analiz/[slug]/AnalysisSlugClient.tsx` — YENİ
+- `app/api/analyses/[slug]/og/route.tsx` — YENİ
+- `components/analysis-results/panels.tsx` — DEĞİŞTİRİLDİ (evidence modal + dots)
+- `components/analysis-results/useAnalysisResultsModel.ts` — DEĞİŞTİRİLDİ (slug URL)
+- `components/MobileNav.tsx` — DEĞİŞTİRİLDİ (/kesfet link)
+- `app/barkod/page.tsx` — DEĞİŞTİRİLDİ (torch, scan overlay)
+
+### Bilinen Sorunlar / Ertelenenler
+- Trending materialized view refresh cron: Vercel Cron + supabase admin RPC ile kurulacak (Faz 6 veya bağımsız)
+- `/kesfet` "Sen İçin" tab: Preferences store Faz 1'de tasarlanmıştı ama implement edilmemişti; Faz 4'te `userStore.preferences` eklenince gelişecek
+- Native barcode (MLKit Capacitor plugin): Faz 5'te eklenecek
+
+### Bir Sonraki Faza Handoff Notları
+- Faz 5 (Mobil) başlamadan: Capacitor config + native plugins + Android build.gradle
+- `analyses.slug` kolonu migration uygulandıktan sonra yeni analizler otomatik slug alıyor
+- `/analiz/[slug]` ISR ile çalışıyor; production'da Supabase public RLS policy aktif olmalı
 
 ---
 

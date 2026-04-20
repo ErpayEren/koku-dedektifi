@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { UI } from '@/lib/strings';
 import type { InputMode } from '@/lib/client/types';
+import { impactHaptic, pickNativeAnalysisPhoto } from '@/lib/mobile/capacitor';
 
 const QUICK_CHIPS = [
   UI.chipSauvage,
@@ -95,14 +96,8 @@ function ModeIcon({ mode }: { mode: InputMode }) {
 }
 
 function ModeHint({ mode }: { mode: InputMode }) {
-  if (mode === 'photo') {
-    return <p className="text-[11px] text-muted">{UI.photoHelper}</p>;
-  }
-
-  if (mode === 'notes') {
-    return <p className="text-[11px] text-muted">{UI.notesHelper}</p>;
-  }
-
+  if (mode === 'photo') return <p className="text-[11px] text-muted">{UI.photoHelper}</p>;
+  if (mode === 'notes') return <p className="text-[11px] text-muted">{UI.notesHelper}</p>;
   return <p className="text-[11px] text-muted">Kısa bir tarif de yeterli: “odunsu ama çok ağır değil” gibi.</p>;
 }
 
@@ -172,34 +167,65 @@ export function HeroInput({
     return textValue.trim().length > 2;
   }, [imagePreview, isAnalyzing, mode, notesValue, textValue]);
 
-  async function processImageFile(file: File): Promise<void> {
-    const rawDataUrl = await readFileAsDataUrl(file);
-    const compressed = await compressImage(rawDataUrl);
+  async function processImageData(dataUrl: string): Promise<void> {
+    const compressed = await compressImage(dataUrl);
     setCompressedKb(compressed.sizeKb);
     onImageChange(compressed.dataUrl);
   }
 
+  async function processImageFile(file: File): Promise<void> {
+    const rawDataUrl = await readFileAsDataUrl(file);
+    await processImageData(rawDataUrl);
+  }
+
+  async function handlePhotoTrigger(): Promise<void> {
+    const nativeDataUrl = await pickNativeAnalysisPhoto();
+
+    if (nativeDataUrl) {
+      await processImageData(nativeDataUrl);
+      return;
+    }
+
+    fileInputRef.current?.click();
+  }
+
   const activeCharCount = mode === 'notes' ? notesValue.length : textValue.length;
+
   const handleAnalyzeByEnter = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
     event.preventDefault();
-    if (canAnalyze) onAnalyze();
+    if (canAnalyze) {
+      void impactHaptic('medium');
+      onAnalyze();
+    }
   };
 
   return (
-    <section id="hero-analysis" className="anim-up relative mx-auto w-full max-w-[920px] overflow-x-clip px-5 pb-8 pt-8 md:px-12 md:pt-12">
+    <section id="hero-analysis" className="anim-up relative mx-auto w-full max-w-[920px] overflow-x-clip px-4 pb-7 pt-5 sm:px-5 md:px-12 md:pb-8 md:pt-12">
       <div className="pointer-events-none absolute left-1/2 top-[12rem] h-64 w-[20rem] -translate-x-1/2 bg-[radial-gradient(ellipse_at_center,_rgba(139,92,246,0.15)_0%,_transparent_70%)] sm:w-[28rem] md:w-[36rem]" />
-      <div className="mb-5 flex items-center gap-2.5">
+
+      <div className="mb-3 flex items-center gap-2.5 md:mb-5">
         <div className="h-px w-7 bg-[var(--gold-line)]" />
         <span className="text-[10px] font-mono uppercase tracking-[.16em] text-muted">{UI.heroEyebrow}</span>
       </div>
 
-      <h1 className="mb-3 text-[2rem] font-semibold leading-[1.06] tracking-[-0.01em] text-cream md:text-[3rem]">
-        {UI.heroTitle}
-        <br />
-        <span className="text-gold">{UI.heroTitleItalic}</span>
-      </h1>
-      <p className="mb-8 max-w-[620px] text-[13px] text-muted">{UI.heroSubtitle}</p>
+      <div className="md:hidden">
+        <div className="mb-4 rounded-[24px] border border-white/[.06] bg-[linear-gradient(180deg,rgba(255,255,255,0.025),rgba(255,255,255,0.01))] px-4 py-4 shadow-[0_20px_40px_rgba(0,0,0,.24)]">
+          <h1 className="text-[1.9rem] font-semibold leading-[1.02] tracking-[-0.02em] text-cream">
+            {UI.heroTitle} <span className="text-gold">{UI.heroTitleItalic}</span>
+          </h1>
+          <p className="mt-3 max-w-[32ch] text-[13px] leading-relaxed text-muted">{UI.heroSubtitle}</p>
+        </div>
+      </div>
+
+      <div className="hidden md:block">
+        <h1 className="mb-3 text-[2rem] font-semibold leading-[1.06] tracking-[-0.01em] text-cream md:text-[3rem]">
+          {UI.heroTitle}
+          <br />
+          <span className="text-gold">{UI.heroTitleItalic}</span>
+        </h1>
+        <p className="mb-8 max-w-[620px] text-[13px] text-muted">{UI.heroSubtitle}</p>
+      </div>
 
       <div className="glass-panel input-card overflow-hidden rounded-2xl shadow-[0_26px_54px_rgba(0,0,0,.44)]">
         <div className="grid grid-cols-3 gap-0 border-b border-white/[.06] bg-black/10 px-0">
@@ -240,7 +266,10 @@ export function HeroInput({
             >
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => {
+                  void impactHaptic('light');
+                  void handlePhotoTrigger();
+                }}
                 className="flex h-[98px] w-[98px] items-center justify-center rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold transition-colors hover:bg-gold/20"
                 aria-label="Fotoğraf seç"
               >
@@ -313,7 +342,7 @@ export function HeroInput({
           ) : null}
         </div>
 
-        <div className="space-y-4 border-t border-white/[.06] px-5 py-4 md:px-6">
+        <div className="space-y-4 border-t border-white/[.06] px-4 py-4 md:px-6">
           <ModeHint mode={mode} />
 
           <div className="flex items-center gap-2.5">
@@ -343,35 +372,43 @@ export function HeroInput({
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={onAnalyze}
-            disabled={!canAnalyze}
-            aria-busy={isAnalyzing}
-            aria-label={isAnalyzing ? 'Analiz yapılıyor, lütfen bekleyin' : 'Kokuyu analiz et'}
-            className={`analyze-btn ${isAnalyzing ? 'loading' : ''} flex w-full items-center justify-center gap-2 rounded-[10px] px-6 py-3 text-[11px] font-mono uppercase tracking-[.1em] transition-all md:ml-auto md:w-auto md:self-end ${
-              canAnalyze
-                ? 'btn-primary-pulse bg-gold text-bg shadow-[0_10px_30px_rgba(201,169,110,.28)] hover:bg-[#d4b478]'
-                : 'cursor-not-allowed border border-white/[.08] bg-white/[.04] text-muted'
-            }`}
-          >
-            {isAnalyzing ? (
-              <>
-                <svg className="animate-spin" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                  <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="8 24" strokeLinecap="round" />
-                </svg>
-                <span>Analiz ediliyor...</span>
-              </>
-            ) : (
-              <>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                  <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.3" />
-                  <circle cx="6" cy="6" r="2" fill="currentColor" />
-                </svg>
-                <span>{UI.analyzeBtn}</span>
-              </>
-            )}
-          </button>
+          <div className="flex flex-col gap-2 md:items-end">
+            <div className="rounded-full border border-white/[.06] bg-white/[.02] px-3 py-1.5 text-[10px] font-mono uppercase tracking-[.12em] text-white/45 md:hidden">
+              Enter ile hızlı başlat
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                void impactHaptic('medium');
+                onAnalyze();
+              }}
+              disabled={!canAnalyze}
+              aria-busy={isAnalyzing}
+              aria-label={isAnalyzing ? 'Analiz yapılıyor, lütfen bekleyin' : 'Kokuyu analiz et'}
+              className={`analyze-btn ${isAnalyzing ? 'loading' : ''} flex w-full items-center justify-center gap-2 rounded-[16px] px-6 py-3.5 text-[11px] font-mono uppercase tracking-[.1em] transition-all md:ml-auto md:w-auto md:self-end ${
+                canAnalyze
+                  ? 'btn-primary-pulse bg-gold text-bg shadow-[0_14px_34px_rgba(201,169,110,.24)] hover:bg-[#d4b478]'
+                  : 'cursor-not-allowed border border-white/[.08] bg-white/[.04] text-muted'
+              }`}
+            >
+              {isAnalyzing ? (
+                <>
+                  <svg className="animate-spin" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                    <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="8 24" strokeLinecap="round" />
+                  </svg>
+                  <span>Analiz ediliyor...</span>
+                </>
+              ) : (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                    <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.3" />
+                    <circle cx="6" cy="6" r="2" fill="currentColor" />
+                  </svg>
+                  <span>{UI.analyzeBtn}</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </section>

@@ -1407,7 +1407,7 @@ module.exports = async function analyzeHandler(req, res) {
       });
 
       const finalDbResult = persisted
-        ? { ...stableDbResult, id: persisted.id, createdAt: persisted.createdAt }
+        ? { ...stableDbResult, id: persisted.id, slug: persisted.slug ?? null, createdAt: persisted.createdAt }
         : stableDbResult;
 
       const latencyMs = Date.now() - requestStartMs;
@@ -1523,7 +1523,7 @@ module.exports = async function analyzeHandler(req, res) {
       const persisted = await persistAnalysisRecord({
         analysis: stableFallback, mode: body.mode, inputText: input, appUserId: auth?.user?.id || null,
       });
-      const result = persisted ? { ...stableFallback, id: persisted.id, createdAt: persisted.createdAt } : stableFallback;
+      const result = persisted ? { ...stableFallback, id: persisted.id, slug: persisted.slug ?? null, createdAt: persisted.createdAt } : stableFallback;
 
       const latencyMs = Date.now() - requestStartMs;
       logTelemetry({
@@ -1585,7 +1585,7 @@ module.exports = async function analyzeHandler(req, res) {
       analysis: stableResult, mode: body.mode, inputText: input, appUserId: auth?.user?.id || null,
     });
     const finalResult = persisted
-      ? { ...stableResult, id: persisted.id, createdAt: persisted.createdAt }
+      ? { ...stableResult, id: persisted.id, slug: persisted.slug ?? null, createdAt: persisted.createdAt }
       : stableResult;
 
     const latencyMs = Date.now() - requestStartMs;

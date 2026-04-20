@@ -143,7 +143,7 @@ export const AnalysisResults = memo(function AnalysisResults({
     <section
       ref={sectionRef}
       id="analysis-results"
-      className="anim-up-2 scroll-mt-24 px-5 pb-[calc(var(--mobile-nav-h)+9rem)] md:px-12 md:pb-8"
+      className="anim-up-2 scroll-mt-24 px-4 pb-[calc(var(--mobile-nav-h)+9rem)] md:px-12 md:pb-8"
     >
       <SectionDivider label={isAnalyzing ? 'Analiz İşleniyor' : 'Analiz Sonucu'} />
 

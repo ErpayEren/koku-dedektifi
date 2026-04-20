@@ -79,6 +79,7 @@ export interface AnalysisVoteSummary {
 
 export interface AnalysisResult {
   id: string;
+  slug?: string | null;
   iconToken: string;
   name: string;
   brand?: string | null;

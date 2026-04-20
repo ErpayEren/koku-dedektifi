@@ -35,7 +35,7 @@ export function Logo({ size = 'md' }: { size?: LogoSize }) {
     >
       <LogoMark size={config.icon} />
       <span
-        className={`min-w-0 ${config.max} whitespace-nowrap font-display italic leading-[0.96] tracking-[-0.02em] transition-transform duration-200 group-hover:translate-x-[1px] ${config.text}`}
+        className={`min-w-0 ${config.max} whitespace-nowrap font-display italic leading-[0.92] tracking-[-0.028em] transition-transform duration-200 group-hover:translate-x-[1px] ${config.text}`}
       >
         <span className="text-cream">Koku </span>
         <span className="text-gold">Dedektifi</span>

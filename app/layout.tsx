@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Cormorant_Garamond, DM_Mono, DM_Sans } from 'next/font/google';
 import { Toaster } from 'sonner';
+import { MobileAppBridge } from '@/components/mobile/MobileAppBridge';
 import './globals.css';
 
 const cormorant = Cormorant_Garamond({
@@ -67,8 +68,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="/favicon.svg?v=20260331" type="image/svg+xml" sizes="any" />
         <link rel="shortcut icon" href="/favicon.svg?v=20260331" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/icon.svg?v=20260331" type="image/svg+xml" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body>
+        <MobileAppBridge />
         {children}
         <Toaster
           position="top-center"

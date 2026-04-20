@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Faz 3 — Fonksiyonel Boşluklar)
+- `supabase/migrations/20260420_phase3_functional_gaps.sql` — `analyses.slug`, `analyses.is_public`, `analyses_read_public` RLS policy, `pg_trgm` full-text index on perfumes, trending_perfumes materialized view, `generate_analysis_slug()` + `refresh_trending_perfumes()` SQL fonksiyonları
+- `api_internal/perfumes.js` — Perfüm search (q, gender, brand, price_tier, sayfalama) ve trending endpoint
+- `app/kesfet/` — Yeni Keşfet sayfası: full-text search, Trend/Sen İçin/Arama tabları, gender + fiyat filtreleri, lazy loading
+- `app/analiz/[slug]/` — Paylaşılabilir analiz URL sayfası: ISR (revalidate=3600), generateMetadata (OG+Twitter), JSON-LD Article, native share API + clipboard fallback, "Kendi Analizini Yap" CTA
+- `app/api/analyses/[slug]/og/route.tsx` — Dinamik OG image: parfüm adı, brand, confidence ring (renk kuşakları), top notalar
+- `components/analysis-results/panels.tsx`: `EvidenceInfoModal` (3 kanıt seviyesi açıklaması, portal), `EvidenceDot` helper, MoleculePanel başlığına ℹ butonu
+- `lib/client/api.ts`: `searchPerfumes()`, `getTrendingPerfumes()`, `getAnalysisBySlug()`, `PerfumeSearchResult` tipi
+
+### Changed (Faz 3)
+- `lib/server/core-analysis.ts` — `persistAnalysisRecord` artık `slug` yazıyor ve döndürüyor; `getAnalysisBySlug()`, `searchPerfumes()`, `getTrendingPerfumes()` eklendi
+- `api_internal/analyses.js` — `?slug=` parametresi ile slug bazlı public lookup desteği
+- `api_internal/analyze.js` — Tüm persist yanıtlarına `slug` alanı eklendi
+- `api/ops.js` — `perfumes` route'u eklendi
+- `vercel.json` — `/api/perfumes → /api/ops?r=perfumes` rewrite eklendi
+- `lib/client/types.ts` — `AnalysisResult.slug?: string | null` eklendi
+- `components/analysis-results/panels.tsx` — Molekül liste satırlarına renkli `EvidenceDot` eklendi
+- `components/analysis-results/useAnalysisResultsModel.ts` — `copyResultLink()` slug varsa `/analiz/[slug]` URL kullanıyor
+- `components/MobileNav.tsx` — `/kesfet` linki `Compass` ikonu ile eklendi
+- `app/barkod/page.tsx` — Torch toggle butonu, scan guide overlay, kamera stream ref, `toggleTorch()` fonksiyonu
+
 ### Added (Faz 2 — Veri Doğruluğu ve LLM Kararlılığı)
 - `api_internal/schemas/analysis.ts` — TypeScript Zod şemaları: AnalysisInputSchema, LLMRawOutputSchema, MoleculeSchema, SimilarFragranceSchema
 - `api_internal/schemas/analysis.js` — CJS runtime Zod validatörü: validateLLMOutput, validateAnalysisInput, formatZodError

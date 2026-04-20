@@ -39,10 +39,23 @@ interface PersistedAnalysisRow {
   created_at: string;
   input_type?: string | null;
   input_data?: string | null;
+  slug?: string | null;
+  is_public?: boolean | null;
   scene_data?: {
     app_user_id?: string | null;
     result_json?: AnalysisResult | null;
+    brand?: string | null;
   } | null;
+}
+
+function buildAnalysisSlug(brand: string | null | undefined, name: string | null | undefined, id: string): string {
+  const base = `${brand ?? ''}-${name ?? 'parfum'}`
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  const hash = id.replace(/-/g, '').slice(0, 6);
+  return `${base}-${hash}`;
 }
 
 function cleanText(value: unknown, fallback = ''): string {
@@ -736,7 +749,7 @@ export async function persistAnalysisRecord(params: {
   mode: AnalysisMode;
   inputText: string;
   appUserId: string | null;
-}): Promise<{ id: string; createdAt: string } | null> {
+}): Promise<{ id: string; slug?: string; createdAt: string } | null> {
   const supabase = getSupabase();
   if (!supabase) return null;
 
@@ -752,9 +765,22 @@ export async function persistAnalysisRecord(params: {
     return null;
   }
 
+  const row = data as PersistedAnalysisRow;
+  const slug = buildAnalysisSlug(params.analysis.brand, params.analysis.name, row.id);
+
+  // Write slug back — non-blocking, best-effort
+  supabase
+    .from(SUPABASE_ANALYSES_TABLE)
+    .update({ slug, is_public: true })
+    .eq('id', row.id)
+    .then(({ error: slugError }) => {
+      if (slugError) console.error('[analysis] slug update failed:', slugError);
+    });
+
   return {
-    id: String((data as PersistedAnalysisRow).id || ''),
-    createdAt: String((data as PersistedAnalysisRow).created_at || params.analysis.createdAt),
+    id: String(row.id || ''),
+    slug,
+    createdAt: String(row.created_at || params.analysis.createdAt),
   };
 }
 
@@ -794,7 +820,7 @@ export async function getAnalysisById(id: string): Promise<AnalysisResult | null
 
   const { data, error } = await supabase
     .from(SUPABASE_ANALYSES_TABLE)
-    .select('id, created_at, scene_data')
+    .select('id, created_at, scene_data, slug, is_public')
     .eq('id', id)
     .maybeSingle();
 
@@ -804,4 +830,85 @@ export async function getAnalysisById(id: string): Promise<AnalysisResult | null
   }
 
   return extractStoredResult(data as PersistedAnalysisRow);
+}
+
+export async function getAnalysisBySlug(slug: string): Promise<AnalysisResult | null> {
+  const supabase = getSupabase();
+  const cleanSlug = cleanText(slug);
+  if (!supabase || !cleanSlug) return null;
+
+  const { data, error } = await supabase
+    .from(SUPABASE_ANALYSES_TABLE)
+    .select('id, created_at, scene_data, slug, is_public')
+    .eq('slug', cleanSlug)
+    .eq('is_public', true)
+    .maybeSingle();
+
+  if (error || !data) {
+    if (error) console.error('[analysis] get by slug failed:', error);
+    return null;
+  }
+
+  return extractStoredResult(data as PersistedAnalysisRow);
+}
+
+export async function searchPerfumes(params: {
+  q?: string;
+  gender?: string;
+  season?: string;
+  brand?: string;
+  priceTier?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{ results: Array<Record<string, unknown>>; total: number }> {
+  const supabase = getSupabase();
+  if (!supabase) return { results: [], total: 0 };
+
+  const pageSize = Math.min(params.limit ?? 24, 48);
+  const offset = ((params.page ?? 1) - 1) * pageSize;
+
+  let query = supabase
+    .from('perfumes')
+    .select('id, name, brand, gender, rating, top_notes, heart_notes, base_notes, cover_image_url, price_tier, popularity_score', { count: 'exact' })
+    .order('popularity_score', { ascending: false })
+    .order('rating', { ascending: false, nullsFirst: false })
+    .range(offset, offset + pageSize - 1);
+
+  if (params.q?.trim()) {
+    query = query.textSearch('name', params.q.trim(), { type: 'websearch', config: 'simple' });
+  }
+  if (params.gender) query = query.eq('gender', params.gender);
+  if (params.brand) query = query.ilike('brand', `%${params.brand}%`);
+  if (params.priceTier) query = query.eq('price_tier', params.priceTier);
+
+  const { data, error, count } = await query;
+  if (error) {
+    console.error('[search] perfumes failed:', error);
+    return { results: [], total: 0 };
+  }
+
+  return { results: (data ?? []) as Array<Record<string, unknown>>, total: count ?? 0 };
+}
+
+export async function getTrendingPerfumes(): Promise<Array<Record<string, unknown>>> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('trending_perfumes')
+    .select('*')
+    .order('analysis_count_7d', { ascending: false })
+    .limit(20);
+
+  if (error) {
+    // trending_perfumes view may not exist yet — fall back to recent perfumes
+    const { data: fallback } = await supabase
+      .from('perfumes')
+      .select('id, name, brand, gender, rating, top_notes, cover_image_url, price_tier')
+      .order('rating', { ascending: false, nullsFirst: false })
+      .limit(20);
+    return (fallback ?? []) as Array<Record<string, unknown>>;
+  }
+
+  return (data ?? []) as Array<Record<string, unknown>>;
 }

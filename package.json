@@ -5,6 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "mobile:build:web": "next build",
+    "mobile:add:android": "npx cap add android",
+    "mobile:sync": "npx cap sync",
+    "mobile:copy": "npx cap copy",
+    "mobile:open:android": "npx cap open android",
+    "mobile:assets": "npx capacitor-assets generate --assetPath resources --iconBackgroundColor \"rgb(9,8,10)\" --iconBackgroundColorDark \"rgb(9,8,10)\" --splashBackgroundColor \"rgb(9,8,10)\" --splashBackgroundColorDark \"rgb(9,8,10)\"",
     "build:vercel": "next build",
     "build:data-engine": "node scripts/build-data-engine.mjs",
     "start": "next start",
@@ -27,6 +33,19 @@
     "check:readiness": "node scripts/check-readiness.js"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/camera": "^8.1.0",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.3.0",
+    "@capacitor/network": "^8.0.1",
+    "@capacitor/push-notifications": "^8.0.3",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@supabase/supabase-js": "^2.100.1",
     "@upstash/redis": "^1.37.0",
     "@zxing/browser": "^0.1.5",
@@ -40,6 +59,7 @@
     "smiles-drawer": "^2.0.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
+    "zod": "^4.3.6",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

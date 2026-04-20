@@ -13,6 +13,118 @@ const {
   normalizeAiAnalysisToResult,
   persistAnalysisRecord,
 } = require('../lib/server/core-analysis.cjs');
+const { validateLLMOutput, validateAnalysisInput, formatZodError } = require('./schemas/analysis');
+const crypto = require('crypto');
+
+const PROMPT_VERSION = 'v3';
+
+// ---------------------------------------------------------------------------
+// SHA256 input hash for idempotency cache
+// ---------------------------------------------------------------------------
+function computeInputHash(mode, input, imageBase64) {
+  const raw = mode === 'image'
+    ? `image::${String(imageBase64 || '').slice(0, 256)}`
+    : `${mode}::${String(input || '').toLowerCase().trim()}`;
+  return crypto.createHash('sha256').update(raw).digest('hex');
+}
+
+// ---------------------------------------------------------------------------
+// Analysis cache — read / write (non-throwing)
+// ---------------------------------------------------------------------------
+async function readAnalysisCache(inputHash) {
+  const config = resolveSupabaseConfig();
+  if (!config.url || !config.serviceRoleKey) return null;
+  try {
+    const client = createClient(config.url, config.serviceRoleKey, { auth: { persistSession: false } });
+    const { data } = await client
+      .from('analysis_cache')
+      .select('result_json')
+      .eq('input_hash', inputHash)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+    return data?.result_json || null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeAnalysisCache(inputHash, resultJson, modelVersion) {
+  const config = resolveSupabaseConfig();
+  if (!config.url || !config.serviceRoleKey) return;
+  try {
+    const client = createClient(config.url, config.serviceRoleKey, { auth: { persistSession: false } });
+    await client.from('analysis_cache').upsert({
+      input_hash: inputHash,
+      result_json: resultJson,
+      model_version: modelVersion || null,
+      prompt_version: PROMPT_VERSION,
+      cached_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    }, { onConflict: 'input_hash' });
+  } catch {
+    // non-critical, ignore
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Telemetry logging (non-blocking, fire-and-forget)
+// ---------------------------------------------------------------------------
+function logTelemetry(params) {
+  const config = resolveSupabaseConfig();
+  if (!config.url || !config.serviceRoleKey) return;
+  const {
+    appUserId, mode, latencyMs, success, cacheHit,
+    degraded, retryCount, confidenceScore, hasDbMatch, errorCode, modelVersion,
+  } = params;
+  const client = createClient(config.url, config.serviceRoleKey, { auth: { persistSession: false } });
+  client.from('analysis_telemetry').insert({
+    app_user_id: appUserId || null,
+    mode: mode || 'text',
+    prompt_version: PROMPT_VERSION,
+    model_version: modelVersion || null,
+    latency_ms: latencyMs || null,
+    success: Boolean(success),
+    cache_hit: Boolean(cacheHit),
+    degraded: Boolean(degraded),
+    retry_count: retryCount || 0,
+    confidence_score: confidenceScore != null ? Math.round(confidenceScore) : null,
+    has_db_match: Boolean(hasDbMatch),
+    error_code: errorCode || null,
+  }).then(() => {}).catch(() => {});
+}
+
+// ---------------------------------------------------------------------------
+// Confidence score formula (documented in docs/confidence_formula.md)
+// ---------------------------------------------------------------------------
+const EVIDENCE_WEIGHTS = {
+  verified_component: 5,
+  signature_molecule: 5,
+  accord_component: 3,
+  note_match: 2,
+  inferred: 1,
+  unverified: 0,
+};
+
+function computeConfidenceScore({ contextMatchScore, analysis, mode, hasDbMatch }) {
+  const identityBonus = Math.round((contextMatchScore || 0) * 40);
+
+  const topCount = Array.isArray(analysis?.pyramid?.top) ? analysis.pyramid.top.length : 0;
+  const midCount = Array.isArray(analysis?.pyramid?.middle) ? analysis.pyramid.middle.length : 0;
+  const baseCount = Array.isArray(analysis?.pyramid?.base) ? analysis.pyramid.base.length : 0;
+  const pyramidBonus = Math.min(20, Math.round(((topCount + midCount + baseCount) / 22) * 20));
+
+  const molecules = Array.isArray(analysis?.molecules) ? analysis.molecules : [];
+  const moleculeWeightSum = molecules.reduce((acc, m) => {
+    const level = cleanString(m?.evidenceLevel);
+    return acc + (EVIDENCE_WEIGHTS[level] || 0);
+  }, 0);
+  const maxMoleculeWeight = 5 * 5;
+  const moleculeBonus = Math.min(25, Math.round((moleculeWeightSum / maxMoleculeWeight) * 25));
+
+  const modeBonus = mode === 'text' ? 15 : mode === 'image' ? 10 : 5;
+
+  return Math.min(100, Math.max(0, identityBonus + pyramidBonus + moleculeBonus + modeBonus));
+}
 
 const LAST_RESORT_SIMILAR_FALLBACKS = {
   Gourmand: [
@@ -1186,6 +1298,7 @@ module.exports = async function analyzeHandler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const auth = await readAuthSession(req);
+  const requestStartMs = Date.now();
 
   try {
     await enforceDailyAnalysisQuota(req);
@@ -1198,6 +1311,12 @@ module.exports = async function analyzeHandler(req, res) {
   const body = parseBody(req);
   if (!body) return res.status(400).json({ error: 'Gecersiz JSON govdesi.' });
 
+  // Zod input validation
+  const inputValidation = validateAnalysisInput(body);
+  if (!inputValidation.success) {
+    return res.status(400).json({ error: formatZodError(inputValidation.error) });
+  }
+
   if (!isValidMode(body.mode)) {
     return res.status(400).json({ error: 'mode alani text, notes veya image olmali.' });
   }
@@ -1209,6 +1328,32 @@ module.exports = async function analyzeHandler(req, res) {
 
   if (body.mode === 'image' && !cleanString(body.imageBase64)) {
     return res.status(400).json({ error: 'imageBase64 alani gerekli.' });
+  }
+
+  // Idempotency: check analysis cache
+  const inputHash = computeInputHash(body.mode, input, body.imageBase64);
+  const cached = await readAnalysisCache(inputHash);
+  if (cached && typeof cached === 'object') {
+    const latencyMs = Date.now() - requestStartMs;
+    const entitlement = auth?.user?.id ? await readEntitlementForUser(auth.user.id) : { tier: 'free' };
+    const isPro = entitlement?.tier === 'pro';
+    logTelemetry({
+      appUserId: auth?.user?.id || null,
+      mode: body.mode,
+      latencyMs,
+      success: true,
+      cacheHit: true,
+      degraded: false,
+      retryCount: 0,
+      confidenceScore: cached.confidenceScore,
+      hasDbMatch: cached.dataConfidence?.hasDbMatch || false,
+    });
+    return res.status(200).json({
+      analysis: { ...cached, cached: true },
+      plan: isPro ? 'pro' : 'free',
+      stored: true,
+      cached: true,
+    });
   }
 
   const entitlement = auth?.user?.id ? await readEntitlementForUser(auth.user.id) : { tier: 'free' };
@@ -1246,10 +1391,13 @@ module.exports = async function analyzeHandler(req, res) {
         providerHealthy: true,
         contextMatchScore: initialContextMatchScore,
       });
-      stableDbResult.dataConfidence = {
+      stableDbResult.dataConfidence = { hasDbMatch: true, source: 'db' };
+      stableDbResult.confidenceScore = computeConfidenceScore({
+        contextMatchScore: initialContextMatchScore,
+        analysis: stableDbResult,
+        mode: body.mode,
         hasDbMatch: true,
-        source: 'db',
-      };
+      });
 
       const persisted = await persistAnalysisRecord({
         analysis: stableDbResult,
@@ -1259,12 +1407,22 @@ module.exports = async function analyzeHandler(req, res) {
       });
 
       const finalDbResult = persisted
-        ? {
-            ...stableDbResult,
-            id: persisted.id,
-            createdAt: persisted.createdAt,
-          }
+        ? { ...stableDbResult, id: persisted.id, createdAt: persisted.createdAt }
         : stableDbResult;
+
+      const latencyMs = Date.now() - requestStartMs;
+      writeAnalysisCache(inputHash, finalDbResult, null);
+      logTelemetry({
+        appUserId: auth?.user?.id || null,
+        mode: body.mode,
+        latencyMs,
+        success: true,
+        cacheHit: false,
+        degraded: false,
+        retryCount: 0,
+        confidenceScore: finalDbResult.confidenceScore,
+        hasDbMatch: true,
+      });
 
       return res.status(200).json({
         analysis: finalDbResult,
@@ -1273,16 +1431,14 @@ module.exports = async function analyzeHandler(req, res) {
         dbFirst: true,
       });
     } catch (dbFirstError) {
-      console.error('[api/analyze] db-first path failed:', dbFirstError);
+      // Fall through to LLM path
     }
   }
 
-  const systemPrompt = buildPerfumeAnalysisSystemPrompt({
-    isPro,
-    perfumeContext,
-  });
+  const systemPrompt = buildPerfumeAnalysisSystemPrompt({ isPro, perfumeContext });
 
-  const providerResponse = await callAIProvider(
+  // LLM call with optional retry on Zod validation failure
+  let providerResponse = await callAIProvider(
     buildMessages({ mode: body.mode, input, imageBase64: body.imageBase64 }),
     'analysis',
     {
@@ -1293,73 +1449,94 @@ module.exports = async function analyzeHandler(req, res) {
     },
   );
 
+  let retryCount = 0;
+  if (providerResponse.ok && providerResponse.formatted) {
+    const rawParsed = extractJsonObject(providerResponse.formatted);
+    const zodResult = validateLLMOutput(rawParsed);
+    if (!zodResult.success) {
+      // Retry once with a stricter correction prompt
+      retryCount = 1;
+      const correctionPrompt = `${systemPrompt}\n\nÖNCEKİ YANIT GEÇERSİZDİ. Sadece ve yalnızca şemaya tam uyan JSON döndür. Eksik alanlar: ${formatZodError(zodResult.error)}`;
+      const retryResponse = await callAIProvider(
+        buildMessages({ mode: body.mode, input, imageBase64: body.imageBase64 }),
+        'analysis',
+        {
+          systemPrompt: correctionPrompt,
+          hasImage: body.mode === 'image',
+          useWebSearch: false,
+          responseJsonSchema: buildAnalysisResponseSchema(),
+        },
+      );
+      if (retryResponse.ok && retryResponse.formatted) {
+        providerResponse = retryResponse;
+      }
+    }
+  }
+
   if (!providerResponse.ok || !providerResponse.formatted) {
     try {
       let fallbackContext = perfumeContext;
       if (!fallbackContext && body.mode === 'text') {
-        fallbackContext = await findCatalogContextByIdentity(input, {
-          name: input,
-          brand: '',
-          family: '',
-        });
+        fallbackContext = await findCatalogContextByIdentity(input, { name: input, brand: '', family: '' });
       }
 
       const parsedInputNotes = parseInputNotes(input);
       const contextMatchScore = computeContextMatchScore(input, fallbackContext);
       const hasReliableFallbackBasis =
-        Boolean(fallbackContext) ||
-        parsedInputNotes.length >= 2 ||
-        body.mode === 'image';
+        Boolean(fallbackContext) || parsedInputNotes.length >= 2 || body.mode === 'image';
 
       if (!hasReliableFallbackBasis) {
+        logTelemetry({
+          appUserId: auth?.user?.id || null,
+          mode: body.mode,
+          latencyMs: Date.now() - requestStartMs,
+          success: false,
+          cacheHit: false,
+          degraded: true,
+          retryCount,
+          errorCode: 'no_fallback_basis',
+        });
         return res.status(providerResponse.status || 503).json({
-          error:
-            'Saglayici su an yogun ve bu girdi icin guvenilir fallback olusturulamadi. Lutfen 20-30 saniye sonra tekrar dene veya notalari yazarak tekrar analiz et.',
+          error: 'Saglayici su an yogun ve bu girdi icin guvenilir fallback olusturulamadi. Lutfen 20-30 saniye sonra tekrar dene veya notalari yazarak tekrar analiz et.',
           providerError: providerResponse.error || 'provider_unavailable',
         });
       }
 
       const fallbackPayload = buildEmergencyPayloadV2({
-        input,
-        mode: body.mode,
-        isPro,
-        perfumeContext: fallbackContext,
-        providerError: providerResponse.error,
+        input, mode: body.mode, isPro, perfumeContext: fallbackContext, providerError: providerResponse.error,
       });
-      const fallbackAnalysis = normalizeAiAnalysisToResult({
-        payload: fallbackPayload,
-        mode: body.mode,
-        inputText: input,
-        isPro,
-      });
+      const fallbackAnalysis = normalizeAiAnalysisToResult({ payload: fallbackPayload, mode: body.mode, inputText: input, isPro });
       const identityContext = fallbackContext || (await findCatalogContextByIdentity(input, fallbackAnalysis));
       const dbSimilarFallback = await getDBSimilarFragrances(fallbackAnalysis, isPro);
       applySimilarFragrances(fallbackAnalysis, dbSimilarFallback, isPro);
       const stableFallback = applySafetyFallbacks(fallbackAnalysis, identityContext, isPro, {
-        inputText: input,
-        mode: body.mode,
-        providerHealthy: false,
-        contextMatchScore,
+        inputText: input, mode: body.mode, providerHealthy: false, contextMatchScore,
       });
-      stableFallback.dataConfidence = {
-        hasDbMatch: Boolean(identityContext),
-        source: identityContext ? 'db' : 'ai',
-      };
-
-      const persisted = await persistAnalysisRecord({
+      stableFallback.dataConfidence = { hasDbMatch: Boolean(identityContext), source: identityContext ? 'db' : 'ai' };
+      stableFallback.confidenceScore = computeConfidenceScore({
+        contextMatchScore,
         analysis: stableFallback,
         mode: body.mode,
-        inputText: input,
-        appUserId: auth?.user?.id || null,
+        hasDbMatch: Boolean(identityContext),
       });
 
-      const result = persisted
-        ? {
-            ...stableFallback,
-            id: persisted.id,
-            createdAt: persisted.createdAt,
-          }
-        : stableFallback;
+      const persisted = await persistAnalysisRecord({
+        analysis: stableFallback, mode: body.mode, inputText: input, appUserId: auth?.user?.id || null,
+      });
+      const result = persisted ? { ...stableFallback, id: persisted.id, createdAt: persisted.createdAt } : stableFallback;
+
+      const latencyMs = Date.now() - requestStartMs;
+      logTelemetry({
+        appUserId: auth?.user?.id || null,
+        mode: body.mode,
+        latencyMs,
+        success: true,
+        cacheHit: false,
+        degraded: true,
+        retryCount,
+        confidenceScore: result.confidenceScore,
+        hasDbMatch: Boolean(identityContext),
+      });
 
       return res.status(200).json({
         analysis: result,
@@ -1369,7 +1546,16 @@ module.exports = async function analyzeHandler(req, res) {
         providerError: providerResponse.error || 'provider_unavailable',
       });
     } catch (fallbackError) {
-      console.error('[api/analyze] provider+fallback failed:', fallbackError);
+      logTelemetry({
+        appUserId: auth?.user?.id || null,
+        mode: body.mode,
+        latencyMs: Date.now() - requestStartMs,
+        success: false,
+        cacheHit: false,
+        degraded: true,
+        retryCount,
+        errorCode: 'fallback_failed',
+      });
       return res.status(providerResponse.status || 502).json({
         error: providerResponse.error || 'Analiz olusturulamadi.',
       });
@@ -1378,39 +1564,43 @@ module.exports = async function analyzeHandler(req, res) {
 
   try {
     const payload = extractJsonObject(providerResponse.formatted);
-    const analysis = normalizeAiAnalysisToResult({
-      payload,
-      mode: body.mode,
-      inputText: input,
-      isPro,
-    });
+    const analysis = normalizeAiAnalysisToResult({ payload, mode: body.mode, inputText: input, isPro });
     const identityContext = perfumeContext || (await findCatalogContextByIdentity(input, analysis));
     const dbSimilar = await getDBSimilarFragrances(analysis, isPro);
     applySimilarFragrances(analysis, dbSimilar, isPro);
     const stableResult = applySafetyFallbacks(analysis, identityContext, isPro, {
-      inputText: input,
-      mode: body.mode,
-      providerHealthy: true,
+      inputText: input, mode: body.mode, providerHealthy: true,
     });
-    stableResult.dataConfidence = {
-      hasDbMatch: Boolean(identityContext),
-      source: identityContext ? 'db' : 'ai',
-    };
+    stableResult.dataConfidence = { hasDbMatch: Boolean(identityContext), source: identityContext ? 'db' : 'ai' };
 
-    const persisted = await persistAnalysisRecord({
+    const contextMatchScore = computeContextMatchScore(input, identityContext);
+    stableResult.confidenceScore = computeConfidenceScore({
+      contextMatchScore,
       analysis: stableResult,
       mode: body.mode,
-      inputText: input,
-      appUserId: auth?.user?.id || null,
+      hasDbMatch: Boolean(identityContext),
     });
 
+    const persisted = await persistAnalysisRecord({
+      analysis: stableResult, mode: body.mode, inputText: input, appUserId: auth?.user?.id || null,
+    });
     const finalResult = persisted
-      ? {
-          ...stableResult,
-          id: persisted.id,
-          createdAt: persisted.createdAt,
-        }
+      ? { ...stableResult, id: persisted.id, createdAt: persisted.createdAt }
       : stableResult;
+
+    const latencyMs = Date.now() - requestStartMs;
+    writeAnalysisCache(inputHash, finalResult, null);
+    logTelemetry({
+      appUserId: auth?.user?.id || null,
+      mode: body.mode,
+      latencyMs,
+      success: true,
+      cacheHit: false,
+      degraded: false,
+      retryCount,
+      confidenceScore: finalResult.confidenceScore,
+      hasDbMatch: Boolean(identityContext),
+    });
 
     return res.status(200).json({
       analysis: finalResult,
@@ -1418,7 +1608,16 @@ module.exports = async function analyzeHandler(req, res) {
       stored: Boolean(persisted),
     });
   } catch (error) {
-    console.error('[api/analyze] normalization failed:', error);
+    logTelemetry({
+      appUserId: auth?.user?.id || null,
+      mode: body.mode,
+      latencyMs: Date.now() - requestStartMs,
+      success: false,
+      cacheHit: false,
+      degraded: false,
+      retryCount,
+      errorCode: 'normalization_failed',
+    });
     return res.status(500).json({ error: 'Analiz cevabi islenemedi.' });
   }
 };

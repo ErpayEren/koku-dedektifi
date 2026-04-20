@@ -3,6 +3,7 @@ const {
   hasSupabaseAuthUsersConfig,
   insertSupabaseUser,
   updateSupabaseUser,
+  deleteSupabaseUser,
 } = require('../lib/server/supabase-auth-users');
 const {
   MAX_BODY_BYTES,
@@ -20,9 +21,12 @@ const {
   findUserByEmail,
   readAuthSession,
   sessionKey,
+  emailKey,
+  userKey,
   setAuthCookie,
   clearAuthCookie,
   sessionStore,
+  userStore,
 } = require('../lib/server/auth-session');
 const { mergeLocalWardrobeIntoServer } = require('../lib/server/wardrobe-store');
 
@@ -235,6 +239,105 @@ async function logoutUser(auth) {
   return { status: 200, data: { ok: true } };
 }
 
+async function changePassword(auth, body) {
+  if (!auth) return { status: 401, error: 'Giris gerekli' };
+
+  const oldPassword = typeof body.oldPassword === 'string' ? body.oldPassword : '';
+  const newPassword = typeof body.newPassword === 'string' ? body.newPassword : '';
+
+  if (!oldPassword) return { status: 400, error: 'Mevcut sifre gerekli' };
+  if (newPassword.length < MIN_PASSWORD_LEN || newPassword.length > MAX_PASSWORD_LEN) {
+    return { status: 400, error: `Yeni sifre ${MIN_PASSWORD_LEN}-${MAX_PASSWORD_LEN} karakter olmali` };
+  }
+
+  const user = auth.user;
+  if (!user.salt || !user.passwordHash) {
+    return { status: 400, error: 'Bu hesap sifre tabanli degil' };
+  }
+
+  const oldHash = hashPassword(oldPassword, user.salt);
+  if (!secureCompareHex(oldHash, user.passwordHash)) {
+    return { status: 401, error: 'Mevcut sifre hatali' };
+  }
+
+  const newSalt = crypto.randomBytes(16).toString('hex');
+  const newPasswordHash = hashPassword(newPassword, newSalt);
+  const nowIso = new Date().toISOString();
+
+  const updatedUser = { ...user, salt: newSalt, passwordHash: newPasswordHash, updatedAt: nowIso };
+
+  if (hasSupabaseAuthUsersConfig()) {
+    try {
+      await updateSupabaseUser(updatedUser);
+    } catch (error) {
+      console.warn('[auth] Supabase password change failed.', error?.message || error);
+    }
+  }
+  await hydrateRuntimeUserCache(updatedUser);
+
+  // Revoke current session so user must re-login
+  await sessionStore.setCache(sessionKey(auth.token), {
+    userId: user.id,
+    active: false,
+    revokedAt: nowIso,
+  });
+
+  return { status: 200, data: { ok: true } };
+}
+
+async function deleteAccount(auth) {
+  if (!auth) return { status: 401, error: 'Giris gerekli' };
+
+  const userId = auth.user.id;
+  const nowIso = new Date().toISOString();
+
+  // Revoke session first
+  await sessionStore.setCache(sessionKey(auth.token), {
+    userId,
+    active: false,
+    revokedAt: nowIso,
+  });
+
+  // Remove from in-memory caches
+  await userStore.setCache(userKey(userId), null);
+  if (auth.user.email) {
+    const emailKeyVal = emailKey(auth.user.email);
+    await userStore.setCache(emailKeyVal, null);
+  }
+
+  // Delete from Supabase (cascades to wardrobe, analyses via FK)
+  if (hasSupabaseAuthUsersConfig()) {
+    try {
+      await deleteSupabaseUser(userId);
+    } catch (error) {
+      console.warn('[auth] Supabase account deletion failed.', error?.message || error);
+      return { status: 500, error: 'Hesap silinirken bir hata olustu. Lutfen tekrar deneyin.' };
+    }
+  }
+
+  return { status: 200, data: { ok: true } };
+}
+
+async function forgotPassword(body) {
+  const email = normalizeEmail(body.email);
+  if (!email || !EMAIL_RE.test(email)) {
+    return { status: 400, error: 'Gecerli bir email gerekli' };
+  }
+
+  // Always return success to prevent email enumeration
+  // Email delivery requires SMTP configuration — see docs/email_setup.md
+  // TODO: integrate with SMTP/Resend/Postmark when EMAIL_FROM env is set
+  const emailFrom = cleanString(process.env.EMAIL_FROM);
+  if (!emailFrom) {
+    // Graceful degradation: notify without leaking whether email exists
+    return { status: 200, data: { ok: true } };
+  }
+
+  // If email service is configured, we'd send a reset link here
+  // For now we confirm success without actually sending
+  return { status: 200, data: { ok: true } };
+}
+
 async function patchProfile(auth, body) {
   if (!auth) return { status: 401, error: 'Giris gerekli' };
   const patch = normalizeProfilePatch(body?.profile || {});
@@ -320,6 +423,28 @@ async function handler(req, res) {
     const auth = await readAuthSession(req);
     const result = await logoutUser(auth);
     clearAuthCookie(res);
+    return res.status(result.status).json(result.data);
+  }
+
+  if (action === 'change-password') {
+    const auth = await readAuthSession(req);
+    const result = await changePassword(auth, body);
+    if (result.error) return res.status(result.status).json({ error: result.error });
+    clearAuthCookie(res);
+    return res.status(result.status).json(result.data);
+  }
+
+  if (action === 'delete-account') {
+    const auth = await readAuthSession(req);
+    const result = await deleteAccount(auth);
+    if (result.error) return res.status(result.status).json({ error: result.error });
+    clearAuthCookie(res);
+    return res.status(result.status).json(result.data);
+  }
+
+  if (action === 'forgot-password') {
+    const result = await forgotPassword(body);
+    if (result.error) return res.status(result.status).json({ error: result.error });
     return res.status(result.status).json(result.data);
   }
 

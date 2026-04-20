@@ -54,9 +54,9 @@ function getRedirectTarget(req: NextRequest): string {
   return `${req.nextUrl.pathname}${req.nextUrl.search}`;
 }
 
-function redirectToProfile(req: NextRequest): NextResponse {
+function redirectToLogin(req: NextRequest): NextResponse {
   const url = req.nextUrl.clone();
-  url.pathname = '/profil';
+  url.pathname = '/giris';
   url.searchParams.set('redirect', getRedirectTarget(req));
   return NextResponse.redirect(url);
 }
@@ -140,7 +140,7 @@ export async function middleware(req: NextRequest) {
 
   if (AUTH_ONLY_ROUTES.has(pathname)) {
     const user = await fetchAuthUser(req);
-    if (!user) return redirectToProfile(req);
+    if (!user) return redirectToLogin(req);
   }
 
   if (isApiRoute) {
@@ -150,6 +150,8 @@ export async function middleware(req: NextRequest) {
       'unknown';
 
     const endpoint = pathname.split('/')[2] || 'api';
+
+    // Per-IP rate limit (all API routes)
     if (await isRateLimited(`rl:${ip}:${endpoint}`, 30, 60_000)) {
       return new NextResponse(
         JSON.stringify({
@@ -165,6 +167,31 @@ export async function middleware(req: NextRequest) {
           },
         },
       );
+    }
+
+    // Per-user rate limit for analyze (10 req/min)
+    if (pathname.startsWith('/api/analyze')) {
+      const cookie = req.headers.get('cookie') || '';
+      const kdToken = cookie.match(/kd_token=([^;]+)/)?.[1];
+      if (kdToken) {
+        const userRateKey = `rl:user:${kdToken.slice(0, 16)}:analyze`;
+        if (await isRateLimited(userRateKey, 10, 60_000)) {
+          return new NextResponse(
+            JSON.stringify({
+              error: 'Analiz limitine ulastiniz. Lutfen 1 dakika bekleyin.',
+              retryAfter: 60,
+            }),
+            {
+              status: 429,
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+                'Retry-After': '60',
+                'Cache-Control': 'no-store',
+              },
+            },
+          );
+        }
+      }
     }
   }
 

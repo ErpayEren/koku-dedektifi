@@ -42,4 +42,15 @@ mobile_flutter/android/local.properties
 mobile_flutter/android/key.properties
 mobile_flutter/keystore
 
+# Android keystore — NEVER commit signing keys
+*.jks
+*.keystore
+*.p12
+*.pfx
+android/keystore/
+android/app/keystore/
+keystore.properties
+release-keystore.jks
+local.properties
+
 .env*.local

@@ -115,6 +115,51 @@ function normalizePlans(plans: BillingPlan[] | undefined): BillingPlan[] {
     }));
 }
 
+const COMPARISON_ROWS: Array<{ label: string; free: string; pro: string }> = [
+  { label: 'Günlük analiz', free: '3', pro: 'Sınırsız' },
+  { label: 'Analiz yöntemi', free: 'Fotoğraf / Metin / Nota', pro: 'Fotoğraf / Metin / Nota / Barkod' },
+  { label: 'Benzer parfümler', free: 'İlk 3', pro: 'Top 10' },
+  { label: 'Moleküler analiz', free: 'Sadece isim', pro: 'Tam detay + SMILES + kanıt seviyesi' },
+  { label: 'Parfüm dolabı', free: '5 parfüm', pro: 'Sınırsız' },
+  { label: 'Paylaşım linki', free: '✓', pro: '✓' },
+  { label: 'Kişiselleştirilmiş öneri', free: '—', pro: '✓' },
+  { label: 'Parfümör raporu', free: '—', pro: '✓' },
+  { label: 'Öncelikli destek', free: '—', pro: '✓' },
+];
+
+function ComparisonTable() {
+  return (
+    <div className="mt-10">
+      <div className="mb-4 flex items-center gap-2.5">
+        <div className="h-px w-7 bg-[var(--gold-line)]" />
+        <span className="text-[10px] font-mono uppercase tracking-[.16em] text-muted">Özellik Karşılaştırması</span>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-white/[.06]">
+        {/* Header */}
+        <div className="grid grid-cols-[1fr_96px_96px] border-b border-white/[.06] bg-black/20 px-4 py-3">
+          <span className="text-[10px] font-mono uppercase tracking-[.1em] text-muted">Özellik</span>
+          <span className="text-center text-[10px] font-mono uppercase tracking-[.1em] text-muted">Ücretsiz</span>
+          <span className="text-center text-[10px] font-mono uppercase tracking-[.1em] text-gold">Pro</span>
+        </div>
+
+        {COMPARISON_ROWS.map((row, i) => (
+          <div
+            key={row.label}
+            className={`grid grid-cols-[1fr_96px_96px] items-center px-4 py-3 ${
+              i % 2 === 0 ? 'bg-white/[.015]' : 'bg-transparent'
+            }`}
+          >
+            <span className="text-[13px] text-cream/80">{row.label}</span>
+            <span className="text-center text-[12px] text-muted">{row.free}</span>
+            <span className="text-center text-[12px] text-gold">{row.pro}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function PlanCard({
   activeTier,
   busyPlanId,
@@ -306,6 +351,9 @@ export default function PricingPage() {
               />
             ))}
           </div>
+
+          {/* Feature comparison table */}
+          <ComparisonTable />
         </div>
       </div>
     </AppShell>

@@ -230,6 +230,64 @@ export function DetailPanel({ result, heartNotes, style }: DetailPanelProps) {
   );
 }
 
+function TeaseSimilarUpsell({ hiddenCount, similarLimit }: { hiddenCount: number; similarLimit: number }) {
+  const [blurred, setBlurred] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setBlurred(true), 2200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="mt-4 space-y-2">
+      {/* Tease items — shown briefly then blur */}
+      {Array.from({ length: Math.min(hiddenCount, 2) }).map((_, i) => (
+        <div
+          key={i}
+          className="relative overflow-hidden rounded-xl border border-white/[.06] px-3.5 py-3 transition-all duration-700"
+          style={{
+            filter: blurred ? 'blur(4px)' : 'blur(0)',
+            opacity: blurred ? 0.45 : 0.8,
+            userSelect: 'none',
+            pointerEvents: 'none',
+          }}
+          aria-hidden="true"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="h-3 w-24 animate-pulse rounded-full bg-white/10" />
+              <div className="mt-2 h-2 w-16 animate-pulse rounded-full bg-white/[.06]" />
+            </div>
+            <div className="h-8 w-8 animate-pulse rounded-full bg-white/[.06]" />
+          </div>
+        </div>
+      ))}
+
+      {/* CTA overlay */}
+      <div
+        className="relative rounded-2xl border border-[var(--gold-line)]/40 bg-[linear-gradient(135deg,rgba(201,169,110,0.08),rgba(9,9,14,0.9))] px-4 py-4 transition-all duration-700"
+        style={{ marginTop: blurred ? '-3.5rem' : '0', opacity: blurred ? 1 : 0 }}
+      >
+        <p className="text-[10px] font-mono uppercase tracking-[.14em] text-gold">Pro ile Top 10</p>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-cream/82">
+          {hiddenCount} benzer koku daha bulundu. İlk {similarLimit} ücretsiz.
+        </p>
+        <Link
+          href="/paketler"
+          className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)]/20 px-3 py-2 text-[10px] font-mono uppercase tracking-[.12em] text-gold transition-colors hover:bg-[var(--gold-dim)]/35"
+          aria-label="Pro planına geç ve tüm benzer parfümleri gör"
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+            <rect x="1.5" y="4" width="7" height="5" rx="1" />
+            <path d="M3 4V3a2 2 0 1 1 4 0v1" />
+          </svg>
+          Top 10&apos;u aç
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 interface SimilarPanelProps extends PanelMotionProps {
   similarItems: Array<{ name: string; similarity: number; brand?: string; reason?: string; priceRange?: string }>;
   hiddenSimilarCount: number;
@@ -276,18 +334,7 @@ export function SimilarPanel({
       </div>
 
       {hiddenSimilarCount > 0 ? (
-        <div className="mt-4 rounded-2xl border border-[var(--gold-line)]/35 bg-[var(--gold-dim)]/10 px-4 py-3">
-          <p className="text-[10px] font-mono uppercase tracking-[.14em] text-gold">Pro ile Top 10</p>
-          <p className="mt-2 text-[13px] leading-relaxed text-cream/82">
-            {hiddenSimilarCount} benzer koku daha bulundu. Ücretsiz katmanda ilk {similarLimit} sonuç görünür.
-          </p>
-          <Link
-            href="/paketler"
-            className="mt-3 inline-flex rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)]/20 px-3 py-2 text-[10px] font-mono uppercase tracking-[.12em] text-gold transition-colors hover:bg-[var(--gold-dim)]/35"
-          >
-            Top 10&apos;u aç
-          </Link>
-        </div>
+        <TeaseSimilarUpsell hiddenCount={hiddenSimilarCount} similarLimit={similarLimit} />
       ) : null}
 
     </Card>

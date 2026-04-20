@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (Faz 4 — Tasarım / UX İyileştirmeleri)
+- `components/analysis-results/primitives.tsx` — `ConfidenceRing`: 56px → 72px, renk bantlı (kırmızı/kehribar/altın), sayısal skor, Yüksek/Orta/Düşük Güven etiketi, hover tooltip
+- `components/analysis-results/utils.ts` — `ANALYSIS_STEPS` 4 → 6 adım, daha etkileyici loading mesajları
+- `components/analysis-results/AnalysisLoadingState.tsx` — adım ikonları, `StepDots` progress göstergesi, `aria-live`, gecikmeli skeleton
+- `components/analysis-results/panels.tsx` — `TeaseSimilarUpsell`: 2.2s tease-then-blur, CTA overlay animasyonu
+- `components/HeroInput.tsx` — foto tab primary (flex-1, "En doğru sonuç" badge), secondary Metin/Nota blok, ilk-kez coach-mark (localStorage + 800ms gecikme)
+- `app/paketler/page.tsx` — `ComparisonTable`: 9 satır ücretsiz vs pro karşılaştırması
+
 ### Added (Faz 5 — Mobil Uygulama / Play Store)
 - `lib/native/` — platform, storage, haptics, share, network, permissions, splash, zustand-storage: Capacitor ↔ web unified native abstraction layer
 - `lib/analytics/events.ts` — Sentry üzerinden core event tracking (analysis_started/completed/failed, pro_clicked, share_clicked, barcode_scanned)

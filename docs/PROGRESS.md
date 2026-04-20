@@ -179,17 +179,42 @@
 
 ## FAZ 4 — TASARIM / UX İYİLEŞTİRMELERİ
 
-**Status:** ⬜ Todo  
-**Başlangıç:** —  
-**Bitiş:** —
+**Status:** ✅ Done  
+**Başlangıç:** 2026-04-20  
+**Bitiş:** 2026-04-20
 
-### Yapılacaklar
-- [ ] Hero input hiyerarşisi (foto primary)
-- [ ] Analiz sonuçları progressive disclosure
-- [ ] Confidence ring görselleştirmesi
-- [ ] Pro upsell UI (tease preview)
-- [ ] Mikro-etkileşimler (loading states, haptic)
-- [ ] Accessibility (WCAG AA)
+### Yapılan İşler
+- [x] **`ConfidenceRing` yükseltmesi** (`primitives.tsx`): 56px → 72px, renk bantlı (kırmızı <40, kehribar 40-70, altın ≥70), sayısal skor (0-100), Yüksek/Orta/Düşük Güven etiketi, ipucu text, hover tooltip (formül açıklaması)
+- [x] **`ANALYSIS_STEPS` iyileştirmesi** (`utils.ts`): 4 → 6 adım, daha etkileyici Türkçe mesajlar ("Şişeyi tanıyorum...", "Güven skoru hesaplanıyor...")
+- [x] **`AnalysisLoadingState` yükseltmesi**: Adım ikonları (emoji), `StepDots` progress göstergesi, `aria-live` region, skeleton gecikmeli animasyon, temiz spin CSS
+- [x] **`HeroInput` foto-primary hiyerarşi**: Foto tab `flex-1` ile genişletildi, "En doğru sonuç" pill badge + "Önerilen" alt etiketi, Metin/Nota secondary blokta
+- [x] **Coach-mark**: `kd:coach-seen:v1` localStorage kontrolü, 800ms gecikme, "Şişe fotoğrafını çek, hemen analiz edelim" balonlu tooltip, dismiss ile kalıcı kapanma
+- [x] **"En doğru sonuç" badge**: Foto zone'da görsel yüklenmemişken gösterilen altın pill
+- [x] **`TeaseSimilarUpsell`** (`panels.tsx`): 2 blurred tease item (2.2s sonra blur/opacity geçişi), CTA overlay kayarak açılıyor, kilit ikonu, pro link
+- [x] **`ComparisonTable`** (`paketler/page.tsx`): 9 satır özellik karşılaştırması (Ücretsiz vs Pro), günlük analiz, benzer parfüm, moleküler detay, dolap, vb. — satır sıralı tablo
+- [x] Accessibility: `aria-live`, `aria-label`, `role="progressbar"`, `aria-pressed` tab button'larda
+- [x] `prefers-reduced-motion`: globals.css'de zaten `animation: none !important` global kural mevcut
+
+### Kritik Mimari Kararlar
+- **TeaseSimilarUpsell CSS-only**: Framer Motion kullanılmadı — CSS `filter` + `opacity` transition yeterli, bundle boyutunu etkilemiyor
+- **Coach-mark localStorage**: Capacitor Preferences yerine localStorage (synchronous check, ilk render'da gerekli)
+- **ComparisonTable**: Billing API'ye bağımlı değil, statik veri — checkout butonuna dokunulmadı
+
+### Oluşturulan / Değiştirilen Dosyalar
+- `components/analysis-results/primitives.tsx` — DEĞİŞTİRİLDİ (ConfidenceRing)
+- `components/analysis-results/utils.ts` — DEĞİŞTİRİLDİ (ANALYSIS_STEPS)
+- `components/analysis-results/AnalysisLoadingState.tsx` — DEĞİŞTİRİLDİ
+- `components/analysis-results/panels.tsx` — DEĞİŞTİRİLDİ (TeaseSimilarUpsell)
+- `components/HeroInput.tsx` — DEĞİŞTİRİLDİ (photo primary + coach-mark)
+- `app/paketler/page.tsx` — DEĞİŞTİRİLDİ (ComparisonTable)
+
+### Bilinen Sorunlar / Ertelenenler
+- Dinamik font size (`@capacitor/device`): Faz 6 veya bağımsız — `@capacitor/device` kurulu değil
+- Progressive disclosure accordion (analiz sonuçları): Mevcut layout zaten scroll-driven; Faz 7 teknik borç kapsamında refactor edilebilir
+
+### Bir Sonraki Faza Handoff Notları
+- Faz 6 (SEO): robots.txt, sitemap.xml, JSON-LD şemaları, content sayfaları
+- `ConfidenceRing` artık `pct` → renk/etiket belirliyor — UI tutarlı
 
 ---
 

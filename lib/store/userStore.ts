@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { createPersistStorage } from '@/lib/native/zustand-storage';
 
 const FREE_DAILY_LIMIT = 3;
 const FREE_WARDROBE_LIMIT = 5;
@@ -102,6 +103,7 @@ export const useUserStore = create<UserStore>()(
     }),
     {
       name: 'kd:user-store:v1',
+      storage: createPersistStorage<Partial<UserStore>>(),
       partialize: (state) => ({
         isPro: state.isPro,
         dailyUsed: normalizeDailyUsed(state.dailyUsed, state.lastDailyKey),

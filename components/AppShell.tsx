@@ -4,6 +4,7 @@ import { BillingReturnHandler } from './BillingReturnHandler';
 import { ProModal } from './ProModal';
 import { Sidebar } from './Sidebar';
 import { UserStoreHydrator } from './UserStoreHydrator';
+import { NativeAppInit } from './native/NativeAppInit';
 
 export function AppShell({
   children,
@@ -14,6 +15,7 @@ export function AppShell({
 }) {
   return (
     <div className="relative z-10 mx-auto flex w-full max-w-full flex-col overflow-x-clip md:min-h-screen md:flex-row md:items-start md:overflow-visible lg:max-w-[1400px]">
+      <NativeAppInit />
       <UserStoreHydrator />
       <BillingReturnHandler />
       <div className="pointer-events-none fixed inset-0 -z-10">

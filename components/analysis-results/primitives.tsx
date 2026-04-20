@@ -13,35 +13,83 @@ export function InfoLine({ label, value }: { label: string; value: string }) {
   );
 }
 
+function resolveConfidenceColor(pct: number): string {
+  if (pct >= 70) return '#C9A96E'; // altın
+  if (pct >= 40) return '#D97706'; // kehribar
+  return '#EF4444'; // kırmızımsı
+}
+
+function resolveConfidenceLabel(pct: number): string {
+  if (pct >= 70) return 'Yüksek Güven';
+  if (pct >= 40) return 'Orta Güven';
+  return 'Düşük Güven';
+}
+
+function resolveConfidenceHint(pct: number): string {
+  if (pct >= 70) return 'Güçlü eşleşme';
+  if (pct >= 40) return 'Yeniden çek önerilir';
+  return 'Fotoğrafı netleştir';
+}
+
 export function ConfidenceRing({ pct }: { pct: number }) {
-  const r = 22;
+  const r = 30;
   const circ = 2 * Math.PI * r;
-  const dash = (pct / 100) * circ;
-  const qualitativeLabel = pct >= 85 ? 'Küratörlü' : pct >= 70 ? 'Tutarlı' : pct >= 55 ? 'Destekli' : 'Sinyal';
+  const dash = (clampPercent(pct) / 100) * circ;
+  const color = resolveConfidenceColor(pct);
+  const label = resolveConfidenceLabel(pct);
+  const hint = resolveConfidenceHint(pct);
 
   return (
-    <div className="flex flex-col items-center gap-1">
-      <svg width="56" height="56" viewBox="0 0 56 56" fill="none" aria-label={`Veri dayanağı ${qualitativeLabel}`}>
-        <circle cx="28" cy="28" r={r} stroke="var(--border-md)" strokeWidth="2.5" />
+    <div className="group relative flex flex-col items-center gap-1.5" title={`Güven skoru: ${pct}/100 — ${label}`}>
+      <svg
+        width="72"
+        height="72"
+        viewBox="0 0 72 72"
+        fill="none"
+        aria-label={`Güven skoru ${pct}, ${label}`}
+        role="img"
+      >
+        {/* Track */}
+        <circle cx="36" cy="36" r={r} stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
+        {/* Fill arc */}
         <circle
-          cx="28"
-          cy="28"
+          cx="36"
+          cy="36"
           r={r}
-          stroke="var(--gold)"
-          strokeWidth="2.5"
+          stroke={color}
+          strokeWidth="3"
           strokeLinecap="round"
           strokeDasharray={`${dash} ${circ}`}
-          transform="rotate(-90 28 28)"
-          style={{ transition: 'stroke-dasharray .8s cubic-bezier(.22,.68,0,1.2)' }}
+          transform="rotate(-90 36 36)"
+          style={{ transition: 'stroke-dasharray .9s cubic-bezier(.22,.68,0,1.2), stroke .4s ease' }}
         />
-        <text x="28" y="31" textAnchor="middle" fontFamily="var(--font-mono)" fontSize="8" fill="var(--gold)">
-          Veri
+        {/* Numeric score */}
+        <text x="36" y="33" textAnchor="middle" fontFamily="var(--font-mono)" fontSize="13" fontWeight="600" fill={color}>
+          {clampPercent(pct)}
+        </text>
+        <text x="36" y="44" textAnchor="middle" fontFamily="var(--font-mono)" fontSize="7" fill="rgba(255,255,255,0.4)">
+          / 100
         </text>
       </svg>
-      <span className="text-[8px] font-mono uppercase tracking-[.1em] text-[var(--muted)]">Veri dayanağı</span>
-      <span className="rounded-full border border-[var(--gold-line)]/35 bg-[var(--gold-dim)]/10 px-2 py-0.5 text-[8px] font-mono uppercase tracking-[.12em] text-gold/85">
-        {qualitativeLabel}
+
+      <span
+        className="rounded-full px-2 py-0.5 text-[8px] font-mono uppercase tracking-[.12em]"
+        style={{ color, background: `${color}18`, border: `1px solid ${color}35` }}
+      >
+        {label}
       </span>
+      <span className="text-[8px] font-mono text-white/35">{hint}</span>
+
+      {/* Tooltip on hover */}
+      <div
+        className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 rounded-xl border border-white/10 bg-[#1a1a1a] px-3 py-2 text-center text-[10px] text-white/70 shadow-xl group-hover:block"
+        style={{ whiteSpace: 'nowrap', zIndex: 50 }}
+        role="tooltip"
+      >
+        Skor nasıl hesaplanıyor?
+        <br />
+        <span className="text-gold/80">Molekül eşleşme × kanıt ağırlığı</span>
+      </div>
     </div>
   );
 }

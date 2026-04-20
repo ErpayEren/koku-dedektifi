@@ -34,10 +34,12 @@ export const FAMILY_GLOW: Record<string, string> = {
 };
 
 export const ANALYSIS_STEPS = [
-  'Koku profili çözümleniyor...',
-  'Nota piramidi kuruluyor...',
+  'Şişeyi tanıyorum...',
+  'Üst notalar belirleniyor...',
+  'Kalp ve dip notalar taranıyor...',
   'Moleküler izler eşleştiriliyor...',
-  'Benzer profiller taranıyor...',
+  'Benzer profiller karşılaştırılıyor...',
+  'Güven skoru hesaplanıyor...',
 ] as const;
 
 export const WHEEL_AXES = [

@@ -1,10 +1,12 @@
 'use client';
 
 import Image from 'next/image';
-import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { UI } from '@/lib/strings';
 import type { InputMode } from '@/lib/client/types';
 import { impactHaptic, pickNativeAnalysisPhoto } from '@/lib/mobile/capacitor';
+
+const COACH_MARK_KEY = 'kd:coach-seen:v1';
 
 const QUICK_CHIPS = [
   UI.chipSauvage,
@@ -141,6 +143,33 @@ function TabButton({
   );
 }
 
+function CoachMark({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div
+      className="absolute -top-3 left-1/2 z-30 -translate-x-1/2 -translate-y-full"
+      role="tooltip"
+      aria-live="polite"
+    >
+      <div className="relative rounded-2xl border border-[var(--gold-line)] bg-[#1A1A0F] px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.6)] max-w-[240px] text-center">
+        <p className="text-[12px] font-medium text-cream leading-snug">
+          📸 Şişe fotoğrafını çek,<br />hemen analiz edelim
+        </p>
+        <p className="mt-1 text-[10px] text-gold/70">En doğru sonuç için</p>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="mt-2 text-[9px] font-mono uppercase tracking-wider text-white/30 hover:text-white/60 transition-colors"
+          aria-label="Coach mark kapat"
+        >
+          Tamam, anladım
+        </button>
+        {/* Arrow */}
+        <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-[var(--gold-line)]" aria-hidden="true" />
+      </div>
+    </div>
+  );
+}
+
 export function HeroInput({
   mode,
   textValue,
@@ -159,6 +188,24 @@ export function HeroInput({
   const notesAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [compressedKb, setCompressedKb] = useState<number | null>(null);
+  const [showCoachMark, setShowCoachMark] = useState(false);
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem(COACH_MARK_KEY);
+      if (!seen) {
+        const timer = setTimeout(() => setShowCoachMark(true), 800);
+        return () => clearTimeout(timer);
+      }
+    } catch {
+      // localStorage unavailable
+    }
+  }, []);
+
+  function dismissCoachMark() {
+    setShowCoachMark(false);
+    try { localStorage.setItem(COACH_MARK_KEY, '1'); } catch { /* ignore */ }
+  }
 
   const canAnalyze = useMemo(() => {
     if (isAnalyzing) return false;
@@ -228,10 +275,54 @@ export function HeroInput({
       </div>
 
       <div className="glass-panel input-card overflow-hidden rounded-2xl shadow-[0_26px_54px_rgba(0,0,0,.44)]">
-        <div className="grid grid-cols-3 gap-0 border-b border-white/[.06] bg-black/10 px-0">
-          <TabButton tabMode="photo" activeMode={mode} onClick={() => onModeChange('photo')} label={UI.photoTab} />
-          <TabButton tabMode="text" activeMode={mode} onClick={() => onModeChange('text')} label={UI.textTab} />
-          <TabButton tabMode="notes" activeMode={mode} onClick={() => onModeChange('notes')} label={UI.notesTab} />
+        {/* Tab bar: photo is primary, text+notes are secondary */}
+        <div className="flex items-stretch border-b border-white/[.06] bg-black/10">
+          {/* Photo tab — primary, takes more space */}
+          <div className="relative flex-1">
+            {showCoachMark ? <CoachMark onDismiss={dismissCoachMark} /> : null}
+            <button
+              type="button"
+              onClick={() => { onModeChange('photo'); dismissCoachMark(); }}
+              className={`relative flex w-full min-h-[64px] items-center justify-center gap-2 px-3 py-2.5 transition-colors ${
+                mode === 'photo' ? 'text-cream' : 'text-muted hover:text-cream'
+              }`}
+              aria-pressed={mode === 'photo'}
+              aria-label="Fotoğraf modu — en doğru sonuç"
+            >
+              <span
+                className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors ${
+                  mode === 'photo'
+                    ? 'border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold shadow-[0_0_12px_rgba(201,169,110,0.25)]'
+                    : 'border-white/[.08] text-muted'
+                }`}
+              >
+                <ModeIcon mode="photo" />
+              </span>
+              <div className="flex flex-col items-start">
+                <span className="text-[10px] font-mono uppercase tracking-[.08em] leading-tight">{UI.photoTab}</span>
+                {mode === 'photo' ? (
+                  <span className="text-[8px] font-mono text-gold/70 leading-tight">En doğru sonuç</span>
+                ) : (
+                  <span className="text-[8px] font-mono text-white/25 leading-tight">Önerilen</span>
+                )}
+              </div>
+              <span
+                className={`absolute bottom-0 left-3 right-3 h-px transition-opacity ${
+                  mode === 'photo' ? 'bg-[var(--gold-line)] opacity-100' : 'bg-transparent opacity-0'
+                }`}
+                aria-hidden="true"
+              />
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="w-px bg-white/[.06] self-stretch" aria-hidden="true" />
+
+          {/* Text + Notes — secondary, grouped */}
+          <div className="flex shrink-0">
+            <TabButton tabMode="text" activeMode={mode} onClick={() => { onModeChange('text'); dismissCoachMark(); }} label={UI.textTab} />
+            <TabButton tabMode="notes" activeMode={mode} onClick={() => { onModeChange('notes'); dismissCoachMark(); }} label={UI.notesTab} />
+          </div>
         </div>
 
         <div className="min-h-[230px] p-5 md:p-6">
@@ -278,6 +369,12 @@ export function HeroInput({
                   <circle cx="10" cy="11.2" r="2.8" />
                 </svg>
               </button>
+              {!imagePreview ? (
+                <div className="mb-1 flex items-center gap-1.5 rounded-full border border-[var(--gold-line)]/50 bg-[var(--gold-dim)]/20 px-2.5 py-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-gold/80" aria-hidden="true" />
+                  <span className="text-[9px] font-mono uppercase tracking-[.1em] text-gold/80">En doğru sonuç</span>
+                </div>
+              ) : null}
               <p className="text-center text-[13px] text-muted">{UI.photoPlaceholder}</p>
 
               {imagePreview ? (

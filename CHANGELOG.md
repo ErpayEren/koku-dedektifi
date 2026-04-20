@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Faz 5 — Mobil Uygulama / Play Store)
+- `lib/native/` — platform, storage, haptics, share, network, permissions, splash, zustand-storage: Capacitor ↔ web unified native abstraction layer
+- `lib/analytics/events.ts` — Sentry üzerinden core event tracking (analysis_started/completed/failed, pro_clicked, share_clicked, barcode_scanned)
+- `components/native/NativeAppInit.tsx` — app ready event: splash hide (300ms fade), StatusBar DARK, push notification token register
+- `components/native/PermissionRationaleSheet.tsx` — camera/notification izin gerekçe bottom sheet (Portal, Escape/backdrop dismiss, safe-area uyumlu)
+- `sentry.client.config.ts` + `sentry.server.config.ts` + `sentry.edge.config.ts` — Sentry Next.js konfigürasyonu
+- `app/global-error.tsx` — React render error → Sentry.captureException
+- `docs/play_store_submission.md` — Play Store gönderim kılavuzu: app name/description (TR), screenshot listesi, content rating, data safety formu, keystore komutları, checklist
+- `@capacitor/preferences`, `@capacitor/share`, `@sentry/nextjs`, `@zxing/library` bağımlılıkları eklendi
+
+### Changed (Faz 5)
+- `capacitor.config.ts` — backgroundColor `#0A0A0A`, launchShowDuration `1500`, launchAutoHide `false`, StatusBar `DARK`, `webContentsDebuggingEnabled: !isProd`, `allowMixedContent: false`
+- `android/app/src/main/AndroidManifest.xml` — CAMERA, ACCESS_NETWORK_STATE, VIBRATE, POST_NOTIFICATIONS izinleri; deep link intent-filter (https + custom scheme)
+- `android/app/build.gradle` — versionCode `5`, versionName `1.0.0`, ProGuard/R8 aktif (`minifyEnabled true`, `shrinkResources true`), env-based signing config
+- `android/app/proguard-rules.pro` — Capacitor bridge, Kotlin, OkHttp kuralları, satır numarası koruması
+- `.gitignore` — `*.jks`, `android/keystore/`, `keystore.properties` eklendi
+- `lib/store/userStore.ts` — Capacitor Preferences persist storage (session persist, Faz 1'den ertelenmişti)
+- `components/AppShell.tsx` — `NativeAppInit` eklendi
+- `next.config.js` — `withSentryConfig` sarmalı
+
 ### Added (Faz 3 — Fonksiyonel Boşluklar)
 - `supabase/migrations/20260420_phase3_functional_gaps.sql` — `analyses.slug`, `analyses.is_public`, `analyses_read_public` RLS policy, `pg_trgm` full-text index on perfumes, trending_perfumes materialized view, `generate_analysis_slug()` + `refresh_trending_perfumes()` SQL fonksiyonları
 - `api_internal/perfumes.js` — Perfüm search (q, gender, brand, price_tier, sayfalama) ve trending endpoint

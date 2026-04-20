@@ -195,17 +195,77 @@
 
 ## FAZ 5 — MOBİL UYGULAMA (Play Store)
 
-**Status:** ⬜ Todo  
-**Başlangıç:** —  
-**Bitiş:** —
+**Status:** ✅ Done  
+**Başlangıç:** 2026-04-20  
+**Bitiş:** 2026-04-20
 
-### Yapılacaklar
-- [ ] Capacitor config optimizasyonu
-- [ ] Native plugin'ler entegrasyonu
-- [ ] Android permissions + rationale dialoglar
-- [ ] Play Store hazırlık (`docs/play_store_submission.md`)
-- [ ] ProGuard/R8 + build.gradle ayarları
-- [ ] Sentry/Crashlytics kurulumu
+### Yapılan İşler
+- [x] **`capacitor.config.ts`** optimize: `backgroundColor: '#0A0A0A'`, `launchShowDuration: 1500`, `launchAutoHide: false`, `StatusBar: DARK`, `webContentsDebuggingEnabled: !isProd`, `allowMixedContent: false`, `PushNotifications` config
+- [x] **`AndroidManifest.xml`**: CAMERA, ACCESS_NETWORK_STATE, VIBRATE, POST_NOTIFICATIONS izinleri; `<uses-feature>` camera (required=false); deep link intent-filter (https + `app.kokudedektifi.mobile://`)
+- [x] **`build.gradle`**: `versionCode 5`, `versionName 1.0.0`, ProGuard/R8 aktif (`minifyEnabled true`, `shrinkResources true`), env-based signing config (`KEYSTORE_PATH`, `KEYSTORE_STORE_PASSWORD`, vb.), `proguard-android-optimize.txt`
+- [x] **`proguard-rules.pro`**: Capacitor bridge, Kotlin coroutines, OkHttp keep kuralları, satır numarası koruması
+- [x] **`.gitignore`**: `*.jks`, `android/keystore/`, `keystore.properties`, `local.properties` eklendi
+- [x] **`lib/native/platform.ts`**: `isNative/isAndroid/isIOS/isWeb` helpers
+- [x] **`lib/native/storage.ts`**: Capacitor Preferences ↔ localStorage unified adapter
+- [x] **`lib/native/haptics.ts`**: impact/notification/vibrate abstraction
+- [x] **`lib/native/share.ts`**: Capacitor Share → navigator.share → clipboard fallback
+- [x] **`lib/native/network.ts`**: online check + networkStatusChange listener
+- [x] **`lib/native/permissions.ts`**: camera + notification izin check/request
+- [x] **`lib/native/splash.ts`**: programatik `SplashScreen.hide(fadeOut: 300ms)`
+- [x] **`lib/native/zustand-storage.ts`**: `PersistStorage<T>` adapter (Capacitor Preferences + localStorage)
+- [x] **`lib/store/userStore.ts`**: Capacitor Preferences persist storage entegrasyonu (session persist — Faz 1'den ertelenmişti)
+- [x] **`lib/analytics/events.ts`**: core event tracking (analysis_started/completed/failed, pro_clicked, share_clicked, barcode_scanned) Sentry üzerinden
+- [x] **`components/native/NativeAppInit.tsx`**: app ready → splash hide + StatusBar Dark + push notification token register
+- [x] **`components/native/PermissionRationaleSheet.tsx`**: camera/notification için custom bottom sheet rationale dialog (sistem dialog'undan önce)
+- [x] **`components/AppShell.tsx`**: `NativeAppInit` eklendi
+- [x] **Sentry**: `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`; `next.config.js` `withSentryConfig`; `app/global-error.tsx` React render error handler
+- [x] **`docs/play_store_submission.md`**: app name, short/full description (TR), screenshot listesi, content rating, data safety formu, keystore komutları, release track sırası, pre-submission checklist
+- [x] **npm packages**: `@capacitor/preferences`, `@capacitor/share`, `@sentry/nextjs`, `@zxing/library` (peer dep) kuruldu
+
+### Kritik Mimari Kararlar
+- **Session persist**: Zustand `PersistStorage<T>` doğrudan async adapter ile kullanıldı (Capacitor 8'de native storage async). `createJSONStorage` değil.
+- **Haptics enum casing**: Capacitor 8'de `ImpactStyle.Heavy/Medium/Light` (büyük-küçük karışık), `HEAVY/MEDIUM/LIGHT` değil.
+- **webContentsDebuggingEnabled**: `process.env.NODE_ENV === 'production'` runtime kontrolü ile — `capacitor.config.ts` build-time'da çalışıyor.
+- **Sentry analytics**: Ayrı analytics servisi kurmak yerine Sentry breadcrumb + captureEvent kullandık (tek dependency, production'da event kaydı).
+- **PermissionRationaleSheet**: Portal ile `document.body`'e render, Escape + backdrop click dismiss, safe-area-inset uyumlu.
+- **native barcode (MLKit)**: `@capacitor-community/barcode-scanner` Capacitor 8 ile uyumlu değil; Faz 5'te web `@zxing/browser` kullanımı devam ediyor. MLKit entegrasyonu ertelendi.
+
+### Oluşturulan / Değiştirilen Dosyalar
+- `capacitor.config.ts` — DEĞİŞTİRİLDİ
+- `android/app/src/main/AndroidManifest.xml` — DEĞİŞTİRİLDİ
+- `android/app/build.gradle` — DEĞİŞTİRİLDİ
+- `android/app/proguard-rules.pro` — DEĞİŞTİRİLDİ
+- `.gitignore` — DEĞİŞTİRİLDİ
+- `lib/native/platform.ts` — YENİ
+- `lib/native/storage.ts` — YENİ
+- `lib/native/haptics.ts` — YENİ
+- `lib/native/share.ts` — YENİ
+- `lib/native/network.ts` — YENİ
+- `lib/native/permissions.ts` — YENİ
+- `lib/native/splash.ts` — YENİ
+- `lib/native/zustand-storage.ts` — YENİ
+- `lib/analytics/events.ts` — YENİ
+- `lib/store/userStore.ts` — DEĞİŞTİRİLDİ (Capacitor storage)
+- `components/native/NativeAppInit.tsx` — YENİ
+- `components/native/PermissionRationaleSheet.tsx` — YENİ
+- `components/AppShell.tsx` — DEĞİŞTİRİLDİ (NativeAppInit)
+- `sentry.client.config.ts` — YENİ
+- `sentry.server.config.ts` — YENİ
+- `sentry.edge.config.ts` — YENİ
+- `next.config.js` — DEĞİŞTİRİLDİ (withSentryConfig)
+- `app/global-error.tsx` — YENİ
+- `docs/play_store_submission.md` — YENİ
+
+### Bilinen Sorunlar / Ertelenenler
+- **Native MLKit barkod**: `@capacitor-mlkit/barcode-scanning` veya `@capacitor-community/barcode-scanner` v6 Capacitor 8'e uyumlu değil. Web `@zxing/browser` devam ediyor.
+- **Keystore oluşturma**: Manuel yapılacak (`docs/play_store_submission.md`'de komut var). Credentials env var'a yazılacak.
+- **Play Store internal test upload**: CI/CD veya manuel Gradle build sonrası.
+- **`SENTRY_DSN` env var**: Vercel'e ve `.env.local`'a eklenecek.
+
+### Bir Sonraki Faza Handoff Notları
+- Faz 4 (Tasarım): `lib/native/haptics.ts` ile haptic feedback eklenebilir; `PermissionRationaleSheet` kamera akışına bağlanabilir
+- `lib/analytics/events.ts`'deki helper'lar analiz akışına (`HeroInput`, `AnalysisResults`) bağlanacak
+- `NativeAppInit` zaten AppShell'de — her sayfada otomatik çalışıyor
 
 ---
 

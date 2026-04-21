@@ -5,21 +5,18 @@ let redisClient: Redis | null = null;
 const INTERNAL_AUTH_HEADER = 'x-kd-internal-auth-check';
 const AUTH_ONLY_ROUTES = new Set(['/wear', '/gecmis']);
 
-function resolveRedisEnv(): { url: string; token: string } {
+function resolveRedisEnv(): { url: string; token: string } | null {
   const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
   const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '';
-
-  if (!url || !token) {
-    throw new Error('Redis REST env must be set (UPSTASH_REDIS_REST_* or KV_REST_API_*)');
-  }
-
+  if (!url || !token) return null;
   return { url, token };
 }
 
-function getRedisClient(): Redis {
+function getRedisClient(): Redis | null {
   if (redisClient) return redisClient;
-  const { url, token } = resolveRedisEnv();
-  redisClient = new Redis({ url, token });
+  const env = resolveRedisEnv();
+  if (!env) return null;
+  redisClient = new Redis({ url: env.url, token: env.token });
   return redisClient;
 }
 
@@ -43,11 +40,16 @@ function timingSafeEqual(a: string, b: string): boolean {
 
 async function isRateLimited(key: string, max: number, windowMs: number): Promise<boolean> {
   const redis = getRedisClient();
-  const counter = await redis.incr(key);
-  if (counter === 1) {
-    await redis.expire(key, Math.ceil(windowMs / 1000));
+  if (!redis) return false; // Redis not configured — skip rate limiting
+  try {
+    const counter = await redis.incr(key);
+    if (counter === 1) {
+      await redis.expire(key, Math.ceil(windowMs / 1000));
+    }
+    return counter > max;
+  } catch {
+    return false; // Redis error — fail open, don't block requests
   }
-  return counter > max;
 }
 
 function getRedirectTarget(req: NextRequest): string {

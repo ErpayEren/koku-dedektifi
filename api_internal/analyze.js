@@ -79,6 +79,7 @@ async function findCatalogContextByIdentity(inputText, analysis) {
 }
 
 module.exports = async function analyzeHandler(req, res) {
+  try {
   setSecurityHeaders(res);
   if (!setCorsHeaders(req, res, { methods: 'POST, OPTIONS', headers: 'Content-Type' })) return res.status(403).json({ error: 'Bu origin icin erisim izni yok.' });
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -177,8 +178,14 @@ module.exports = async function analyzeHandler(req, res) {
     writeAnalysisCache(inputHash, finalResult, null);
     logTelemetry({ appUserId: auth?.user?.id || null, mode, latencyMs: Date.now() - startMs, success: true, cacheHit: false, degraded: false, retryCount, confidenceScore: finalResult.confidenceScore, hasDbMatch: Boolean(identityContext) });
     return res.status(200).json({ analysis: finalResult, plan: isPro ? 'pro' : 'free', stored: Boolean(persisted) });
-  } catch {
+  } catch (normErr) {
     logTelemetry({ appUserId: auth?.user?.id || null, mode, latencyMs: Date.now() - startMs, success: false, cacheHit: false, degraded: false, retryCount, errorCode: 'normalization_failed' });
     return res.status(500).json({ error: 'Analiz cevabi islenemedi.' });
+  }
+  } catch (outerErr) {
+    console.error('[analyze] unhandled outer error:', outerErr?.message, outerErr?.stack?.split('\n').slice(0, 4).join(' | '));
+    if (!res.headersSent) {
+      return res.status(500).json({ error: outerErr?.message || 'Beklenmeyen sunucu hatasi.' });
+    }
   }
 };

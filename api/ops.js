@@ -46,6 +46,13 @@ module.exports = async function opsRouter(req, res) {
   if (!loadHandler) {
     return res.status(404).json({ error: 'Ops route not found', route });
   }
-  const handler = loadHandler();
-  return handler(req, res);
+  try {
+    const handler = loadHandler();
+    return await handler(req, res);
+  } catch (err) {
+    console.error('[ops] unhandled error on route', route, err);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: err?.message || 'Sunucu hatası', route });
+    }
+  }
 };

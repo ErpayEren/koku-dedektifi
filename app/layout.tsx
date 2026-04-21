@@ -61,11 +61,30 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
+const ORG_JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Koku Dedektifi',
+  url: 'https://koku-dedektifi.vercel.app',
+  logo: 'https://koku-dedektifi.vercel.app/icon-512.svg',
+  description: 'Yapay zekâ destekli parfüm analizi: koku piramidi, moleküller ve benzer profiller.',
+  sameAs: [],
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'customer support',
+    availableLanguage: 'Turkish',
+  },
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="tr" className={`${cormorant.variable} ${dmSans.variable} ${dmMono.variable}`}>
       <head>
         <link rel="icon" href="/favicon.svg?v=20260331" type="image/svg+xml" sizes="any" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG_JSON_LD) }}
+        />
         <link rel="shortcut icon" href="/favicon.svg?v=20260331" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/icon.svg?v=20260331" type="image/svg+xml" />
         <meta name="mobile-web-app-capable" content="yes" />

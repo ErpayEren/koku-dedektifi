@@ -296,15 +296,62 @@
 
 ## FAZ 6 — SEO VE GROWTH
 
-**Status:** ⬜ Todo  
-**Başlangıç:** —  
-**Bitiş:** —
+**Status:** ✅ Done  
+**Başlangıç:** 2026-04-20  
+**Bitiş:** 2026-04-20
 
-### Yapılacaklar
-- [ ] robots.txt + sitemap.xml (dinamik)
-- [ ] JSON-LD şemaları
-- [ ] Referral altyapısı (UI-only, billing bağlamadan)
-- [ ] Content sayfaları (/hakkinda, /nasil-calisir, /blog)
+### Yapılan İşler
+- [x] **`app/robots.ts`**: dinamik robots.txt — user-agent *, allow /, disallow [/api/, /profil, /hesap, /dolap, /gecmis, /akis, /davet/], sitemap URL
+- [x] **`app/sitemap.ts`**: dinamik sitemap — 11 statik rota + Supabase'den public analiz slug'ları (revalidate: 3600), priority + changeFrequency atamalı
+- [x] **JSON-LD Organization** (`app/layout.tsx`): root layout'a Organization schema (name, url, logo, description, contactPoint) eklendi
+- [x] **JSON-LD Article** (`app/analiz/[slug]/AnalysisSlugClient.tsx`): halihazırda Faz 3'te eklenmişti; doğrulandı
+- [x] **`app/hakkinda/page.tsx`**: manifesto içerik sayfası (misyon, teknoloji stack, iletişim)
+- [x] **`app/nasil-calisir/page.tsx`**: teknoloji açıklama sayfası (3 katman, LLM motoru, vektör eşleşme, güven skoru formülü)
+- [x] **`app/blog/page.tsx`**: blog listeleme sayfası (3 yazı, tag filtreleri, tarih/okuma süresi)
+- [x] **`app/blog/[slug]/page.tsx`**: dinamik blog post sayfası (generateStaticParams, generateMetadata, MDX content)
+- [x] **`app/blog/[slug]/layout.tsx`**: blog post layout (AppShell, TopBar, LegalFooter)
+- [x] **`app/blog/posts.ts`**: blog metadata registry (slug, title, description, date, readingMinutes, tags)
+- [x] **MDX altyapısı**: `@next/mdx`, `@mdx-js/loader`, `@mdx-js/react` kuruldu; `next.config.js` `withMDX` sarmalı; `mdx-components.tsx` root dosyası
+- [x] **3 blog yazısı**: `parfum-molekulleri-nedir.mdx`, `guven-skoru-nasil-hesaplanir.mdx`, `amberwood-ailesi-rehberi.mdx`
+- [x] **`supabase/migrations/20260422_phase6_referrals.sql`**: `referrals` tablosu (code, owner_id, referred_id, status, timestamps), RLS, index'ler, `generate_referral_code()` SQL fonksiyonu
+- [x] **`app/davet/[code]/page.tsx`**: referral landing sayfası (davet kodu gösterimi, /kayit CTA, /profil CTA, TODO_BILLING ödül placeholder'ı)
+- [x] **MobileNav**: Blog + Nasıl Çalışır? linkleri "hakkında" grubu altında eklendi
+
+### Kritik Mimari Kararlar
+- **MDX**: `@next/mdx` (Next.js resmi paketi) kullanıldı — Contentlayer/Velite gibi harici framework gerektirmiyor
+- **Sitemap**: Server-side Supabase REST fetch (apikey header), build-time değil runtime (revalidate: 3600) — slug'lar gerçek zamanlı güncellenir
+- **Referral ödülü**: UI hazır, reward logic `TODO_BILLING.md`'e bırakıldı — billing entegrasyonundan önce no-op
+- **Blog content**: MDX dosyaları `app/blog/content/` altında, `dynamic import` ile yükleniyor — HMR destekli
+
+### Oluşturulan / Değiştirilen Dosyalar
+- `app/robots.ts` — YENİ
+- `app/sitemap.ts` — YENİ
+- `app/layout.tsx` — DEĞİŞTİRİLDİ (Organization JSON-LD)
+- `app/hakkinda/page.tsx` — YENİ
+- `app/nasil-calisir/page.tsx` — YENİ
+- `app/blog/page.tsx` — YENİ
+- `app/blog/posts.ts` — YENİ
+- `app/blog/[slug]/page.tsx` — YENİ
+- `app/blog/[slug]/layout.tsx` — YENİ
+- `app/blog/content/parfum-molekulleri-nedir.mdx` — YENİ
+- `app/blog/content/guven-skoru-nasil-hesaplanir.mdx` — YENİ
+- `app/blog/content/amberwood-ailesi-rehberi.mdx` — YENİ
+- `mdx-components.tsx` — YENİ
+- `next.config.js` — DEĞİŞTİRİLDİ (withMDX)
+- `supabase/migrations/20260422_phase6_referrals.sql` — YENİ
+- `app/davet/[code]/page.tsx` — YENİ
+- `components/MobileNav.tsx` — DEĞİŞTİRİLDİ (Blog + Nasıl Çalışır?)
+- `package.json` / `package-lock.json` — DEĞİŞTİRİLDİ (@next/mdx, @mdx-js/loader, @mdx-js/react)
+
+### Bilinen Sorunlar / Ertelenenler
+- **Referral reward**: Ödül logic'i billing provider bağlanana kadar no-op; `TODO_BILLING.md`'de işaretlendi
+- **Blog RSS feed**: `/blog/feed.xml` route eklenebilir — ertelenmiş
+- **Sitemap perfume pages**: Parfüm kataloğu slug'ları sitemap'a eklenebilir — ertelenmiş
+- **Trending sitemap refresh cron**: `refresh_trending_perfumes()` cron kurulumu ertelenmiş
+
+### Bir Sonraki Faza Handoff Notları
+- Faz 7 (Teknik Borç): `analyze.js` TypeScript dönüşümü, Vitest altyapısı, `.env.example`, GitHub Actions CI
+- Blog içerikleri `/app/blog/content/*.mdx` — kolayca genişletilebilir, yeni post = yeni MDX dosyası + `posts.ts` kaydı
 
 ---
 

@@ -1,7 +1,11 @@
 const { withSentryConfig } = require('@sentry/nextjs');
+const createMDX = require('@next/mdx');
+
+const withMDX = createMDX({ extension: /\.mdx?$/ });
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'],
   poweredByHeader: false,
 
   async redirects() {
@@ -40,7 +44,7 @@ const nextConfig = {
   },
 };
 
-module.exports = withSentryConfig(nextConfig, {
+module.exports = withSentryConfig(withMDX(nextConfig), {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   silent: true,

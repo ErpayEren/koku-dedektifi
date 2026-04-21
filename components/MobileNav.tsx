@@ -6,11 +6,13 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Archive,
+  BookOpen,
   CalendarDays,
   Compass,
   FlaskConical,
   GitCompare,
   History,
+  Info,
   Layers,
   ScanLine,
   Search,
@@ -58,6 +60,13 @@ const NAV: NavGroup[] = [
       { label: 'Haftalık Molekül', href: '/haftalik-molekul', Icon: FlaskConical },
       { label: 'Barkod Tara', href: '/barkod', Icon: ScanLine },
       { label: 'Koku Akışı', href: '/akis', Icon: Wind },
+    ],
+  },
+  {
+    section: 'hakkında',
+    items: [
+      { label: 'Blog', href: '/blog' as Route, Icon: BookOpen },
+      { label: 'Nasıl Çalışır?', href: '/nasil-calisir' as Route, Icon: Info },
     ],
   },
 ];

@@ -1,0 +1,50 @@
+Bir analiz sonucunun sağ üst köşesinde gördüğünüz **güven skoru**, yapay zekânın
+tahminine ne kadar güvendiğini tek bir sayıya indirgeme çabasıdır.
+
+## Formül
+
+```
+confidenceScore = identityBonus + pyramidBonus + moleculeBonus + modeBonus
+```
+
+Her bileşen 0–25 aralığında katkı sağlar; toplam 0–100 bandına normalize edilir.
+
+## Bileşenler
+
+### identityBonus (0–25)
+
+Model hem markayı hem de parfüm adını tespit edebildiyse maksimum puan alır.
+Yalnızca ad tespitinde kısmi puan verilir.
+
+### pyramidBonus (0–25)
+
+Üst, kalp ve dip notaların tamamı doldurulmuşsa tam puan. Eksik bir katman
+için puan düşer.
+
+### moleculeBonus (0–25)
+
+Tespit edilen moleküllerin kanıt ağırlıklı ortalaması alınır:
+- Kesin → 1.0x çarpan
+- Muhtemel → 0.6x
+- Spekülatif → 0.25x
+
+### modeBonus (0–25)
+
+Giriş moduna göre başlangıç avantajı:
+- **Fotoğraf** → +18 (şişe görseli en güvenilir kaynak)
+- **Nota piramidi** → +14
+- **Metin** → +8
+
+## Renk Kodlaması
+
+| Skor | Etiket | Renk |
+|------|--------|-------|
+| 70–100 | Yüksek Güven | Altın |
+| 40–69 | Orta Güven | Kehribar |
+| 0–39 | Düşük Güven | Kırmızı |
+
+## Sınırlamalar
+
+Güven skoru modelin öz-değerlendirmesidir, bağımsız doğrulama değildir.
+Formülasyon patentleri kapalı olduğu sürece hiçbir araç %100 kesinlik
+iddiasında bulunamaz.

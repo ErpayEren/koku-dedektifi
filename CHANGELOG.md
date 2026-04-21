@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Faz 6 — SEO & Growth)
+- `app/robots.ts` — dinamik robots.txt: user-agent *, allow /, disallow [/api/, /profil, /hesap, /dolap, /gecmis, /akis, /davet/], sitemap URL
+- `app/sitemap.ts` — dinamik sitemap.xml: 11 statik rota + Supabase'den public analiz slug'ları (revalidate: 3600, priority + changeFrequency)
+- `app/hakkinda/page.tsx` — manifesto hakkında sayfası (misyon, teknoloji stack, iletişim)
+- `app/nasil-calisir/page.tsx` — teknoloji açıklama sayfası (3 katman, LLM motoru, vektör eşleşme, güven skoru)
+- `app/blog/page.tsx` + `app/blog/posts.ts` — blog listeleme sayfası ve metadata registry
+- `app/blog/[slug]/page.tsx` + `app/blog/[slug]/layout.tsx` — dinamik blog post route (generateStaticParams, MDX)
+- `app/blog/content/*.mdx` — 3 blog yazısı: parfüm molekülleri, güven skoru formülü, amberwood ailesi
+- `mdx-components.tsx` — Next.js MDX root components dosyası
+- `supabase/migrations/20260422_phase6_referrals.sql` — `referrals` tablosu, RLS, index'ler, `generate_referral_code()` fonksiyonu
+- `app/davet/[code]/page.tsx` — referral landing sayfası (davet kodu, kayıt CTA, TODO_BILLING ödül placeholder)
+- `@next/mdx`, `@mdx-js/loader`, `@mdx-js/react` bağımlılıkları eklendi
+
+### Changed (Faz 6)
+- `app/layout.tsx` — Organization JSON-LD schema (root layout, tüm sayfalarda)
+- `next.config.js` — `withMDX` sarmalı + `pageExtensions` MDX desteği
+- `components/MobileNav.tsx` — "hakkında" grubu eklendi (Blog + Nasıl Çalışır? linkleri)
+
 ### Changed (Faz 4 — Tasarım / UX İyileştirmeleri)
 - `components/analysis-results/primitives.tsx` — `ConfidenceRing`: 56px → 72px, renk bantlı (kırmızı/kehribar/altın), sayısal skor, Yüksek/Orta/Düşük Güven etiketi, hover tooltip
 - `components/analysis-results/utils.ts` — `ANALYSIS_STEPS` 4 → 6 adım, daha etkileyici loading mesajları

@@ -20,18 +20,37 @@ function buildProxyHeaders(request: NextRequest): HeadersInit {
 async function proxyAnalyze(request: NextRequest) {
   const origin = new URL(request.url).origin;
   const body = await request.text();
-  const response = await fetch(`${origin}/api/ops?r=analyze`, {
-    method: 'POST',
-    headers: buildProxyHeaders(request),
-    body,
-    cache: 'no-store',
-  });
+
+  let response: Response;
+  try {
+    response = await fetch(`${origin}/api/ops?r=analyze`, {
+      method: 'POST',
+      headers: buildProxyHeaders(request),
+      body,
+      cache: 'no-store',
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { error: 'Analiz servisi şu an yanıt vermiyor, lütfen tekrar deneyin.' },
+      { status: 503 },
+    );
+  }
 
   const text = await response.text();
+
+  // If the upstream returned HTML (e.g. unhandled crash), wrap it as JSON
+  const contentType = response.headers.get('content-type') || '';
+  if (!response.ok && !contentType.includes('application/json')) {
+    return NextResponse.json(
+      { error: `Analiz servisi hatası (${response.status}), lütfen tekrar deneyin.` },
+      { status: response.status >= 500 ? 503 : response.status },
+    );
+  }
+
   return new NextResponse(text, {
     status: response.status,
     headers: {
-      'content-type': response.headers.get('content-type') || 'application/json; charset=utf-8',
+      'content-type': contentType || 'application/json; charset=utf-8',
     },
   });
 }

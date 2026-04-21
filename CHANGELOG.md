@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Faz 7 — Teknik Borç)
+- `api_internal/services/QuotaService.ts/.js` — plan-guard sarmalı; lazy require ile Vitest uyumlu
+- `api_internal/services/CacheService.ts/.js` — SHA-256 idempotency cache servisi (Supabase, 7 gün TTL)
+- `api_internal/services/LLMRouter.ts/.js` — Gemini/OpenRouter/Anthropic retry orchestration, prompt building
+- `api_internal/services/ResultNormalizer.ts/.js` — confidence score, safety fallbacks, score cards, emergency payload, token normalizasyonu
+- `api_internal/services/PersistenceService.ts/.js` — Supabase `analyses` yazma + slug üretimi
+- `api_internal/services/TelemetryService.ts/.js` — fire-and-forget analysis telemetry
+- `api_internal/analyze.ts` — service type'larının re-export dosyası
+- `tests/services/ResultNormalizer.test.ts` — 31 Vitest test senaryosu
+- `tests/services/QuotaService.test.ts` — 5 Vitest test senaryosu (hata sarmalama lojiği)
+- `docs/deployment.md` — Vercel deploy checklist, env var tablosu, secret rotation prosedürleri
+- `docs/architecture.md` — servis diyagramı, request akışı, data layer, modül sistemi
+
+### Changed (Faz 7 — Teknik Borç)
+- `api_internal/analyze.js` — 1623 satır → 184 satır orchestrator; tüm logic servislere taşındı
+- `tsconfig.json` — `noUncheckedIndexedAccess: true` eklendi
+
 ### Added (Faz 6 — SEO & Growth)
 - `app/robots.ts` — dinamik robots.txt: user-agent *, allow /, disallow [/api/, /profil, /hesap, /dolap, /gecmis, /akis, /davet/], sitemap URL
 - `app/sitemap.ts` — dinamik sitemap.xml: 11 statik rota + Supabase'den public analiz slug'ları (revalidate: 3600, priority + changeFrequency)

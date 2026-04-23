@@ -8,7 +8,6 @@ import { TopBar } from './TopBar';
 import { StatusBanners } from './main-experience/StatusBanners';
 import { useMainExperienceController } from './main-experience/useMainExperienceController';
 import { UI } from '@/lib/strings';
-import type { MoleculePreviewEntry } from './MoleculePreviewStrip';
 
 const AnalysisResults = dynamic(
   () => import('./AnalysisResults').then((module) => module.AnalysisResults),
@@ -17,18 +16,11 @@ const AnalysisResults = dynamic(
   },
 );
 
-const MoleculePreviewStrip = dynamic(
-  () => import('./MoleculePreviewStrip').then((module) => module.MoleculePreviewStrip),
-  {
-    loading: () => <div className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6" />,
-  },
-);
-
 interface MainExperienceProps {
-  featuredMolecules: MoleculePreviewEntry[];
+  featuredMolecules?: never[];
 }
 
-export function MainExperience({ featuredMolecules }: MainExperienceProps) {
+export function MainExperience({ featuredMolecules: _featuredMolecules }: MainExperienceProps) {
   const controller = useMainExperienceController();
 
   return (
@@ -38,25 +30,21 @@ export function MainExperience({ featuredMolecules }: MainExperienceProps) {
       <HeroInput
         mode={controller.mode}
         textValue={controller.textValue}
-        notesValue={controller.notesValue}
         imagePreview={controller.imagePreview}
         isAnalyzing={controller.isAnalyzing}
         onModeChange={controller.handleModeChange}
         onTextChange={controller.setTextValue}
-        onNotesChange={controller.setNotesValue}
         onImageChange={controller.handleImageChange}
         onAnalyze={controller.runAnalyze}
         onChipPick={controller.handleChipPick}
       />
-
-      <MoleculePreviewStrip molecules={featuredMolecules} />
 
       <StatusBanners
         error={controller.error}
         notice={controller.notice}
         statusCard={controller.statusCard}
         onRetry={controller.retryAnalyze}
-        onOpenNotesMode={controller.openNotesMode}
+        onOpenTextMode={controller.openTextMode}
         onOpenPackages={controller.openPackages}
       />
 

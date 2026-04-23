@@ -8,14 +8,12 @@ import { AnalysisLoadingState } from './analysis-results/AnalysisLoadingState';
 import { ShareCanvases } from './analysis-results/ShareCanvases';
 import {
   DetailPanel,
-  MoleculePanel,
   OverviewPanel,
   SimilarPanel,
   WheelPanel,
 } from './analysis-results/panels';
 import { useAnalysisResultsModel } from './analysis-results/useAnalysisResultsModel';
 
-const MoleculeCard = dynamic(() => import('./MoleculeCard').then((module) => module.MoleculeCard));
 const ShareAnalysisModal = dynamic(() =>
   import('./ShareAnalysisModal').then((module) => module.ShareAnalysisModal),
 );
@@ -175,33 +173,13 @@ export const AnalysisResults = memo(function AnalysisResults({
             />
           </div>
 
-          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
-            <MoleculePanel
-              molecule={model.molecule}
-              moleculeData={model.moleculeData}
-              moleculeSafeIndex={model.moleculeSafeIndex}
-              hiddenMoleculeCount={model.hiddenMoleculeCount}
-              visibleMoleculeCount={model.visibleMoleculeCount}
-              allMoleculeData={model.allMoleculeData}
-              barsReady={model.barsReady}
-              onSelectMolecule={model.setMoleculeIndex}
-              onOpenMolecule={(index) => {
-                model.setMoleculeIndex(index);
-                model.setMolCardIdx(index);
-              }}
-              onPrev={() => model.setMoleculeIndex((prev) => Math.max(0, prev - 1))}
-              onNext={() => model.setMoleculeIndex((prev) => Math.min(model.moleculeData.length - 1, prev + 1))}
-              onShare={model.shareMoleculesCard}
-              moleculeShareBusy={model.moleculeShareBusy}
-              style={model.cardMotion(2)}
-            />
-
+          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
             <SimilarPanel
               similarItems={model.similarItems}
               hiddenSimilarCount={model.hiddenSimilarCount}
               similarLimit={model.entitlement.similarLimit}
               onAnalyzeSimilar={onAnalyzeSimilar}
-              style={model.cardMotion(3)}
+              style={model.cardMotion(2)}
             />
 
             <WheelPanel
@@ -211,7 +189,7 @@ export const AnalysisResults = memo(function AnalysisResults({
               genderProfile={model.activeResult.genderProfile}
               occasionList={model.occasionList}
               styleSuggestion={model.activeResult.persona?.vibe || ''}
-              style={model.cardMotion(4)}
+              style={model.cardMotion(3)}
             />
           </div>
 
@@ -246,13 +224,6 @@ export const AnalysisResults = memo(function AnalysisResults({
             onDownload={model.downloadResultCard}
           />
 
-          {model.molCardIdx !== null ? (
-            <MoleculeCard
-              molecules={model.moleculeData}
-              initialIndex={model.molCardIdx}
-              onClose={() => model.setMolCardIdx(null)}
-            />
-          ) : null}
         </>
       )}
 

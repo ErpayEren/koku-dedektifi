@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Archive,
   BookOpen,
-  CalendarDays,
   Compass,
   FlaskConical,
   GitCompare,
@@ -48,7 +47,6 @@ const NAV: NavGroup[] = [
     section: 'koleksiyon',
     items: [
       { label: 'Koku Dolabım', href: '/dolap', Icon: Archive },
-      { label: 'Koku Rutinim', href: '/wear', Icon: CalendarDays },
       { label: 'Katmanlama Lab', href: '/layering', Icon: Layers },
     ],
   },
@@ -90,8 +88,12 @@ export function MobileNav() {
       const match = group.items.find((item) => item.href === pathname);
       if (match) return match;
     }
-    return NAV[0].items[0];
+    return NAV[0]?.items[0];
   }, [pathname]);
+
+  if (!currentItem) {
+    return null;
+  }
 
   return (
     <>

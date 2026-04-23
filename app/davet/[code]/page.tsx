@@ -7,10 +7,10 @@ interface Props {
   params: { code: string };
 }
 
-export function generateMetadata({ params }: Props): Metadata {
+export function generateMetadata(): Metadata {
   return {
     title: 'Davet Linki — Koku Dedektifi',
-    description: `Seni Koku Dedektifi'ne davet ettiler! Ücretsiz hesap oluştur, parfüm kimyasını keşfet.`,
+    description: 'Seni Koku Dedektifi\'ne davet ettiler. Ücretsiz hesap oluştur, parfüm kimyasını keşfet.',
     robots: { index: false, follow: false },
   };
 }
@@ -23,9 +23,10 @@ export default function DavetPage({ params }: Props) {
       <TopBar title="Davet" />
       <main className="flex min-h-[70vh] items-center justify-center px-5 py-12">
         <div className="anim-up mx-auto w-full max-w-md text-center">
-          {/* Decorative ring */}
           <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full border border-[var(--gold-line)]/50 bg-[var(--gold-dim)]/10">
-            <span className="text-4xl" aria-hidden="true">🎁</span>
+            <span className="text-4xl" aria-hidden="true">
+              🎁
+            </span>
           </div>
 
           <div className="mb-3 flex justify-center">
@@ -41,8 +42,8 @@ export default function DavetPage({ params }: Props) {
           </h1>
 
           <p className="mb-8 text-[13px] leading-relaxed text-muted">
-            Parfümünü fotoğrafla ya da tarif et; yapay zekâ saniyeler içinde
-            koku piramidini, moleküllerini ve benzer parfümleri çözümlesin.
+            Parfümünü fotoğrafla ya da tarif et; yapay zekâ saniyeler içinde koku piramidini,
+            moleküllerini ve benzer parfümleri çözümlesin.
           </p>
 
           <div className="space-y-3">
@@ -60,10 +61,6 @@ export default function DavetPage({ params }: Props) {
             </Link>
           </div>
 
-          {/* TODO_BILLING: When reward system is active, display "X gün ücretsiz Pro" banner here */}
-          <p className="mt-6 text-[11px] text-muted/50">
-            Ödül sistemi yakında aktif olacak.
-          </p>
         </div>
       </main>
     </AppShell>

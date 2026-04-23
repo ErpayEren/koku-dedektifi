@@ -4,9 +4,9 @@ import type { Route } from 'next';
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { hydrateAnalysisResult } from '@/lib/client/analysis';
-import { ApiError, analyzeImage, analyzeNotes, analyzeText, fetchAnalysisById, readableError } from '@/lib/client/api';
+import { ApiError, analyzeImage, analyzeText, fetchAnalysisById, readableError } from '@/lib/client/api';
 import { FLASH_NOTICE_KEY } from '@/lib/client/useInstantProUpgrade';
-import { findHistoryById, getWardrobe, pushFeed, saveHistoryRow, upsertWardrobe } from '@/lib/client/storage';
+import { findHistoryById, getWardrobe, pushFeed, removeWardrobe, saveHistoryRow, upsertWardrobe } from '@/lib/client/storage';
 import type { AnalysisResult, InputMode, WardrobeItem } from '@/lib/client/types';
 import { useProGate } from '@/hooks/useProGate';
 import { useUserStore } from '@/lib/store/userStore';
@@ -30,7 +30,8 @@ function toWardrobeItem(result: AnalysisResult): WardrobeItem {
 }
 
 function parseMode(value: string | null): InputMode {
-  if (value === 'photo' || value === 'text' || value === 'notes') return value;
+  if (value === 'notes') return 'text';
+  if (value === 'photo' || value === 'text') return value;
   return 'photo';
 }
 
@@ -96,7 +97,6 @@ export function useMainExperienceController() {
 
   const [mode, setMode] = useState<InputMode>('photo');
   const [textValue, setTextValue] = useState('');
-  const [notesValue, setNotesValue] = useState('');
   const [imagePreview, setImagePreview] = useState('');
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -223,8 +223,6 @@ export function useMainExperienceController() {
       if (mode === 'photo') {
         if (!imagePreview) throw new Error('Önce bir fotoğraf seçmelisin.');
         analysis = await analyzeImage(imagePreview, isPro);
-      } else if (mode === 'notes') {
-        analysis = await analyzeNotes(notesValue, isPro);
       } else {
         analysis = await analyzeText(textValue, isPro);
       }
@@ -253,7 +251,7 @@ export function useMainExperienceController() {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [dailyLimit, dailyUsed, handleAnalyzeError, imagePreview, incrementUsage, isPro, mode, notesValue, textValue]);
+  }, [dailyLimit, dailyUsed, handleAnalyzeError, imagePreview, incrementUsage, isPro, mode, textValue]);
 
   const onAnalyzeSimilar = useCallback(
     async (name: string): Promise<void> => {
@@ -320,20 +318,12 @@ export function useMainExperienceController() {
         return;
       }
 
-      if (mode === 'notes') {
-        startTransition(() => {
-          const current = notesValue.trim();
-          setNotesValue(current ? `${current}, ${chip}` : chip);
-        });
-        return;
-      }
-
       startTransition(() => {
         const current = textValue.trim();
         setTextValue(current ? `${current}, ${chip}` : chip);
       });
     },
-    [mode, notesValue, startTransition, textValue],
+    [mode, startTransition, textValue],
   );
 
   const handleImageChange = useCallback(
@@ -348,10 +338,10 @@ export function useMainExperienceController() {
     [startTransition],
   );
 
-  const openNotesMode = useCallback((): void => {
+  const openTextMode = useCallback((): void => {
     startTransition(() => {
-      setMode('notes');
-      replaceModeInUrl('notes');
+      setMode('text');
+      replaceModeInUrl('text');
       setStatusCard(null);
       setNotice('');
     });
@@ -374,6 +364,14 @@ export function useMainExperienceController() {
     }
 
     const item = toWardrobeItem(result);
+
+    if (wardrobeAdded) {
+      removeWardrobe(item.key);
+      setWardrobeAdded(false);
+      setNotice('Dolaptan kaldırıldı.');
+      return;
+    }
+
     const alreadySaved = getWardrobe().some((row) => row.key === item.key);
     if (!alreadySaved && wardrobeLimit !== Number.POSITIVE_INFINITY && wardrobeCount >= wardrobeLimit) {
       requirePro('Sınırsız dolap');
@@ -388,7 +386,7 @@ export function useMainExperienceController() {
       perfume: result.name,
     });
     setNotice('Sonuç dolaba eklendi.');
-  }, [requirePro, result, router, wardrobeCount, wardrobeLimit]);
+  }, [requirePro, result, router, wardrobeAdded, wardrobeCount, wardrobeLimit]);
 
   const compareNow = useCallback((): void => {
     if (!result) {
@@ -429,7 +427,6 @@ export function useMainExperienceController() {
   return {
     mode,
     textValue,
-    notesValue,
     imagePreview,
     result,
     isAnalyzing,
@@ -437,13 +434,12 @@ export function useMainExperienceController() {
     error,
     statusCard,
     setTextValue,
-    setNotesValue,
     handleModeChange,
     handleChipPick,
     handleImageChange,
     runAnalyze,
     retryAnalyze,
-    openNotesMode,
+    openTextMode,
     openPackages,
     onAnalyzeSimilar,
     addToWardrobe,

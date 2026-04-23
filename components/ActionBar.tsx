@@ -53,7 +53,7 @@ export function ActionBar({ hasResult, disabled, wardrobeAdded, onAddWardrobe, o
       className="sticky bottom-[var(--mobile-nav-h)] z-20 flex flex-wrap items-center gap-2 border-t border-white/[.06] bg-bg/90 px-5 py-3.5 backdrop-blur-xl md:bottom-0 md:px-12 anim-up-2"
     >
       <ActionBtn
-        label={wardrobeAdded ? 'Dolaba Eklendi ✓' : UI.addToWardrobe}
+        label={wardrobeAdded ? 'Dolaba Eklendi' : UI.addToWardrobe}
         onClick={onAddWardrobe}
         disabled={disabled}
         active={wardrobeAdded}

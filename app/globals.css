@@ -3,11 +3,11 @@
 @tailwind utilities;
 
 :root {
-  --color-bg: #0d0d12;
-  --color-surface: rgba(255, 255, 255, 0.03);
-  --color-surface-hover: rgba(255, 255, 255, 0.06);
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-active: rgba(255, 255, 255, 0.15);
+  --color-bg: #09080a;
+  --color-surface: rgba(255, 255, 255, 0.045);
+  --color-surface-hover: rgba(255, 255, 255, 0.075);
+  --color-border: rgba(255, 255, 255, 0.09);
+  --color-border-active: rgba(201, 169, 110, 0.28);
 
   --color-amber: #f59e0b;
   --color-amber-dim: rgba(245, 158, 11, 0.6);
@@ -38,7 +38,7 @@
 
   --glow-amber: 0 0 20px rgba(245, 158, 11, 0.25);
   --glow-purple: 0 0 20px rgba(167, 139, 250, 0.25);
-  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 32px rgba(0,0,0,0.55), 0 1px 2px rgba(0,0,0,0.4);
 
   --bg: #09080a;
   --bg-card: #110f13;
@@ -302,12 +302,12 @@ body::after {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.35);
+  background: rgba(201, 169, 110, 0.25);
   border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.6);
+  background: rgba(201, 169, 110, 0.5);
 }
 
 html,
@@ -400,7 +400,7 @@ a:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  box-shadow: 0 0 0 2px rgb(168 85 247), 0 0 0 4px #0d0d12;
+  box-shadow: 0 0 0 2px rgba(201, 169, 110, 0.6), 0 0 0 4px #09080a;
   border-radius: 10px;
 }
 

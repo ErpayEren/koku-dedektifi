@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
@@ -20,12 +20,10 @@ const QUICK_CHIPS = [
 interface HeroInputProps {
   mode: InputMode;
   textValue: string;
-  notesValue: string;
   imagePreview: string;
   isAnalyzing: boolean;
   onModeChange: (mode: InputMode) => void;
   onTextChange: (value: string) => void;
-  onNotesChange: (value: string) => void;
   onImageChange: (dataUrl: string) => void;
   onAnalyze: () => void;
   onChipPick: (chip: string) => void;
@@ -80,15 +78,6 @@ function ModeIcon({ mode }: { mode: InputMode }) {
     );
   }
 
-  if (mode === 'notes') {
-    return (
-      <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6">
-        <path d="M4 5.5h12M4 10h12M4 14.5h8" />
-        <circle cx="15.5" cy="14.5" r="1.3" />
-      </svg>
-    );
-  }
-
   return (
     <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6">
       <path d="M4 14.5l3.4-.8 7.7-7.7a1.8 1.8 0 1 0-2.5-2.5L4.9 11.2z" />
@@ -99,8 +88,7 @@ function ModeIcon({ mode }: { mode: InputMode }) {
 
 function ModeHint({ mode }: { mode: InputMode }) {
   if (mode === 'photo') return <p className="text-[11px] text-muted">{UI.photoHelper}</p>;
-  if (mode === 'notes') return <p className="text-[11px] text-muted">{UI.notesHelper}</p>;
-  return <p className="text-[11px] text-muted">Kısa bir tarif de yeterli: “odunsu ama çok ağır değil” gibi.</p>;
+  return <p className="text-[11px] text-muted">KÄ±sa bir tarif de yeterli: â€œodunsu ama Ã§ok aÄŸÄ±r deÄŸilâ€ gibi.</p>;
 }
 
 function TabButton({
@@ -120,22 +108,22 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`relative flex min-h-[60px] w-full min-w-0 shrink-0 items-center justify-center gap-1.5 px-2 py-2 text-center transition-colors md:min-h-[62px] md:flex-row md:gap-2 ${
+      className={`relative flex min-h-[72px] w-full min-w-0 shrink-0 items-center justify-center gap-2.5 px-4 py-3 text-center transition-colors md:min-h-[76px] md:gap-3 ${
         active ? 'text-cream' : 'text-muted hover:text-cream'
       }`}
     >
       <span
-        className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors md:h-8 md:w-8 ${
+        className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border transition-colors md:h-11 md:w-11 ${
           active ? 'border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold' : 'border-white/[.08] text-muted'
         }`}
       >
         <ModeIcon mode={tabMode} />
       </span>
-      <span className="min-w-0 max-w-[80px] text-center text-[9.5px] font-mono uppercase leading-[1.25] tracking-[.08em] md:max-w-none md:text-[11px]">
+      <span className="min-w-0 text-center text-[10px] font-mono uppercase leading-[1.2] tracking-[.08em] md:text-[11px]">
         {label}
       </span>
       <span
-        className={`absolute bottom-0 left-3 right-3 h-px transition-opacity ${
+        className={`absolute bottom-0 left-6 right-6 h-px transition-opacity md:left-8 md:right-8 ${
           active ? 'bg-[var(--gold-line)] opacity-100' : 'bg-transparent opacity-0'
         }`}
       />
@@ -152,16 +140,16 @@ function CoachMark({ onDismiss }: { onDismiss: () => void }) {
     >
       <div className="relative rounded-2xl border border-[var(--gold-line)] bg-[#1A1A0F] px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.6)] max-w-[240px] text-center">
         <p className="text-[12px] font-medium text-cream leading-snug">
-          📸 Şişe fotoğrafını çek,<br />hemen analiz edelim
+          ğŸ“¸ ÅiÅŸe fotoÄŸrafÄ±nÄ± Ã§ek,<br />hemen analiz edelim
         </p>
-        <p className="mt-1 text-[10px] text-gold/70">En doğru sonuç için</p>
+        <p className="mt-1 text-[10px] text-gold/70">En doÄŸru sonuÃ§ iÃ§in</p>
         <button
           type="button"
           onClick={onDismiss}
           className="mt-2 text-[9px] font-mono uppercase tracking-wider text-white/30 hover:text-white/60 transition-colors"
           aria-label="Coach mark kapat"
         >
-          Tamam, anladım
+          Tamam, anladÄ±m
         </button>
         {/* Arrow */}
         <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-[var(--gold-line)]" aria-hidden="true" />
@@ -173,19 +161,16 @@ function CoachMark({ onDismiss }: { onDismiss: () => void }) {
 export function HeroInput({
   mode,
   textValue,
-  notesValue,
   imagePreview,
   isAnalyzing,
   onModeChange,
   onTextChange,
-  onNotesChange,
   onImageChange,
   onAnalyze,
   onChipPick,
 }: HeroInputProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
-  const notesAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [compressedKb, setCompressedKb] = useState<number | null>(null);
   const [showCoachMark, setShowCoachMark] = useState(false);
@@ -210,9 +195,8 @@ export function HeroInput({
   const canAnalyze = useMemo(() => {
     if (isAnalyzing) return false;
     if (mode === 'photo') return imagePreview.length > 0;
-    if (mode === 'notes') return notesValue.trim().length > 2;
     return textValue.trim().length > 2;
-  }, [imagePreview, isAnalyzing, mode, notesValue, textValue]);
+  }, [imagePreview, isAnalyzing, mode, textValue]);
 
   async function processImageData(dataUrl: string): Promise<void> {
     const compressed = await compressImage(dataUrl);
@@ -236,7 +220,7 @@ export function HeroInput({
     fileInputRef.current?.click();
   }
 
-  const activeCharCount = mode === 'notes' ? notesValue.length : textValue.length;
+  const activeCharCount = textValue.length;
 
   const handleAnalyzeByEnter = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
@@ -275,53 +259,13 @@ export function HeroInput({
       </div>
 
       <div className="glass-panel input-card overflow-hidden rounded-2xl shadow-[0_26px_54px_rgba(0,0,0,.44)]">
-        {/* Tab bar: photo is primary, text+notes are secondary */}
-        <div className="flex items-stretch border-b border-white/[.06] bg-black/10">
-          {/* Photo tab — primary, takes more space */}
-          <div className="relative flex-1">
+        <div className="grid grid-cols-2 items-stretch border-b border-white/[.06] bg-black/10">
+          <div className="relative border-r border-white/[.06]">
             {showCoachMark ? <CoachMark onDismiss={dismissCoachMark} /> : null}
-            <button
-              type="button"
-              onClick={() => { onModeChange('photo'); dismissCoachMark(); }}
-              className={`relative flex w-full min-h-[64px] items-center justify-center gap-2 px-3 py-2.5 transition-colors ${
-                mode === 'photo' ? 'text-cream' : 'text-muted hover:text-cream'
-              }`}
-              aria-pressed={mode === 'photo'}
-              aria-label="Fotoğraf modu — en doğru sonuç"
-            >
-              <span
-                className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors ${
-                  mode === 'photo'
-                    ? 'border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold shadow-[0_0_12px_rgba(201,169,110,0.25)]'
-                    : 'border-white/[.08] text-muted'
-                }`}
-              >
-                <ModeIcon mode="photo" />
-              </span>
-              <div className="flex flex-col items-start">
-                <span className="text-[10px] font-mono uppercase tracking-[.08em] leading-tight">{UI.photoTab}</span>
-                {mode === 'photo' ? (
-                  <span className="text-[8px] font-mono text-gold/70 leading-tight">En doğru sonuç</span>
-                ) : (
-                  <span className="text-[8px] font-mono text-white/25 leading-tight">Önerilen</span>
-                )}
-              </div>
-              <span
-                className={`absolute bottom-0 left-3 right-3 h-px transition-opacity ${
-                  mode === 'photo' ? 'bg-[var(--gold-line)] opacity-100' : 'bg-transparent opacity-0'
-                }`}
-                aria-hidden="true"
-              />
-            </button>
+            <TabButton tabMode="photo" activeMode={mode} onClick={() => { onModeChange('photo'); dismissCoachMark(); }} label={UI.photoTab} />
           </div>
-
-          {/* Divider */}
-          <div className="w-px bg-white/[.06] self-stretch" aria-hidden="true" />
-
-          {/* Text + Notes — secondary, grouped */}
-          <div className="flex shrink-0">
+          <div>
             <TabButton tabMode="text" activeMode={mode} onClick={() => { onModeChange('text'); dismissCoachMark(); }} label={UI.textTab} />
-            <TabButton tabMode="notes" activeMode={mode} onClick={() => { onModeChange('notes'); dismissCoachMark(); }} label={UI.notesTab} />
           </div>
         </div>
 
@@ -362,26 +306,20 @@ export function HeroInput({
                   void handlePhotoTrigger();
                 }}
                 className="flex h-[98px] w-[98px] items-center justify-center rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold transition-colors hover:bg-gold/20"
-                aria-label="Fotoğraf seç"
+                aria-label="FotoÄŸraf seÃ§"
               >
                 <svg width="30" height="30" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.45">
                   <path d="M3 6.5h3l1.3-2h5.4l1.3 2h3v9.5H3z" />
                   <circle cx="10" cy="11.2" r="2.8" />
                 </svg>
               </button>
-              {!imagePreview ? (
-                <div className="mb-1 flex items-center gap-1.5 rounded-full border border-[var(--gold-line)]/50 bg-[var(--gold-dim)]/20 px-2.5 py-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-gold/80" aria-hidden="true" />
-                  <span className="text-[9px] font-mono uppercase tracking-[.1em] text-gold/80">En doğru sonuç</span>
-                </div>
-              ) : null}
               <p className="text-center text-[13px] text-muted">{UI.photoPlaceholder}</p>
 
               {imagePreview ? (
                 <div className="relative w-full max-w-[420px]">
                   <Image
                     src={imagePreview}
-                    alt="Seçilen görsel"
+                    alt="SeÃ§ilen gÃ¶rsel"
                     width={840}
                     height={328}
                     unoptimized
@@ -389,7 +327,7 @@ export function HeroInput({
                   />
                   {compressedKb ? (
                     <span className="absolute left-3 top-3 rounded-full border border-[var(--gold-line)] bg-black/55 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[.06em] text-gold">
-                      Sıkıştırıldı: {compressedKb} KB
+                      SÄ±kÄ±ÅŸtÄ±rÄ±ldÄ±: {compressedKb} KB
                     </span>
                   ) : null}
                 </div>
@@ -423,20 +361,6 @@ export function HeroInput({
             </div>
           ) : null}
 
-          {mode === 'notes' ? (
-            <div>
-              <textarea
-                ref={notesAreaRef}
-                value={notesValue}
-                maxLength={500}
-                onChange={(event) => onNotesChange(event.target.value)}
-                onKeyDown={handleAnalyzeByEnter}
-                className="min-h-[164px] w-full resize-none rounded-xl border border-white/[.07] bg-transparent p-4 text-[1rem] text-cream outline-none placeholder:text-hint focus:border-[var(--gold-line)] md:p-5"
-                placeholder={UI.notesPlaceholder}
-              />
-              <div className="mt-2 text-right text-[10px] font-mono text-hint">{activeCharCount} / 500</div>
-            </div>
-          ) : null}
         </div>
 
         <div className="space-y-4 border-t border-white/[.06] px-4 py-4 md:px-6">
@@ -455,10 +379,6 @@ export function HeroInput({
                 onClick={() => {
                   onChipPick(chip);
                   window.requestAnimationFrame(() => {
-                    if (mode === 'notes') {
-                      notesAreaRef.current?.focus();
-                      return;
-                    }
                     textAreaRef.current?.focus();
                   });
                 }}
@@ -471,7 +391,7 @@ export function HeroInput({
 
           <div className="flex flex-col gap-2 md:items-end">
             <div className="rounded-full border border-white/[.06] bg-white/[.02] px-3 py-1.5 text-[10px] font-mono uppercase tracking-[.12em] text-white/45 md:hidden">
-              Enter ile hızlı başlat
+              Enter ile hÄ±zlÄ± baÅŸlat
             </div>
             <button
               type="button"
@@ -481,7 +401,7 @@ export function HeroInput({
               }}
               disabled={!canAnalyze}
               aria-busy={isAnalyzing}
-              aria-label={isAnalyzing ? 'Analiz yapılıyor, lütfen bekleyin' : 'Kokuyu analiz et'}
+              aria-label={isAnalyzing ? 'Analiz yapÄ±lÄ±yor, lÃ¼tfen bekleyin' : 'Kokuyu analiz et'}
               className={`analyze-btn ${isAnalyzing ? 'loading' : ''} flex w-full items-center justify-center gap-2 rounded-[16px] px-6 py-3.5 text-[11px] font-mono uppercase tracking-[.1em] transition-all md:ml-auto md:w-auto md:self-end ${
                 canAnalyze
                   ? 'btn-primary-pulse bg-gold text-bg shadow-[0_14px_34px_rgba(201,169,110,.24)] hover:bg-[#d4b478]'

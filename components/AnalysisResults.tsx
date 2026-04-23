@@ -8,6 +8,7 @@ import { AnalysisLoadingState } from './analysis-results/AnalysisLoadingState';
 import { ShareCanvases } from './analysis-results/ShareCanvases';
 import {
   DetailPanel,
+  MoleculePanel,
   OverviewPanel,
   SimilarPanel,
   WheelPanel,
@@ -173,13 +174,30 @@ export const AnalysisResults = memo(function AnalysisResults({
             />
           </div>
 
-          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
             <SimilarPanel
               similarItems={model.similarItems}
               hiddenSimilarCount={model.hiddenSimilarCount}
               similarLimit={model.entitlement.similarLimit}
               onAnalyzeSimilar={onAnalyzeSimilar}
               style={model.cardMotion(2)}
+            />
+
+            <MoleculePanel
+              molecule={model.molecule}
+              moleculeData={model.moleculeData}
+              moleculeSafeIndex={model.moleculeSafeIndex}
+              hiddenMoleculeCount={model.hiddenMoleculeCount}
+              visibleMoleculeCount={model.visibleMoleculeCount}
+              allMoleculeData={model.allMoleculeData}
+              barsReady={model.barsReady}
+              onSelectMolecule={(i) => model.setMoleculeIndex(i)}
+              onOpenMolecule={(i) => model.setMoleculeIndex(i)}
+              onPrev={() => model.setMoleculeIndex(Math.max(0, model.moleculeSafeIndex - 1))}
+              onNext={() => model.setMoleculeIndex(Math.min(model.moleculeData.length - 1, model.moleculeSafeIndex + 1))}
+              onShare={() => model.shareMoleculesCard()}
+              moleculeShareBusy={model.moleculeShareBusy}
+              style={model.cardMotion(3)}
             />
 
             <WheelPanel
@@ -189,7 +207,7 @@ export const AnalysisResults = memo(function AnalysisResults({
               genderProfile={model.activeResult.genderProfile}
               occasionList={model.occasionList}
               styleSuggestion={model.activeResult.persona?.vibe || ''}
-              style={model.cardMotion(3)}
+              style={model.cardMotion(4)}
             />
           </div>
 

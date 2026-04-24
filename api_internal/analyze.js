@@ -1,6 +1,6 @@
 'use strict';
 
-// Orchestrator — delegates to api_internal/services/
+// Orchestrator - delegates to api_internal/services/
 // TypeScript source: analyze.ts (type re-exports + declarations)
 // See docs/architecture.md for the full service diagram
 
@@ -68,8 +68,8 @@ async function findCatalogContextByIdentity(inputText, analysis) {
   const compactName = rawAnalysisBrand && rawAnalysisName.toLowerCase().startsWith(rawAnalysisBrand.toLowerCase()) ? rawAnalysisName.slice(rawAnalysisBrand.length).trim() : rawAnalysisName;
   const identityTerms = [rawAnalysisBrand + ' ' + compactName, compactName, rawAnalysisName, rawAnalysisBrand, cleanString(inputText)].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
   const headers = { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}`, 'Content-Type': 'application/json' };
-  const normalizeKey = (v) => String(v ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-  const fragKey = (v) => String(v ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+  const normalizeKey = (v) => String(v ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  const fragKey = (v) => String(v ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
   let bestMatch = null;
   for (const table of tableCandidates) {
     for (const term of identityTerms) {
@@ -146,14 +146,23 @@ module.exports = async function analyzeHandler(req, res) {
 
   const entitlement = auth?.user?.id ? await readEntitlementForUser(auth.user.id) : { tier: 'free' };
   const isPro = entitlement?.tier === 'pro';
-  const perfumeContext = await findPerfumeContextByInput(input, {
+  let perfumeContext = await findPerfumeContextByInput(input, {
     allowVector: mode === 'text' || mode === 'notes',
     includeSimilarCandidates: false,
     mode,
   });
-  const initialContextMatchScore = computeContextMatchScore(input, perfumeContext);
   const directFragranceQuery = mode === 'text' && looksLikeDirectFragranceQuery(input);
   const strongIdentityShape = mode === 'text' && hasStrongIdentityShape(input);
+
+  if (!perfumeContext && mode === 'text' && (directFragranceQuery || strongIdentityShape)) {
+    const identityContext = await findCatalogContextByIdentity(input, { name: input, brand: '', family: '' });
+    if (identityContext) {
+      perfumeContext = identityContext;
+      console.log('[analyze] identity context resolved from catalog for DB-first path');
+    }
+  }
+
+  const initialContextMatchScore = computeContextMatchScore(input, perfumeContext);
   const shouldUseDbFirstPath =
     mode === 'text' &&
     Boolean(perfumeContext) &&
@@ -183,7 +192,7 @@ module.exports = async function analyzeHandler(req, res) {
   const { providerResponse, retryCount } = await callWithRetry({ mode, input, imageBase64: body.imageBase64, isPro, perfumeContext });
 
   if (!providerResponse.ok || !providerResponse.formatted) {
-    console.error('[analyze] provider failed — triggering fallback. ok:', providerResponse.ok, 'error:', providerResponse.error, 'status:', providerResponse.status, 'provider:', providerResponse.provider);
+    console.error('[Error] provider failed -> triggering fallback. ok:', providerResponse.ok, 'error:', providerResponse.error, 'status:', providerResponse.status, 'provider:', providerResponse.provider);
     try {
       let fallbackContext = perfumeContext;
       if (!fallbackContext && mode === 'text') fallbackContext = await findCatalogContextByIdentity(input, { name: input, brand: '', family: '' });
@@ -232,9 +241,10 @@ module.exports = async function analyzeHandler(req, res) {
     return res.status(500).json({ error: 'Analiz cevabi islenemedi.' });
   }
   } catch (outerErr) {
-    console.error('[analyze] unhandled outer error:', outerErr?.message, outerErr?.stack?.split('\n').slice(0, 4).join(' | '));
+    console.error('[Error] analyze unhandled outer error:', outerErr?.message, outerErr?.stack?.split('\n').slice(0, 4).join(' | '));
     if (!res.headersSent) {
       return res.status(500).json({ error: outerErr?.message || 'Beklenmeyen sunucu hatasi.' });
     }
   }
 };
+

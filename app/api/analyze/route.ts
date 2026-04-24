@@ -3,60 +3,121 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-function buildProxyHeaders(request: NextRequest): HeadersInit {
-  const headers: Record<string, string> = {
-    'content-type': request.headers.get('content-type') || 'application/json',
-  };
+type NodeLikeRequest = {
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  body: string;
+  query: Record<string, string | string[]>;
+  socket: { remoteAddress: string };
+};
 
-  const cookie = request.headers.get('cookie');
-  if (cookie) headers.cookie = cookie;
+type HeaderValue = string | number | string[] | undefined;
 
-  const authorization = request.headers.get('authorization');
-  if (authorization) headers.authorization = authorization;
+class ResponseCapture {
+  statusCode = 200;
+  headersSent = false;
+  private readonly headerMap = new Map<string, string>();
+  private body = '';
 
-  return headers;
+  setHeader(name: string, value: HeaderValue) {
+    if (typeof value === 'undefined') return this;
+    const normalized = Array.isArray(value) ? value.join(', ') : String(value);
+    this.headerMap.set(name.toLowerCase(), normalized);
+    return this;
+  }
+
+  getHeader(name: string) {
+    return this.headerMap.get(name.toLowerCase());
+  }
+
+  status(code: number) {
+    this.statusCode = code;
+    return this;
+  }
+
+  json(payload: unknown) {
+    if (!this.getHeader('content-type')) {
+      this.setHeader('content-type', 'application/json; charset=utf-8');
+    }
+    this.body = JSON.stringify(payload);
+    this.headersSent = true;
+    return this;
+  }
+
+  end(payload?: string | null) {
+    this.body = payload ? String(payload) : '';
+    this.headersSent = true;
+    return this;
+  }
+
+  toNextResponse() {
+    const headers = new Headers();
+    for (const [key, value] of this.headerMap.entries()) {
+      headers.set(key, value);
+    }
+    return new NextResponse(this.body, {
+      status: this.statusCode,
+      headers,
+    });
+  }
 }
 
-async function proxyAnalyze(request: NextRequest) {
-  const origin = new URL(request.url).origin;
-  const body = await request.text();
+function buildNodeLikeRequest(request: NextRequest, body: string): NodeLikeRequest {
+  const headers = Object.fromEntries(
+    Array.from(request.headers.entries()).map(([key, value]) => [key.toLowerCase(), value]),
+  );
 
-  let response: Response;
-  try {
-    response = await fetch(`${origin}/api/ops?r=analyze`, {
-      method: 'POST',
-      headers: buildProxyHeaders(request),
-      body,
-      cache: 'no-store',
-    });
-  } catch (err) {
-    return NextResponse.json(
-      { error: 'Analiz servisi şu an yanıt vermiyor, lütfen tekrar deneyin.' },
-      { status: 503 },
-    );
-  }
-
-  const text = await response.text();
-
-  // If the upstream returned HTML (e.g. unhandled crash), wrap it as JSON
-  const contentType = response.headers.get('content-type') || '';
-  if (!response.ok && !contentType.includes('application/json')) {
-    return NextResponse.json(
-      { error: `Analiz servisi hatası (${response.status}), lütfen tekrar deneyin.` },
-      { status: response.status >= 500 ? 503 : response.status },
-    );
-  }
-
-  return new NextResponse(text, {
-    status: response.status,
-    headers: {
-      'content-type': contentType || 'application/json; charset=utf-8',
-    },
+  const query: Record<string, string | string[]> = {};
+  request.nextUrl.searchParams.forEach((value, key) => {
+    const existing = query[key];
+    if (typeof existing === 'undefined') {
+      query[key] = value;
+      return;
+    }
+    query[key] = Array.isArray(existing) ? [...existing, value] : [existing, value];
   });
+
+  return {
+    method: request.method,
+    url: request.url,
+    headers,
+    body,
+    query,
+    socket: {
+      remoteAddress:
+        headers['x-real-ip'] ||
+        headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+        '0.0.0.0',
+    },
+  };
+}
+
+async function runAnalyzeHandler(request: NextRequest) {
+  const body = await request.text();
+  const nodeReq = buildNodeLikeRequest(request, body);
+  const nodeRes = new ResponseCapture();
+
+  try {
+    const mod = await import('../../../api_internal/analyze.js');
+    const analyzeHandler: (req: NodeLikeRequest, res: ResponseCapture) => Promise<unknown> =
+      (mod.default || mod) as never;
+
+    await analyzeHandler(nodeReq, nodeRes);
+    return nodeRes.toNextResponse();
+  } catch (error) {
+    console.error('[app/api/analyze] failed:', error);
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Beklenmeyen sunucu hatasi.',
+      },
+      { status: 500 },
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {
-  return proxyAnalyze(request);
+  return runAnalyzeHandler(request);
 }
 
 export async function OPTIONS() {

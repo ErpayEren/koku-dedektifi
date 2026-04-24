@@ -187,6 +187,12 @@ export function HeroInput({
     }
   }, []);
 
+  useEffect(() => {
+    if (isAnalyzing) {
+      textAreaRef.current?.blur();
+    }
+  }, [isAnalyzing]);
+
   function dismissCoachMark() {
     setShowCoachMark(false);
     try { localStorage.setItem(COACH_MARK_KEY, '1'); } catch { /* ignore */ }
@@ -352,9 +358,10 @@ export function HeroInput({
                 ref={textAreaRef}
                 value={textValue}
                 maxLength={500}
+                disabled={isAnalyzing}
                 onChange={(event) => onTextChange(event.target.value)}
                 onKeyDown={handleAnalyzeByEnter}
-                className="min-h-[164px] w-full resize-none rounded-xl border border-white/[.07] bg-transparent p-4 text-[1rem] text-cream outline-none placeholder:text-hint focus:border-[var(--gold-line)] md:p-5"
+                className="min-h-[164px] w-full resize-none rounded-xl border border-white/[.07] bg-transparent p-4 text-[1rem] text-cream outline-none placeholder:text-hint focus:border-[var(--gold-line)] disabled:cursor-not-allowed disabled:opacity-60 md:p-5"
                 placeholder={UI.textPlaceholder}
               />
               <div className="mt-2 text-right text-[10px] font-mono text-hint">{activeCharCount} / 500</div>

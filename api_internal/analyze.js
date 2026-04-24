@@ -29,6 +29,36 @@ function parseBody(req) {
   return body && typeof body === 'object' ? body : null;
 }
 
+function looksLikeDirectFragranceQuery(value) {
+  const normalized = cleanString(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalized || normalized.length < 4) return false;
+  if (/\b(ama|gibi|istiyorum|ariyorum|oner|onerir|tarzi|benziyor|benzer|hafif|agir|tatli|fresh|odunsu|ciceksi|baharatli|gunduz|gece)\b/.test(normalized)) {
+    return false;
+  }
+
+  const tokens = normalized.split(' ').filter(Boolean);
+  return tokens.length <= 5;
+}
+
+function hasStrongIdentityShape(value) {
+  const normalized = cleanString(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const tokens = normalized.split(' ').filter(Boolean);
+  return tokens.length >= 2 && tokens.some((token) => token.length >= 4);
+}
+
 async function findCatalogContextByIdentity(inputText, analysis) {
   const config = resolveSupabaseConfig();
   if (!config.url || !config.serviceRoleKey) return null;
@@ -88,8 +118,12 @@ module.exports = async function analyzeHandler(req, res) {
   const auth = await readAuthSession(req);
   const startMs = Date.now();
 
-  const quotaError = await enforceQuota(req);
-  if (quotaError) return res.status(quotaError.statusCode).json(quotaError.body);
+  const evalSecret = req.headers['x-eval-secret'];
+  const isEvalMode = evalSecret && evalSecret === process.env.EVAL_SECRET;
+  if (!isEvalMode) {
+    const quotaError = await enforceQuota(req);
+    if (quotaError) return res.status(quotaError.statusCode).json(quotaError.body);
+  }
 
   const body = parseBody(req);
   if (!body) return res.status(400).json({ error: 'Gecersiz JSON govdesi.' });
@@ -111,9 +145,22 @@ module.exports = async function analyzeHandler(req, res) {
 
   const entitlement = auth?.user?.id ? await readEntitlementForUser(auth.user.id) : { tier: 'free' };
   const isPro = entitlement?.tier === 'pro';
-  const perfumeContext = await findPerfumeContextByInput(input, { allowVector: mode === 'text' || mode === 'notes', mode });
+  const perfumeContext = await findPerfumeContextByInput(input, {
+    allowVector: mode === 'text' || mode === 'notes',
+    includeSimilarCandidates: false,
+    mode,
+  });
   const initialContextMatchScore = computeContextMatchScore(input, perfumeContext);
-  const shouldUseDbFirstPath = mode === 'text' && Boolean(perfumeContext) && initialContextMatchScore >= 0.74;
+  const directFragranceQuery = mode === 'text' && looksLikeDirectFragranceQuery(input);
+  const strongIdentityShape = mode === 'text' && hasStrongIdentityShape(input);
+  const shouldUseDbFirstPath =
+    mode === 'text' &&
+    Boolean(perfumeContext) &&
+    (
+      initialContextMatchScore >= 0.74 ||
+      (directFragranceQuery && initialContextMatchScore >= 0.58) ||
+      (strongIdentityShape && initialContextMatchScore >= 0.42)
+    );
 
   if (shouldUseDbFirstPath) {
     try {

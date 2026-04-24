@@ -30,7 +30,9 @@
     "format": "prettier --write .",
     "smoke:web": "node scripts/smoke-web.js",
     "guardrail": "node scripts/launch-guardrail.js",
-    "check:readiness": "node scripts/check-readiness.js"
+    "check:readiness": "node scripts/check-readiness.js",
+    "eval": "ts-node --project tsconfig.scripts.json scripts/eval/run_eval.ts",
+    "eval:dry": "ts-node --project tsconfig.scripts.json scripts/eval/run_eval.ts --dry-run"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.0",

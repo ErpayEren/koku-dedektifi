@@ -127,6 +127,7 @@ module.exports = async function analyzeHandler(req, res) {
 
   const body = parseBody(req);
   if (!body) return res.status(400).json({ error: 'Gecersiz JSON govdesi.' });
+  console.log('[analyze] mode:', body.mode, 'imageBase64 length:', body.imageBase64?.length ?? 0);
   const inputValidation = validateAnalysisInput(body);
   if (!inputValidation.success) return res.status(400).json({ error: formatZodError(inputValidation.error) });
   const { mode } = body;
@@ -182,6 +183,7 @@ module.exports = async function analyzeHandler(req, res) {
   const { providerResponse, retryCount } = await callWithRetry({ mode, input, imageBase64: body.imageBase64, isPro, perfumeContext });
 
   if (!providerResponse.ok || !providerResponse.formatted) {
+    console.error('[analyze] provider failed — triggering fallback. ok:', providerResponse.ok, 'error:', providerResponse.error, 'status:', providerResponse.status, 'provider:', providerResponse.provider);
     try {
       let fallbackContext = perfumeContext;
       if (!fallbackContext && mode === 'text') fallbackContext = await findCatalogContextByIdentity(input, { name: input, brand: '', family: '' });

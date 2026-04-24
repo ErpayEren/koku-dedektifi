@@ -38,8 +38,24 @@ function buildMessages({ mode, input, imageBase64 }) {
   return [{ role: 'user', content: `${prefix}\n${input}` }];
 }
 
+function tryExtractAndValidate(formatted) {
+  try {
+    const rawParsed = extractJsonObject(formatted);
+    const zodResult = validateLLMOutput(rawParsed);
+    if (!zodResult.success) {
+      return { ok: false, reason: formatZodError(zodResult.error) };
+    }
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      reason: error instanceof Error ? error.message : 'invalid_json',
+    };
+  }
+}
+
 /**
- * Calls the LLM with optional one-time retry on Zod validation failure.
+ * Calls the LLM with optional one-time retry on malformed JSON or schema failure.
  * @returns {{ providerResponse, retryCount }}
  */
 async function callWithRetry({ mode, input, imageBase64, isPro, perfumeContext }) {
@@ -56,18 +72,28 @@ async function callWithRetry({ mode, input, imageBase64, isPro, perfumeContext }
   let retryCount = 0;
 
   if (providerResponse.ok && providerResponse.formatted) {
-    const rawParsed = extractJsonObject(providerResponse.formatted);
-    const zodResult = validateLLMOutput(rawParsed);
-    if (!zodResult.success) {
+    const validation = tryExtractAndValidate(providerResponse.formatted);
+    if (!validation.ok) {
       retryCount = 1;
-      const correctionPrompt = `${systemPrompt}\n\nÖNCEKİ YANIT GEÇERSİZDİ. Sadece ve yalnızca şemaya tam uyan JSON döndür. Eksik alanlar: ${formatZodError(zodResult.error)}`;
+      const correctionPrompt = `${systemPrompt}\n\nONCEKI YANIT GECERSIZDI. Sadece ve yalnizca semaya tam uyan JSON dondur. Sorun: ${validation.reason}`;
       const retryResponse = await callAIProvider(messages, 'analysis', {
         systemPrompt: correctionPrompt,
         hasImage: mode === 'image',
         useWebSearch: false,
         responseJsonSchema: buildAnalysisResponseSchema(),
       });
+
       if (retryResponse.ok && retryResponse.formatted) {
+        const retryValidation = tryExtractAndValidate(retryResponse.formatted);
+        if (retryValidation.ok) {
+          providerResponse = retryResponse;
+        } else {
+          // Validation failed but Gemini did return content — pass through so
+          // normalizeAiAnalysisToResult can extract what it got rather than falling back to "Bilinmeyen Koku"
+          console.error('[LLMRouter] retry Zod validation failed:', retryValidation.reason, '— using response anyway');
+          providerResponse = retryResponse;
+        }
+      } else {
         providerResponse = retryResponse;
       }
     }

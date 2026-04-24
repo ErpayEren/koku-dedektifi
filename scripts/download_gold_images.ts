@@ -14,7 +14,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as puppeteer from 'puppeteer';
-import * as sharp from 'sharp';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const sharp = require('sharp') as typeof import('sharp');
 
 type Browser = puppeteer.Browser;
 type Page    = puppeteer.Page;
@@ -27,7 +28,7 @@ const DATASET_PATH = path.resolve(__dirname, '../docs/gold_dataset/perfume_gold_
 const OUT_DIR      = path.resolve(__dirname, '../assets/gold_images');
 const FAILURES_MD  = path.resolve(__dirname, './download_failures.md');
 
-const PROCESS_CATEGORIES = new Set(['Popular', 'Niche', 'Trap']);
+const PROCESS_CATEGORIES = new Set(['popular', 'niche', 'trap']);
 const RATE_LIMIT_MS = 2000;
 const WEBP_QUALITY  = 85;
 const NAV_TIMEOUT   = 30_000;
@@ -38,20 +39,43 @@ const NAV_TIMEOUT   = 30_000;
 
 interface DatasetItem {
   id?: string;
-  brand: string;
-  name: string;
+  expected_brand?: string | null;
+  expected_name?:  string | null;
+  brand?:          string | null;
+  name?:           string | null;
   category: string;
   image: string;
   [key: string]: unknown;
 }
 
 interface Failure {
-  index: number;
-  brand: string;
-  name: string;
+  index:    number;
+  brand:    string;
+  name:     string;
   category: string;
-  image: string;
-  reason: string;
+  image:    string;
+  reason:   string;
+}
+
+/** Placeholder görsel URL'lerini tanımlar (Fragrantica default) */
+const PLACEHOLDER_PATTERNS = [
+  /375x500\.1\.jpg/,
+  /nopic\.jpg/,
+  /no_picture/,
+  /placeholder/i,
+];
+
+function isPlaceholderUrl(url: string): boolean {
+  return PLACEHOLDER_PATTERNS.some((p) => p.test(url));
+}
+
+/** item'dan marka ve ismi okur; her iki field adı formatını destekler */
+function itemBrand(item: DatasetItem): string {
+  return (item.expected_brand ?? item.brand ?? '').trim();
+}
+
+function itemName(item: DatasetItem): string {
+  return (item.expected_name ?? item.name ?? '').trim();
 }
 
 // ---------------------------------------------------------------------------
@@ -170,8 +194,10 @@ async function processItem(
     await page.setExtraHTTPHeaders({ 'Accept-Language': 'tr-TR,tr;q=0.9,en;q=0.8' });
 
     // --- Arama sayfası ---
-    const sUrl = searchUrl(item.brand, item.name);
-    log(`[${index}] Aranıyor: ${item.brand} ${item.name}`);
+    const brand = itemBrand(item);
+    const name  = itemName(item);
+    const sUrl  = searchUrl(brand, name);
+    log(`[${index}] Aranıyor: ${brand} — ${name}`);
 
     await page.goto(sUrl, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT });
 
@@ -193,6 +219,10 @@ async function processItem(
     const imgUrl = await extractBottleImageUrl(page);
     if (!imgUrl) {
       return { ok: false, reason: `Görsel URL bulunamadı — ${resultUrl}` };
+    }
+
+    if (isPlaceholderUrl(imgUrl)) {
+      return { ok: false, reason: `Placeholder görsel döndü: ${imgUrl}` };
     }
 
     if (DRY_RUN) {
@@ -235,7 +265,9 @@ async function processItem(
 
 async function main(): Promise<void> {
   const dataset = loadDataset();
-  const targets = dataset.filter((item) => PROCESS_CATEGORIES.has(item.category));
+  const targets = dataset
+    .filter((item) => PROCESS_CATEGORIES.has(item.category.toLowerCase()))
+    .filter((item) => Boolean(itemBrand(item)) && Boolean(itemName(item)));
 
   const slice = FROM > 0 ? targets.slice(FROM) : targets;
 
@@ -279,11 +311,11 @@ async function main(): Promise<void> {
         const reason = result.ok === false ? result.reason : '';
         log(`  ✗ Başarısız: ${reason}`);
         failures.push({
-          index: absIdx,
-          brand: item.brand,
-          name: item.name,
+          index:    absIdx,
+          brand:    itemBrand(item),
+          name:     itemName(item),
           category: item.category,
-          image: item.image,
+          image:    item.image,
           reason,
         });
       }

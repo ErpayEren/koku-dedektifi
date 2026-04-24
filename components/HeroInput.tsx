@@ -88,7 +88,7 @@ function ModeIcon({ mode }: { mode: InputMode }) {
 
 function ModeHint({ mode }: { mode: InputMode }) {
   if (mode === 'photo') return <p className="text-[11px] text-muted">{UI.photoHelper}</p>;
-  return <p className="text-[11px] text-muted">KÄ±sa bir tarif de yeterli: â€œodunsu ama Ã§ok aÄŸÄ±r deÄŸilâ€ gibi.</p>;
+  return <p className="text-[11px] text-muted">Kısa bir tarif de yeterli: &ldquo;odunsu ama çok ağır değil&rdquo; gibi.</p>;
 }
 
 function TabButton({
@@ -140,16 +140,16 @@ function CoachMark({ onDismiss }: { onDismiss: () => void }) {
     >
       <div className="relative rounded-2xl border border-[var(--gold-line)] bg-[#1A1A0F] px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.6)] max-w-[240px] text-center">
         <p className="text-[12px] font-medium text-cream leading-snug">
-          ğŸ“¸ ÅiÅŸe fotoÄŸrafÄ±nÄ± Ã§ek,<br />hemen analiz edelim
+          📸 Şişe fotoğrafını çek,<br />hemen analiz edelim
         </p>
-        <p className="mt-1 text-[10px] text-gold/70">En doÄŸru sonuÃ§ iÃ§in</p>
+        <p className="mt-1 text-[10px] text-gold/70">En doğru sonuç için</p>
         <button
           type="button"
           onClick={onDismiss}
           className="mt-2 text-[9px] font-mono uppercase tracking-wider text-white/30 hover:text-white/60 transition-colors"
           aria-label="Coach mark kapat"
         >
-          Tamam, anladÄ±m
+          Tamam, anladım
         </button>
         {/* Arrow */}
         <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-[var(--gold-line)]" aria-hidden="true" />
@@ -312,7 +312,7 @@ export function HeroInput({
                   void handlePhotoTrigger();
                 }}
                 className="flex h-[98px] w-[98px] items-center justify-center rounded-full border border-[var(--gold-line)] bg-[var(--gold-dim)] text-gold transition-colors hover:bg-gold/20"
-                aria-label="FotoÄŸraf seÃ§"
+                aria-label="Fotoğraf seç"
               >
                 <svg width="30" height="30" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.45">
                   <path d="M3 6.5h3l1.3-2h5.4l1.3 2h3v9.5H3z" />
@@ -325,7 +325,7 @@ export function HeroInput({
                 <div className="relative w-full max-w-[420px]">
                   <Image
                     src={imagePreview}
-                    alt="SeÃ§ilen gÃ¶rsel"
+                    alt="Seçilen görsel"
                     width={840}
                     height={328}
                     unoptimized
@@ -333,7 +333,7 @@ export function HeroInput({
                   />
                   {compressedKb ? (
                     <span className="absolute left-3 top-3 rounded-full border border-[var(--gold-line)] bg-black/55 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[.06em] text-gold">
-                      SÄ±kÄ±ÅŸtÄ±rÄ±ldÄ±: {compressedKb} KB
+                      Sıkıştırıldı: {compressedKb} KB
                     </span>
                   ) : null}
                 </div>
@@ -398,7 +398,7 @@ export function HeroInput({
 
           <div className="flex flex-col gap-2 md:items-end">
             <div className="rounded-full border border-white/[.06] bg-white/[.02] px-3 py-1.5 text-[10px] font-mono uppercase tracking-[.12em] text-white/45 md:hidden">
-              Enter ile hÄ±zlÄ± baÅŸlat
+              Enter ile hızlı başlat
             </div>
             <button
               type="button"
@@ -408,7 +408,7 @@ export function HeroInput({
               }}
               disabled={!canAnalyze}
               aria-busy={isAnalyzing}
-              aria-label={isAnalyzing ? 'Analiz yapÄ±lÄ±yor, lÃ¼tfen bekleyin' : 'Kokuyu analiz et'}
+              aria-label={isAnalyzing ? 'Analiz yapılıyor, lütfen bekleyin' : 'Kokuyu analiz et'}
               className={`analyze-btn ${isAnalyzing ? 'loading' : ''} flex w-full items-center justify-center gap-2 rounded-[16px] px-6 py-3.5 text-[11px] font-mono uppercase tracking-[.1em] transition-all md:ml-auto md:w-auto md:self-end ${
                 canAnalyze
                   ? 'btn-primary-pulse bg-gold text-bg shadow-[0_14px_34px_rgba(201,169,110,.24)] hover:bg-[#d4b478]'

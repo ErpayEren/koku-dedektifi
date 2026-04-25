@@ -40,7 +40,7 @@ export function MainExperience() {
         notice={controller.notice}
         statusCard={controller.statusCard}
         onRetry={controller.retryAnalyze}
-        onOpenTextMode={controller.openTextMode}
+        onOpenNotesMode={controller.openTextMode}
         onOpenPackages={controller.openPackages}
       />
 

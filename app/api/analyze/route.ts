@@ -99,6 +99,7 @@ async function runAnalyzeHandler(request: NextRequest) {
   const nodeRes = new ResponseCapture();
 
   try {
+    // @ts-expect-error Legacy CommonJS handler does not expose TypeScript declarations.
     const mod = await import('../../../api_internal/analyze.js');
     const analyzeHandler: (req: NodeLikeRequest, res: ResponseCapture) => Promise<unknown> =
       (mod.default || mod) as never;

@@ -18,7 +18,8 @@ const API_BASE_URL = (process.env['NEXT_PUBLIC_APP_URL'] ?? 'http://localhost:30
 const IMAGES_DIR = path.resolve(__dirname, '../../assets/gold_images');
 const DATASET_PATH = path.resolve(__dirname, '../../docs/gold_dataset/perfume_gold_dataset_v1_2.json');
 const OUTPUT_DIR = path.resolve(__dirname, '../../docs/eval');
-const RATE_LIMIT_MS = 500;
+const RATE_LIMIT_MS = 4000;
+const RUN_INTERVAL_MS = 6000; // run_count:3 item'larda runlar arası bekleme
 
 // ─── NOTE_SYNONYMS (scoring_rules.md §3 — birebir kopya) ─────────────────────
 const NOTE_SYNONYMS: Record<string, string[]> = {
@@ -1045,7 +1046,7 @@ async function main() {
       const suffixes = ['', '_r2', '_r3'];
 
       for (let r = 0; r < 3; r++) {
-        await sleep(RATE_LIMIT_MS);
+        await sleep(r === 0 ? RATE_LIMIT_MS : RUN_INTERVAL_MS);
         try {
           const { analysis, latencyMs } = await callAnalyzeApi(imageBase64, suffixes[r]!);
           runs.push({ analysis, latencyMs, runIndex: r + 1 });

@@ -106,6 +106,13 @@ function promoteFromTopSimilarIfNeeded(analysis, mode) {
   return promotedIdentity;
 }
 
+function attachIsPerfumeFlag(analysis) {
+  if (!analysis || typeof analysis !== 'object') return analysis;
+  const confidence = Number(analysis.confidenceScore ?? analysis.confidence ?? 0);
+  analysis.is_perfume = !isUnknownPrimaryName(analysis.name) && confidence >= 25;
+  return analysis;
+}
+
 async function findCatalogContextByIdentity(inputText, analysis) {
   const config = resolveSupabaseConfig();
   if (!config.url || !config.serviceRoleKey) return null;
@@ -228,6 +235,7 @@ module.exports = async function analyzeHandler(req, res) {
       const stableDbResult = applySafetyFallbacks(dbAnalysis, perfumeContext, isPro, { inputText: input, mode, providerHealthy: true, contextMatchScore: initialContextMatchScore });
       stableDbResult.dataConfidence = { hasDbMatch: true, source: 'db' };
       stableDbResult.confidenceScore = computeConfidenceScore({ contextMatchScore: initialContextMatchScore, analysis: stableDbResult, mode, hasDbMatch: true });
+      attachIsPerfumeFlag(stableDbResult);
       const persisted = await persistResult({ analysis: stableDbResult, mode, inputText: input, appUserId: auth?.user?.id || null });
       const finalDbResult = persisted ? { ...stableDbResult, id: persisted.id, slug: persisted.slug ?? null, createdAt: persisted.createdAt } : stableDbResult;
       writeAnalysisCache(inputHash, finalDbResult, null);
@@ -272,6 +280,7 @@ module.exports = async function analyzeHandler(req, res) {
         }
         stableFallback.confidenceScore = Math.max(Number(stableFallback.confidenceScore || 0), 65);
       }
+      attachIsPerfumeFlag(stableFallback);
       const persisted = await persistResult({ analysis: stableFallback, mode, inputText: input, appUserId: auth?.user?.id || null });
       const result = persisted ? { ...stableFallback, id: persisted.id, slug: persisted.slug ?? null, createdAt: persisted.createdAt } : stableFallback;
       logTelemetry({ appUserId: auth?.user?.id || null, mode, latencyMs: Date.now() - startMs, success: true, cacheHit: false, degraded: true, retryCount, confidenceScore: result.confidenceScore, hasDbMatch: Boolean(identityContext) });
@@ -324,6 +333,7 @@ module.exports = async function analyzeHandler(req, res) {
       }
       stableResult.confidenceScore = Math.max(Number(stableResult.confidenceScore || 0), 65);
     }
+    attachIsPerfumeFlag(stableResult);
     const persisted = await persistResult({ analysis: stableResult, mode, inputText: input, appUserId: auth?.user?.id || null });
     const finalResult = persisted ? { ...stableResult, id: persisted.id, slug: persisted.slug ?? null, createdAt: persisted.createdAt } : stableResult;
     writeAnalysisCache(inputHash, finalResult, null);

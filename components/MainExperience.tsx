@@ -16,11 +16,7 @@ const AnalysisResults = dynamic(
   },
 );
 
-interface MainExperienceProps {
-  featuredMolecules?: never[];
-}
-
-export function MainExperience({ featuredMolecules: _featuredMolecules }: MainExperienceProps) {
+export function MainExperience() {
   const controller = useMainExperienceController();
 
   return (

@@ -89,6 +89,7 @@ export function MoleculeCard({ molecules, initialIndex = 0, onClose }: MoleculeC
 
   const total = molecules.length;
   const molecule = molecules[idx] ?? molecules[0];
+  if (!molecule) return null;
   const color = NOTE_COLORS[molecule.note];
 
   const prev = () => setIdx((value) => (value - 1 + total) % total);

@@ -46,22 +46,6 @@ function buildMessages({ mode, input, imageBase64 }) {
   return [{ role: 'user', content: `${prefix}\n${input}` }];
 }
 
-function tryExtractAndValidate(formatted) {
-  try {
-    const rawParsed = extractJsonObject(formatted);
-    const zodResult = validateLLMOutput(rawParsed);
-    if (!zodResult.success) {
-      return { ok: false, reason: formatZodError(zodResult.error) };
-    }
-    return { ok: true };
-  } catch (error) {
-    return {
-      ok: false,
-      reason: error instanceof Error ? error.message : 'invalid_json',
-    };
-  }
-}
-
 function extractFormattedText(formatted) {
   if (!formatted) return '';
   if (typeof formatted === 'string') return formatted;
@@ -72,6 +56,32 @@ function extractFormattedText(formatted) {
       .trim();
   }
   return '';
+}
+
+function validateFormattedPayload(formatted) {
+  const rawText = extractFormattedText(formatted);
+  try {
+    const parsedPayload = extractJsonObject(formatted);
+    const zodResult = validateLLMOutput(parsedPayload);
+    if (!zodResult.success) {
+      return {
+        ok: false,
+        reason: formatZodError(zodResult.error),
+        rawText,
+      };
+    }
+    return {
+      ok: true,
+      parsedPayload,
+      rawText,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      reason: error instanceof Error ? error.message : 'invalid_json',
+      rawText,
+    };
+  }
 }
 
 /**
@@ -97,10 +107,8 @@ async function callWithRetry({ mode, input, imageBase64, isPro, perfumeContext }
   let retryCount = 0;
 
   if (providerResponse.ok && providerResponse.formatted) {
-    const firstRaw = extractFormattedText(providerResponse.formatted);
-    console.log('[Gemini] raw response before parse:', firstRaw.slice(0, 1200));
-
-    const validation = tryExtractAndValidate(providerResponse.formatted);
+    const validation = validateFormattedPayload(providerResponse.formatted);
+    console.log('[Gemini] raw response before parse:', (validation.rawText || '').slice(0, 1200));
     if (!validation.ok) {
       console.error('[Error] initial Zod/JSON validation failed:', validation.reason);
       retryCount = 1;
@@ -114,21 +122,26 @@ async function callWithRetry({ mode, input, imageBase64, isPro, perfumeContext }
       });
 
       if (retryResponse.ok && retryResponse.formatted) {
-        const retryRaw = extractFormattedText(retryResponse.formatted);
-        console.log('[Gemini] retry raw response before parse:', retryRaw.slice(0, 1200));
-
-        const retryValidation = tryExtractAndValidate(retryResponse.formatted);
+        const retryValidation = validateFormattedPayload(retryResponse.formatted);
+        console.log('[Gemini] retry raw response before parse:', (retryValidation.rawText || '').slice(0, 1200));
         if (retryValidation.ok) {
+          retryResponse.parsedPayload = retryValidation.parsedPayload;
           providerResponse = retryResponse;
         } else {
-          // Keep a valid provider payload path for normalizer instead of forcing emergency fallback.
-          console.error('[Error] retry Zod/JSON validation failed:', retryValidation.reason, '- using response anyway');
-          providerResponse = retryResponse;
+          console.error('[Error] retry Zod/JSON validation failed:', retryValidation.reason);
+          providerResponse = {
+            ok: false,
+            status: 502,
+            error: `LLM cevabi semaya uymadi: ${retryValidation.reason}`,
+            formatted: retryResponse.formatted,
+          };
         }
       } else {
         console.error('[Error] retry provider call failed:', retryResponse?.error || 'unknown_provider_error');
         providerResponse = retryResponse;
       }
+    } else {
+      providerResponse.parsedPayload = validation.parsedPayload;
     }
   } else {
     console.error('[Error] providerResponse not ok or missing formatted payload:', providerResponse?.error || 'unknown_error');

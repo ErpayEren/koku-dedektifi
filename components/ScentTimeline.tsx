@@ -159,7 +159,15 @@ export function ScentTimeline({ topNotes, heartNotes, baseNotes, timeline }: Sce
     setActiveStep(0);
   }, [timeline, topNotes, heartNotes, baseNotes]);
 
-  const activeStepData = steps[activeStep] ?? steps[0];
+  const activeStepData =
+    steps[activeStep] ??
+    steps[0] ?? {
+      key: 't0' as const,
+      label: 'ILK DOKUNUS',
+      timeRange: '0-15 dk',
+      notes: [],
+      description: 'Veri sinirli',
+    };
   const activeTone = STAGE_TONES[activeStepData.key] ?? STAGE_TONES.t0;
   const progressPercent = steps.length > 0 ? ((activeStep + 1) / steps.length) * 100 : 0;
 

@@ -9,7 +9,15 @@ function normalizeImageInput(imageBase64) {
   const trimmed = String(imageBase64 ?? '').trim();
   if (!trimmed) return '';
   if (trimmed.startsWith('data:image/')) return trimmed;
-  return `data:image/jpeg;base64,${trimmed}`;
+  // Detect common image signatures from base64 payload when caller sends raw base64.
+  // WEBP: RIFF....WEBP => UklGR...
+  // PNG: 89 50 4E 47 => iVBOR...
+  // JPEG: FF D8 FF => /9j/
+  let mime = 'image/jpeg';
+  if (trimmed.startsWith('UklGR')) mime = 'image/webp';
+  else if (trimmed.startsWith('iVBOR')) mime = 'image/png';
+  else if (trimmed.startsWith('/9j/')) mime = 'image/jpeg';
+  return `data:${mime};base64,${trimmed}`;
 }
 
 function buildMessages({ mode, input, imageBase64 }) {

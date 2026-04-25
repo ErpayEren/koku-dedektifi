@@ -59,6 +59,53 @@ function hasStrongIdentityShape(value) {
   return tokens.length >= 2 && tokens.some((token) => token.length >= 4);
 }
 
+function normalizeIdentityToken(value) {
+  return cleanString(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isUnknownPrimaryName(name) {
+  const normalized = normalizeIdentityToken(name);
+  return (
+    !normalized ||
+    normalized === 'bilinmeyen koku' ||
+    normalized === 'unknown fragrance' ||
+    normalized === 'unknown perfume' ||
+    normalized === 'unknown scent'
+  );
+}
+
+function stripBrandFromName(name, brand) {
+  const cleanedName = cleanString(name);
+  const cleanedBrand = cleanString(brand);
+  if (!cleanedName || !cleanedBrand) return cleanedName;
+  const nameNorm = normalizeIdentityToken(cleanedName);
+  const brandNorm = normalizeIdentityToken(cleanedBrand);
+  if (!nameNorm.startsWith(brandNorm)) return cleanedName;
+  return cleanedName.slice(cleanedBrand.length).trim() || cleanedName;
+}
+
+function promoteFromTopSimilarIfNeeded(analysis, mode) {
+  if (!analysis || mode !== 'image') return null;
+  if (!isUnknownPrimaryName(analysis?.name)) return null;
+  const topSimilar = Array.isArray(analysis?.similarFragrances) ? analysis.similarFragrances[0] : null;
+  const candidateName = cleanString(topSimilar?.name);
+  const candidateBrand = cleanString(topSimilar?.brand);
+  if (!candidateName || !candidateBrand || isUnknownPrimaryName(candidateName)) return null;
+  const promotedName = stripBrandFromName(candidateName, candidateBrand);
+  analysis.name = promotedName || candidateName;
+  analysis.brand = candidateBrand;
+  analysis.genderProfile = cleanString(analysis.genderProfile) || 'Unisex';
+  const promotedIdentity = `${candidateBrand} ${analysis.name}`.trim();
+  console.log('[analyze] promoted primary from similar[0]:', promotedIdentity);
+  return promotedIdentity;
+}
+
 async function findCatalogContextByIdentity(inputText, analysis) {
   const config = resolveSupabaseConfig();
   if (!config.url || !config.serviceRoleKey) return null;
@@ -205,12 +252,17 @@ module.exports = async function analyzeHandler(req, res) {
       }
       const fallbackPayload = buildEmergencyPayloadV2({ input, mode, isPro, perfumeContext: fallbackContext, providerError: providerResponse.error });
       const fallbackAnalysis = normalizeAiAnalysisToResult({ payload: fallbackPayload, mode, inputText: input, isPro });
-      const identityContext = fallbackContext || (await findCatalogContextByIdentity(input, fallbackAnalysis));
       const dbSimilarFallback = await getDBSimilarFragrances(fallbackAnalysis, isPro);
       applySimilarFragrances(fallbackAnalysis, dbSimilarFallback, isPro);
+      const promotedIdentity = promoteFromTopSimilarIfNeeded(fallbackAnalysis, mode);
+      const identityContext =
+        fallbackContext ||
+        (await findCatalogContextByIdentity(input, fallbackAnalysis)) ||
+        (promotedIdentity ? await findCatalogContextByIdentity(promotedIdentity, fallbackAnalysis) : null);
       const stableFallback = applySafetyFallbacks(fallbackAnalysis, identityContext, isPro, { inputText: input, mode, providerHealthy: false, contextMatchScore });
       stableFallback.dataConfidence = { hasDbMatch: Boolean(identityContext), source: identityContext ? 'db' : 'ai' };
       stableFallback.confidenceScore = computeConfidenceScore({ contextMatchScore, analysis: stableFallback, mode, hasDbMatch: Boolean(identityContext) });
+      if (promotedIdentity) stableFallback.confidenceScore = Math.max(Number(stableFallback.confidenceScore || 0), 65);
       const persisted = await persistResult({ analysis: stableFallback, mode, inputText: input, appUserId: auth?.user?.id || null });
       const result = persisted ? { ...stableFallback, id: persisted.id, slug: persisted.slug ?? null, createdAt: persisted.createdAt } : stableFallback;
       logTelemetry({ appUserId: auth?.user?.id || null, mode, latencyMs: Date.now() - startMs, success: true, cacheHit: false, degraded: true, retryCount, confidenceScore: result.confidenceScore, hasDbMatch: Boolean(identityContext) });
@@ -223,14 +275,37 @@ module.exports = async function analyzeHandler(req, res) {
 
   try {
     const payload = extractJsonObject(providerResponse.formatted);
+    console.log(
+      '[analyze] raw identification fields:',
+      'payload.name=',
+      cleanString(payload?.name),
+      'payload.brand=',
+      cleanString(payload?.brand),
+      'payload.similar[0]=',
+      `${cleanString(payload?.similarFragrances?.[0]?.brand)} ${cleanString(payload?.similarFragrances?.[0]?.name)}`.trim(),
+    );
     const analysis = normalizeAiAnalysisToResult({ payload, mode, inputText: input, isPro });
-    const identityContext = perfumeContext || (await findCatalogContextByIdentity(input, analysis));
+    console.log(
+      '[analyze] normalized identification fields:',
+      'analysis.name=',
+      cleanString(analysis?.name),
+      'analysis.brand=',
+      cleanString(analysis?.brand),
+      'analysis.similar[0]=',
+      `${cleanString(analysis?.similarFragrances?.[0]?.brand)} ${cleanString(analysis?.similarFragrances?.[0]?.name)}`.trim(),
+    );
     const dbSimilar = await getDBSimilarFragrances(analysis, isPro);
     applySimilarFragrances(analysis, dbSimilar, isPro);
+    const promotedIdentity = promoteFromTopSimilarIfNeeded(analysis, mode);
+    const identityContext =
+      perfumeContext ||
+      (await findCatalogContextByIdentity(input, analysis)) ||
+      (promotedIdentity ? await findCatalogContextByIdentity(promotedIdentity, analysis) : null);
     const stableResult = applySafetyFallbacks(analysis, identityContext, isPro, { inputText: input, mode, providerHealthy: true });
     stableResult.dataConfidence = { hasDbMatch: Boolean(identityContext), source: identityContext ? 'db' : 'ai' };
     const contextMatchScore = computeContextMatchScore(input, identityContext);
     stableResult.confidenceScore = computeConfidenceScore({ contextMatchScore, analysis: stableResult, mode, hasDbMatch: Boolean(identityContext) });
+    if (promotedIdentity) stableResult.confidenceScore = Math.max(Number(stableResult.confidenceScore || 0), 65);
     const persisted = await persistResult({ analysis: stableResult, mode, inputText: input, appUserId: auth?.user?.id || null });
     const finalResult = persisted ? { ...stableResult, id: persisted.id, slug: persisted.slug ?? null, createdAt: persisted.createdAt } : stableResult;
     writeAnalysisCache(inputHash, finalResult, null);

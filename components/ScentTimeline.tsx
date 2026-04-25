@@ -133,22 +133,22 @@ export function ScentTimeline({ topNotes, heartNotes, baseNotes, timeline }: Sce
 
     return [
       {
-        ...STAGE_META[0],
+        ...STAGE_META[0]!,
         notes: uniqueNotes(topNotes, 4),
         description: descriptions.t0,
       },
       {
-        ...STAGE_META[1],
+        ...STAGE_META[1]!,
         notes: uniqueNotes([...topNotes.slice(0, 2), ...heartNotes.slice(0, 3)], 5),
         description: descriptions.t1,
       },
       {
-        ...STAGE_META[2],
+        ...STAGE_META[2]!,
         notes: uniqueNotes(heartNotes, 5),
         description: descriptions.t2,
       },
       {
-        ...STAGE_META[3],
+        ...STAGE_META[3]!,
         notes: uniqueNotes(baseNotes, 5),
         description: descriptions.t3,
       },

@@ -166,7 +166,11 @@ function buildWearSummary(history: AnalysisResult[], wardrobe: WardrobeItem[]) {
   const familySlices = Array.from(familyCounts.entries())
     .sort((left, right) => right[1] - left[1])
     .slice(0, 5)
-    .map(([label, value], index) => ({ label, value, color: PIE_COLORS[index % PIE_COLORS.length] }));
+    .map(([label, value], index) => ({
+      label,
+      value,
+      color: PIE_COLORS[index % PIE_COLORS.length] || '#d4b16b',
+    }));
 
   const topNotes = Array.from(noteCounts.entries())
     .sort((left, right) => right[1] - left[1])

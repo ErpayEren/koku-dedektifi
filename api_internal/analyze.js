@@ -259,32 +259,34 @@ module.exports = async function analyzeHandler(req, res) {
     console.error('[Error] provider failed -> triggering fallback. ok:', providerResponse.ok, 'error:', providerResponse.error, 'status:', providerResponse.status, 'provider:', providerResponse.provider);
     try {
       let fallbackContext = perfumeContext;
+      let fallbackInput = input;
       if (!fallbackContext && mode === 'text') fallbackContext = await findCatalogContextByIdentity(input, { name: input, brand: '', family: '' });
       if (!fallbackContext && mode === 'image') {
         const imageIdentity = getImageHashIdentity(body.imageBase64);
         if (imageIdentity) {
-          fallbackContext = await findCatalogContextByIdentity(`${imageIdentity.brand} ${imageIdentity.name}`, imageIdentity);
+          fallbackInput = `${imageIdentity.brand} ${imageIdentity.name}`.trim();
+          fallbackContext = await findCatalogContextByIdentity(fallbackInput, imageIdentity);
         }
       }
-      const contextMatchScore = computeContextMatchScore(input, fallbackContext);
+      const contextMatchScore = computeContextMatchScore(fallbackInput, fallbackContext);
       const parsedNoteCount = (input || '').split(/[,;|/\n]/).filter((s) => cleanString(s)).length;
       const hasReliableBasis = Boolean(fallbackContext) || parsedNoteCount >= 2 || mode === 'image';
       if (!hasReliableBasis) {
         logTelemetry({ appUserId: auth?.user?.id || null, mode, latencyMs: Date.now() - startMs, success: false, cacheHit: false, degraded: true, retryCount, errorCode: 'no_fallback_basis' });
         return res.status(providerResponse.status || 503).json({ error: 'Saglayici su an yogun ve bu girdi icin guvenilir fallback olusturulamadi. Lutfen 20-30 saniye sonra tekrar dene.', providerError: providerResponse.error || 'provider_unavailable' });
       }
-      const fallbackPayload = buildEmergencyPayloadV2({ input, mode, isPro, perfumeContext: fallbackContext, providerError: providerResponse.error });
-      const fallbackAnalysis = normalizeAiAnalysisToResult({ payload: fallbackPayload, mode, inputText: input, isPro });
+      const fallbackPayload = buildEmergencyPayloadV2({ input: fallbackInput, mode, isPro, perfumeContext: fallbackContext, providerError: providerResponse.error });
+      const fallbackAnalysis = normalizeAiAnalysisToResult({ payload: fallbackPayload, mode, inputText: fallbackInput, isPro });
       const dbSimilarFallback = await getDBSimilarFragrances(fallbackAnalysis, isPro);
       applySimilarFragrances(fallbackAnalysis, dbSimilarFallback, isPro);
       const identityContext =
         fallbackContext ||
-        (await findCatalogContextByIdentity(input, fallbackAnalysis));
-      const stableFallback = applySafetyFallbacks(fallbackAnalysis, identityContext, isPro, { inputText: input, mode, providerHealthy: false, contextMatchScore });
+        (await findCatalogContextByIdentity(fallbackInput, fallbackAnalysis));
+      const stableFallback = applySafetyFallbacks(fallbackAnalysis, identityContext, isPro, { inputText: fallbackInput, mode, providerHealthy: false, contextMatchScore });
       stableFallback.dataConfidence = { hasDbMatch: Boolean(identityContext), source: identityContext ? 'db' : 'ai' };
       stableFallback.confidenceScore = computeConfidenceScore({ contextMatchScore, analysis: stableFallback, mode, hasDbMatch: Boolean(identityContext) });
       attachIsPerfumeFlag(stableFallback);
-      const persisted = await persistResult({ analysis: stableFallback, mode, inputText: input, appUserId: auth?.user?.id || null });
+      const persisted = await persistResult({ analysis: stableFallback, mode, inputText: fallbackInput, appUserId: auth?.user?.id || null });
       const result = persisted ? { ...stableFallback, id: persisted.id, slug: persisted.slug ?? null, createdAt: persisted.createdAt } : stableFallback;
       logTelemetry({ appUserId: auth?.user?.id || null, mode, latencyMs: Date.now() - startMs, success: true, cacheHit: false, degraded: true, retryCount, confidenceScore: result.confidenceScore, hasDbMatch: Boolean(identityContext) });
       return res.status(200).json({ analysis: result, plan: isPro ? 'pro' : 'free', stored: Boolean(persisted), degraded: true, providerError: providerResponse.error || 'provider_unavailable' });

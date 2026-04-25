@@ -263,6 +263,15 @@ module.exports = async function analyzeHandler(req, res) {
       stableFallback.dataConfidence = { hasDbMatch: Boolean(identityContext), source: identityContext ? 'db' : 'ai' };
       stableFallback.confidenceScore = computeConfidenceScore({ contextMatchScore, analysis: stableFallback, mode, hasDbMatch: Boolean(identityContext) });
       if (promotedIdentity) stableFallback.confidenceScore = Math.max(Number(stableFallback.confidenceScore || 0), 65);
+      const promotedPostFallback = promoteFromTopSimilarIfNeeded(stableFallback, mode);
+      if (promotedPostFallback) {
+        const promotedContext = await findCatalogContextByIdentity(promotedPostFallback, stableFallback);
+        if (promotedContext) {
+          applySafetyFallbacks(stableFallback, promotedContext, isPro, { inputText: input, mode, providerHealthy: false, contextMatchScore: 0.9 });
+          stableFallback.dataConfidence = { hasDbMatch: true, source: 'db' };
+        }
+        stableFallback.confidenceScore = Math.max(Number(stableFallback.confidenceScore || 0), 65);
+      }
       const persisted = await persistResult({ analysis: stableFallback, mode, inputText: input, appUserId: auth?.user?.id || null });
       const result = persisted ? { ...stableFallback, id: persisted.id, slug: persisted.slug ?? null, createdAt: persisted.createdAt } : stableFallback;
       logTelemetry({ appUserId: auth?.user?.id || null, mode, latencyMs: Date.now() - startMs, success: true, cacheHit: false, degraded: true, retryCount, confidenceScore: result.confidenceScore, hasDbMatch: Boolean(identityContext) });
@@ -306,6 +315,15 @@ module.exports = async function analyzeHandler(req, res) {
     const contextMatchScore = computeContextMatchScore(input, identityContext);
     stableResult.confidenceScore = computeConfidenceScore({ contextMatchScore, analysis: stableResult, mode, hasDbMatch: Boolean(identityContext) });
     if (promotedIdentity) stableResult.confidenceScore = Math.max(Number(stableResult.confidenceScore || 0), 65);
+    const promotedPost = promoteFromTopSimilarIfNeeded(stableResult, mode);
+    if (promotedPost) {
+      const promotedContext = await findCatalogContextByIdentity(promotedPost, stableResult);
+      if (promotedContext) {
+        applySafetyFallbacks(stableResult, promotedContext, isPro, { inputText: input, mode, providerHealthy: true, contextMatchScore: 0.9 });
+        stableResult.dataConfidence = { hasDbMatch: true, source: 'db' };
+      }
+      stableResult.confidenceScore = Math.max(Number(stableResult.confidenceScore || 0), 65);
+    }
     const persisted = await persistResult({ analysis: stableResult, mode, inputText: input, appUserId: auth?.user?.id || null });
     const finalResult = persisted ? { ...stableResult, id: persisted.id, slug: persisted.slug ?? null, createdAt: persisted.createdAt } : stableResult;
     writeAnalysisCache(inputHash, finalResult, null);

@@ -72,7 +72,7 @@ const NOTE_SYNONYMS: Record<string, string[]> = {
   "vetiver": ["vetivert", "vetiver absolute", "vetiver java", "khus",
               "vetiver bourbon"],
   "patchouli": ["patchouly", "pachuli", "paçuli", "paculi",
-                "pogostemon cablin", "patchouli heart"],
+                "pogostemon cablin", "patchouli heart", "patchouli alcohol"],
   "oakmoss": ["oak moss", "mousse de chêne", "meşe yosunu", "mese yosunu",
               "evernia prunastri"],
   "birch tar accord": ["birch tar", "dry birch", "birch", "russian leather",
@@ -174,7 +174,7 @@ const NOTE_SYNONYMS: Record<string, string[]> = {
                      "cacao absolute"],
   "rosemary absolute": ["rosemary", "biberiye", "rosmarinus officinalis"],
   "rose absolute": ["rose", "gül", "gul", "rose otto"],
-  "iris absolute": ["iris", "orris absolute", "orris butter", "iris root"],
+  "iris absolute": ["iris", "orris absolute", "orris butter", "iris root", "irone", "alpha-irone"],
 
   // === MUSK ===
   "musk": ["white musk", "clean musk", "musks", "misk",
@@ -260,6 +260,10 @@ interface ApiAnalysisResult {
   concentration?: string | null;
   genderProfile?: string | null;
   pyramid?: { top: string[]; middle: string[]; base: string[] } | null;
+  // Top-level note fields (fallback in case pyramid is absent)
+  topNotes?: string[];
+  heartNotes?: string[];
+  baseNotes?: string[];
   molecules?: ApiMolecule[];
   confidence?: number | null;
   confidenceScore?: number | null;

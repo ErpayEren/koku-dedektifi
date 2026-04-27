@@ -410,7 +410,7 @@ export function buildAnalysisResponseSchema(): RawObject {
           type: 'object',
           properties: {
             name: { type: 'string' },
-            effect: { type: 'string' },
+            effect: { type: 'string', maxLength: 80 },
             percentage: { type: 'string' },
           },
           required: ['name', 'effect', 'percentage'],
@@ -428,10 +428,10 @@ export function buildAnalysisResponseSchema(): RawObject {
       occasions: { type: 'array', items: { type: 'string', enum: [...OCCASION_LABELS] } },
       ageProfile: { type: ['string', 'null'] },
       genderProfile: { type: 'string', enum: [...GENDER_LABELS] },
-      moodProfile: { type: 'string' },
-      expertComment: { type: 'string' },
-      layeringTip: { type: 'string' },
-      applicationTip: { type: 'string' },
+      moodProfile: { type: 'string', maxLength: 250 },
+      expertComment: { type: 'string', maxLength: 350 },
+      layeringTip: { type: 'string', maxLength: 200 },
+      applicationTip: { type: 'string', maxLength: 200 },
       similarFragrances: {
         type: 'array',
         items: {
@@ -439,7 +439,7 @@ export function buildAnalysisResponseSchema(): RawObject {
           properties: {
             name: { type: 'string' },
             brand: { type: 'string' },
-            reason: { type: 'string' },
+            reason: { type: 'string', maxLength: 100 },
             priceRange: { type: 'string' },
           },
           required: ['name', 'brand', 'reason', 'priceRange'],

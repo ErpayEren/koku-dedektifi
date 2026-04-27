@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 const { cleanString } = require('../../lib/server/config');
 const { createClient } = require('@supabase/supabase-js');
@@ -12,7 +12,7 @@ function normalizeToken(value) {
   return String(value ?? '')
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\\u0300-\\u036f]/g, '')
     .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -22,7 +22,7 @@ function normalizeFragranceKey(value) {
   return String(value ?? '')
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\\u0300-\\u036f]/g, '')
     .replace(/[^a-z0-9]/g, '');
 }
 
@@ -55,8 +55,14 @@ const EVIDENCE_WEIGHTS = {
   note_match: 2, inferred: 1, unverified: 0,
 };
 
-function computeConfidenceScore({ contextMatchScore, analysis, mode }) {
-  const identityBonus = Math.round((contextMatchScore ?? 0) * 40);
+function computeConfidenceScore({ contextMatchScore, analysis, mode, hasDbMatch }) {
+  const llmConfidence = Number.isFinite(Number(analysis?.llmConfidenceScore)) ? Number(analysis.llmConfidenceScore) : null;
+
+  const computedIdentityBonus = Math.round((contextMatchScore ?? 0) * 40);
+  // For image mode: text contextMatchScore is always 0, but a DB match still signals identity
+  const dbMatchBonus = (hasDbMatch && computedIdentityBonus === 0 && mode === 'image') ? 25 : 0;
+  const identityBonus = computedIdentityBonus + dbMatchBonus;
+
   const topCount = Array.isArray(analysis?.pyramid?.top) ? analysis.pyramid.top.length : 0;
   const midCount = Array.isArray(analysis?.pyramid?.middle) ? analysis.pyramid.middle.length : 0;
   const baseCount = Array.isArray(analysis?.pyramid?.base) ? analysis.pyramid.base.length : 0;
@@ -65,7 +71,14 @@ function computeConfidenceScore({ contextMatchScore, analysis, mode }) {
   const moleculeWeightSum = molecules.reduce((acc, m) => acc + (EVIDENCE_WEIGHTS[cleanString(m?.evidenceLevel)] ?? 0), 0);
   const moleculeBonus = Math.min(25, Math.round((moleculeWeightSum / 25) * 25));
   const modeBonus = mode === 'text' ? 15 : mode === 'image' ? 10 : 5;
-  return Math.min(100, Math.max(0, identityBonus + pyramidBonus + moleculeBonus + modeBonus));
+
+  const computed = identityBonus + pyramidBonus + moleculeBonus + modeBonus;
+
+  // Blend LLM self-assessed confidence (55% weight) with computed score when LLM is confident
+  if (llmConfidence !== null && llmConfidence >= 55) {
+    return Math.min(100, Math.max(0, Math.round(llmConfidence * 0.55 + computed * 0.45)));
+  }
+  return Math.min(100, Math.max(0, computed));
 }
 
 function computeContextMatchScore(inputText, perfumeContext) {
@@ -178,10 +191,10 @@ function toLongevityHoursFromScore(score) {
 }
 
 // ---------------------------------------------------------------------------
-// Note → molecule map
+// Note â†’ molecule map
 // ---------------------------------------------------------------------------
 function resolveNoteMapEntry(note) {
-  const key = String(note ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  const key = String(note ?? '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
   if (!key) return null;
   return noteMoleculeMap[key] ?? null;
 }
@@ -189,10 +202,10 @@ function resolveNoteMapEntry(note) {
 function resolveMappedMoleculeRows(entry) {
   if (!entry || typeof entry !== 'object') return [];
   if (Array.isArray(entry.key_molecules) && entry.key_molecules.length > 0) {
-    return entry.key_molecules.map((item) => ({ name: cleanString(item?.name), role: cleanString(item?.role) || 'temel taşıyıcı', odorDescriptor: cleanString(item?.odor_descriptor) })).filter((i) => i.name);
+    return entry.key_molecules.map((item) => ({ name: cleanString(item?.name), role: cleanString(item?.role) || 'temel taÅŸÄ±yÄ±cÄ±', odorDescriptor: cleanString(item?.odor_descriptor) })).filter((i) => i.name);
   }
   if (Array.isArray(entry.molecules) && entry.molecules.length > 0) {
-    return entry.molecules.map((name) => ({ name: cleanString(name), role: 'temel taşıyıcı', odorDescriptor: '' })).filter((i) => i.name);
+    return entry.molecules.map((name) => ({ name: cleanString(name), role: 'temel taÅŸÄ±yÄ±cÄ±', odorDescriptor: '' })).filter((i) => i.name);
   }
   return [];
 }
@@ -237,7 +250,7 @@ function buildFallbackMolecules(perfumeContext, isPro) {
       const accordFamily = cleanString(hit.family ?? hit.accord_family) || '';
       const noteCharacter = cleanString(hit.character);
       const descriptor = cleanString(molecule.odorDescriptor);
-      const roleHint = cleanString(molecule.role) || 'temel taşıyıcı';
+      const roleHint = cleanString(molecule.role) || 'temel taÅŸÄ±yÄ±cÄ±';
       pool.push({ name: cleaned, smiles: '', formula: '', family: accordFamily, origin: '', note, contribution: noteCharacter || `${note} notasinin karakterini tasiyan savunulabilir bir molekuler bilesen.`, effect: descriptor || `${accordFamily || 'Akor'} yapisini destekleyen ${roleHint.toLowerCase()} bir etki.`, percentage: !isPro && pool.length > 0 ? 'Pro ile goruntule' : 'Akor tasiyici', evidenceLevel: 'note_match', evidenceLabel: 'Nota Eslesmesi', evidenceReason: `"${note}" notasiyla eslesen molekul bagi.`, matchedNotes: [note] });
     }
   }
@@ -276,9 +289,9 @@ function getFamilyAccordHints(family) {
 }
 
 function buildSimilarReason(sharedNotes, familyMatched, family) {
-  if (sharedNotes.length > 0) return `"${sharedNotes.slice(0, 2).join(', ')}" notalarında yakın profil.`;
-  if (familyMatched && cleanString(family)) return `${family} karakterine yakın bir profil.`;
-  return 'Koku omurgasında benzer yapı gösteriyor.';
+  if (sharedNotes.length > 0) return `"${sharedNotes.slice(0, 2).join(', ')}" notalarÄ±nda yakÄ±n profil.`;
+  if (familyMatched && cleanString(family)) return `${family} karakterine yakÄ±n bir profil.`;
+  return 'Koku omurgasÄ±nda benzer yapÄ± gÃ¶steriyor.';
 }
 
 function collectAnalysisNotes(analysis) {
@@ -341,7 +354,7 @@ function fallbackSimilarByFamily(analysis, isPro) {
   const maxCount = isPro ? 10 : 6;
   const minVisibleCount = isPro ? 8 : 6;
   if (current.length >= minVisibleCount) return;
-  const familyKey = cleanString(analysis.family).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');
+  const familyKey = cleanString(analysis.family).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/\s+/g, '');
   const pool = LAST_RESORT_SIMILAR_FALLBACKS[cleanString(analysis.family)] ?? LAST_RESORT_SIMILAR_FALLBACKS[familyKey] ?? LAST_RESORT_SIMILAR_FALLBACKS.Aromatik;
   const seen = new Set(current.map((i) => `${cleanString(i.brand).toLowerCase()}::${cleanString(i.name).toLowerCase()}`));
   const picked = current.slice();
@@ -422,14 +435,17 @@ const FAMILY_NOTE_FALLBACKS = {
 function applyPerfumeContextAnchors(analysis, perfumeContext, options = {}) {
   if (!analysis || !perfumeContext) return;
   const enforceIdentity = Boolean(options.enforceIdentity);
+  const stabilizeClassification = Boolean(options.stabilizeClassification);
   const contextFamily = cleanString(perfumeContext.family) || deriveFamilyFromNotes(perfumeContext.accords, analysis.family || 'Aromatik');
   if (enforceIdentity) { analysis.name = cleanString(perfumeContext.name) || analysis.name; analysis.brand = cleanString(perfumeContext.brand) || analysis.brand; analysis.year = Number.isFinite(Number(perfumeContext.year)) ? Number(perfumeContext.year) : analysis.year; }
-  if (!cleanString(analysis.family) || cleanString(analysis.family).toLowerCase() === 'aromatik') analysis.family = contextFamily || analysis.family;
+  if (stabilizeClassification && contextFamily) analysis.family = contextFamily;
+  else if (!cleanString(analysis.family) || cleanString(analysis.family).toLowerCase() === 'aromatik') analysis.family = contextFamily || analysis.family;
   if (!cleanString(analysis.concentration)) analysis.concentration = cleanString(perfumeContext.concentration) || analysis.concentration || null;
-  if (!cleanString(analysis.genderProfile)) analysis.genderProfile = cleanString(perfumeContext.genderProfile) || analysis.genderProfile || 'Unisex';
+  if (stabilizeClassification) analysis.genderProfile = cleanString(perfumeContext.genderProfile) || analysis.genderProfile || 'Unisex';
+  else if (!cleanString(analysis.genderProfile)) analysis.genderProfile = cleanString(perfumeContext.genderProfile) || analysis.genderProfile || 'Unisex';
   if ((!Array.isArray(analysis.season) || analysis.season.length === 0) && Array.isArray(perfumeContext.seasons)) analysis.season = uniqueValues(perfumeContext.seasons).slice(0, 4);
   if ((!Array.isArray(analysis.occasions) || analysis.occasions.length === 0) && Array.isArray(perfumeContext.occasions)) { analysis.occasions = uniqueValues(perfumeContext.occasions).slice(0, 6); analysis.occasion = analysis.occasions[0] || analysis.occasion; }
-  if (!analysis.pyramid || enforceIdentity) analysis.pyramid = { top: uniqueValues(perfumeContext.top || []).slice(0, 6), middle: uniqueValues(perfumeContext.heart || []).slice(0, 8), base: uniqueValues(perfumeContext.base || []).slice(0, 8) };
+  if (!analysis.pyramid || enforceIdentity || stabilizeClassification) analysis.pyramid = { top: uniqueValues(perfumeContext.top || []).slice(0, 6), middle: uniqueValues(perfumeContext.heart || []).slice(0, 8), base: uniqueValues(perfumeContext.base || []).slice(0, 8) };
   if (!cleanString(analysis.sillage)) analysis.sillage = toSillageLabelFromScore(perfumeContext.sillageScore) || analysis.sillage || 'orta';
   if (!analysis.longevityHours) analysis.longevityHours = toLongevityHoursFromScore(perfumeContext.longevityScore) || analysis.longevityHours;
 }
@@ -445,7 +461,7 @@ function ensurePyramidNotes(analysis, perfumeContext) {
 function fillPyramidFromFamilyFallback(analysis) {
   if (!analysis) return;
   if (!analysis.pyramid || typeof analysis.pyramid !== 'object') analysis.pyramid = { top: [], middle: [], base: [] };
-  const familyKey = cleanString(analysis.family).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');
+  const familyKey = cleanString(analysis.family).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/\s+/g, '');
   const fallback = FAMILY_NOTE_FALLBACKS[cleanString(analysis.family)] ?? FAMILY_NOTE_FALLBACKS[familyKey] ?? FAMILY_NOTE_FALLBACKS.Aromatik;
   if (!fallback) return;
   if (!Array.isArray(analysis.pyramid.top) || analysis.pyramid.top.length === 0) analysis.pyramid.top = fallback.top.slice(0, 6);
@@ -457,11 +473,13 @@ function applySafetyFallbacks(analysis, perfumeContext, isPro, options = {}) {
   if (!analysis) return analysis;
   const contextMatchScore = Number.isFinite(Number(options.contextMatchScore)) ? Number(options.contextMatchScore) : computeContextMatchScore(options.inputText, perfumeContext);
   const enforceIdentity = options.mode === 'text' && contextMatchScore >= 0.72;
-  applyPerfumeContextAnchors(analysis, perfumeContext, { enforceIdentity });
+  const stabilizeClassification = contextMatchScore >= 0.55;
+  applyPerfumeContextAnchors(analysis, perfumeContext, { enforceIdentity, stabilizeClassification });
   ensurePyramidNotes(analysis, perfumeContext);
   fillPyramidFromFamilyFallback(analysis);
   const molecules = Array.isArray(analysis.molecules) ? analysis.molecules.filter((i) => cleanString(i?.name)) : [];
-  if (molecules.length === 0) analysis.molecules = buildFallbackMolecules(perfumeContext, isPro);
+  if (stabilizeClassification && perfumeContext) analysis.molecules = buildFallbackMolecules(perfumeContext, isPro);
+  else if (molecules.length === 0) analysis.molecules = buildFallbackMolecules(perfumeContext, isPro);
   const postMolecules = Array.isArray(analysis.molecules) ? analysis.molecules.filter((i) => cleanString(i?.name)) : [];
   if (postMolecules.length === 0) analysis.molecules = buildFallbackMolecules({ top: analysis?.pyramid?.top || [], heart: analysis?.pyramid?.middle || [], base: analysis?.pyramid?.base || [], evidenceMolecules: [] }, isPro);
   enrichSimilarFragrances(analysis, perfumeContext, isPro);
@@ -514,3 +532,4 @@ module.exports = {
   applySimilarFragrances, enrichSimilarFragrances, fallbackSimilarByFamily,
   getDBSimilarFragrances, deriveFamilyFromNotes, normalizeToken, uniqueValues, toStringArray,
 };
+

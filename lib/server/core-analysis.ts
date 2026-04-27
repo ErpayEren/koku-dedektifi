@@ -445,6 +445,7 @@ export function buildAnalysisResponseSchema(): RawObject {
           required: ['name', 'brand', 'reason', 'priceRange'],
         },
       },
+      confidenceScore: { type: 'integer', minimum: 0, maximum: 100 },
       valueScore: { type: 'integer' },
       uniquenessScore: { type: 'integer' },
       wearabilityScore: { type: 'integer' },
@@ -692,6 +693,7 @@ export function normalizeAiAnalysisToResult(input: {
     technical: buildTechnicalItems(concentration, sillage, longevityHours, scoreCards),
     molecules,
     confidence: undefined,
+    llmConfidenceScore: Number.isFinite(Number(input.payload.confidenceScore)) ? Number(input.payload.confidenceScore) : undefined,
     dataConfidence: {
       hasDbMatch: Boolean(matchedFragrance),
       source: matchedFragrance ? 'db' : 'ai',

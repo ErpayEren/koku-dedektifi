@@ -51,8 +51,9 @@ const LLMRawOutputSchema = z.object({
   sillage: z.string(),
   longevityHours: z.object({
     min: z.number().int(),
-    max: z.number().int(),
+    max: z.number().int().optional(),
   }).nullable().optional(),
+  confidenceScore: z.number().int().min(0).max(100).optional(),
   seasons: z.array(z.string()),
   occasions: z.array(z.string()),
   ageProfile: z.string().nullable().optional(),

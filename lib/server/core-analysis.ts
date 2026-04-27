@@ -423,6 +423,7 @@ export function buildAnalysisResponseSchema(): RawObject {
           min: { type: 'integer' },
           max: { type: 'integer' },
         },
+        required: ['min', 'max'],
       },
       seasons: { type: 'array', items: { type: 'string', enum: [...SEASON_LABELS] } },
       occasions: { type: 'array', items: { type: 'string', enum: [...OCCASION_LABELS] } },

@@ -260,6 +260,44 @@ function buildMoleculeItems(
     });
   });
 
+  // Merge DB verified/signature molecules: upgrade evidence level if already present, else append
+  if (matchedFragrance) {
+    matchedFragrance.key_molecules.forEach((entry) => {
+      if (entry.evidence_level !== 'verified_component' && entry.evidence_level !== 'signature_molecule') return;
+      const existingIdx = output.findIndex(
+        (o) => o.name.trim().toLowerCase() === entry.name.trim().toLowerCase(),
+      );
+      const evidence = resolveEvidenceMeta(entry.evidence_level);
+      if (existingIdx >= 0) {
+        output[existingIdx] = {
+          ...output[existingIdx]!,
+          evidenceLevel: entry.evidence_level,
+          evidenceLabel: evidence.label,
+          evidenceReason: entry.evidence_reason || evidence.reason,
+          matchedNotes: entry.matched_notes || output[existingIdx]!.matchedNotes,
+        };
+      } else {
+        const idx = output.length;
+        const publicMolecule = getPublicMoleculeByName(entry.name);
+        output.push({
+          name: entry.name,
+          smiles: publicMolecule?.smiles || entry.smiles || '',
+          formula: publicMolecule?.iupac_name || '',
+          family: publicMolecule?.families?.join(' · ') || '',
+          origin: publicMolecule?.natural_source || '',
+          note: entry.role,
+          contribution: `Bu molekül ${matchedFragrance.name} profilinin ${entry.role} katmanını destekler.`,
+          effect: `Kompozisyonun ${entry.role} akorunu taşır.`,
+          percentage: !isPro && idx > 0 ? 'Pro ile görüntüle' : `${Math.round(entry.percentage)}%`,
+          evidenceLevel: entry.evidence_level,
+          evidenceLabel: evidence.label,
+          evidenceReason: entry.evidence_reason || evidence.reason,
+          matchedNotes: entry.matched_notes || [],
+        });
+      }
+    });
+  }
+
   if (output.length > 0) return output;
   if (!matchedFragrance) return [];
 

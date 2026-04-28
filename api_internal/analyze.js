@@ -200,7 +200,7 @@ module.exports = async function analyzeHandler(req, res) {
   if (mode === 'image' && !cleanString(body.imageBase64)) return res.status(400).json({ error: 'imageBase64 alani gerekli.' });
 
   const inputHash = computeInputHash(mode, input, body.imageBase64);
-  const cached = await readAnalysisCache(inputHash);
+  const cached = !isEvalMode && await readAnalysisCache(inputHash);
   if (cached && typeof cached === 'object') {
     const entitlement = auth?.user?.id ? await readEntitlementForUser(auth.user.id) : { tier: 'free' };
     logTelemetry({ appUserId: auth?.user?.id || null, mode, latencyMs: Date.now() - startMs, success: true, cacheHit: true, degraded: false, retryCount: 0, confidenceScore: cached.confidenceScore, hasDbMatch: cached.dataConfidence?.hasDbMatch || false });

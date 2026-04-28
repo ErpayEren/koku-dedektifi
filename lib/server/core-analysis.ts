@@ -618,13 +618,30 @@ export function extractJsonObject(rawValue: unknown): RawObject {
   return JSON.parse(jsonString) as RawObject;
 }
 
+const CONCENTRATION_SUFFIXES_RE = /\s+(extrait de parfum|eau de parfum intense|eau de parfum|eau de toilette|parfum|cologne|edp intense|edp|edt|elixir)\s*$/i;
+
+function stripConcentrationSuffix(name: string): string {
+  return name.replace(CONCENTRATION_SUFFIXES_RE, '').trim();
+}
+
 function buildCatalogFallback(rawName: string, rawBrand: string | null): PublicFragrance | null {
   const name = cleanText(rawName);
   const brand = cleanText(rawBrand);
-  if (brand && name) {
-    return getPublicFragranceByName(`${brand} ${name}`) || getPublicFragranceByName(name);
+  const stripped = stripConcentrationSuffix(name);
+
+  const candidates = brand && name
+    ? [
+        `${brand} ${name}`,
+        name,
+        ...(stripped !== name ? [`${brand} ${stripped}`, stripped] : []),
+      ]
+    : [name, ...(stripped !== name ? [stripped] : [])];
+
+  for (const candidate of candidates) {
+    const result = getPublicFragranceByName(candidate);
+    if (result) return result;
   }
-  return getPublicFragranceByName(name);
+  return null;
 }
 
 export function normalizeAiAnalysisToResult(input: {

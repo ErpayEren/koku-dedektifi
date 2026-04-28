@@ -198,26 +198,17 @@ function resolveEvidenceMeta(level: MoleculeEvidenceLevel): { label: string; rea
 
 function normalizeMoleculeLevel(level: unknown, matchedFragrance: PublicFragrance | null, moleculeName: string): MoleculeEvidenceLevel {
   const text = cleanText(level).toLowerCase();
-  if (
-    text === 'verified_component' ||
-    text === 'signature_molecule' ||
-    text === 'accord_component' ||
-    text === 'note_match' ||
-    text === 'unmatched'
-  ) {
-    return text;
-  }
-
+  // Low-confidence levels from AI are kept as-is
+  if (text === 'note_match' || text === 'unmatched') return text;
+  // verified_component / signature_molecule are only authoritative from the catalog;
+  // cap AI-claimed higher levels to accord_component to prevent hallucinated FPs
   if (matchedFragrance) {
     const exact = matchedFragrance.key_molecules.find(
       (entry) => entry.name.trim().toLowerCase() === moleculeName.trim().toLowerCase(),
     );
     if (exact?.evidence_level) return exact.evidence_level;
   }
-
-  const publicMolecule = getPublicMoleculeByName(moleculeName);
-  if (publicMolecule?.primary_evidence_level) return publicMolecule.primary_evidence_level;
-  return 'note_match';
+  return 'accord_component';
 }
 
 function buildMoleculeItems(

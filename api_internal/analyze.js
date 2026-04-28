@@ -96,10 +96,14 @@ function isUnknownPrimaryName(name) {
   );
 }
 
+const NON_PERFUME_KEYWORDS_RE = /\b(deodorant|body spray|bodyspray|antiperspirant|room spray|roomspray|home spray|home fragrance|air freshener|shower gel|losyon|lotion|mum|candle)\b/i;
+
 function attachIsPerfumeFlag(analysis) {
   if (!analysis || typeof analysis !== 'object') return analysis;
   const confidence = Number(analysis.confidenceScore ?? analysis.confidence ?? 0);
-  analysis.is_perfume = !isUnknownPrimaryName(analysis.name) && confidence >= 25;
+  const nameAndBrand = `${analysis.name ?? ''} ${analysis.brand ?? ''}`.trim();
+  const isNonPerfumeProduct = NON_PERFUME_KEYWORDS_RE.test(nameAndBrand);
+  analysis.is_perfume = !isNonPerfumeProduct && !isUnknownPrimaryName(analysis.name) && confidence >= 25;
   return analysis;
 }
 

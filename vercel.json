@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
   "buildCommand": "npm run build",
-  "regions": ["cdg1"],
+  "regions": ["iad1"],
   "crons": [
     {
       "path": "/api/weekly-molecule",

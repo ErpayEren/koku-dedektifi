@@ -425,6 +425,7 @@ export function buildAnalysisResponseSchema(): RawObject {
   return {
     type: 'object',
     properties: {
+      is_perfume: { type: 'boolean' },
       name: { type: 'string' },
       brand: { type: ['string', 'null'] },
       year: { type: ['integer', 'null'] },

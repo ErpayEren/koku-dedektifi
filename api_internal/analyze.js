@@ -103,7 +103,9 @@ function attachIsPerfumeFlag(analysis) {
   const confidence = Number(analysis.confidenceScore ?? analysis.confidence ?? 0);
   const nameAndBrand = `${analysis.name ?? ''} ${analysis.brand ?? ''}`.trim();
   const isNonPerfumeProduct = NON_PERFUME_KEYWORDS_RE.test(nameAndBrand);
-  analysis.is_perfume = !isNonPerfumeProduct && !isUnknownPrimaryName(analysis.name) && confidence >= 25;
+  // LLM can explicitly signal non-perfume via is_perfume=false in schema
+  const llmSaysNotPerfume = analysis.is_perfume === false;
+  analysis.is_perfume = !llmSaysNotPerfume && !isNonPerfumeProduct && !isUnknownPrimaryName(analysis.name) && confidence >= 25;
   return analysis;
 }
 

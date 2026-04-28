@@ -478,8 +478,11 @@ function applySafetyFallbacks(analysis, perfumeContext, isPro, options = {}) {
   ensurePyramidNotes(analysis, perfumeContext);
   fillPyramidFromFamilyFallback(analysis);
   const molecules = Array.isArray(analysis.molecules) ? analysis.molecules.filter((i) => cleanString(i?.name)) : [];
-  if (stabilizeClassification && perfumeContext) analysis.molecules = buildFallbackMolecules(perfumeContext, isPro);
-  else if (molecules.length === 0) analysis.molecules = buildFallbackMolecules(perfumeContext, isPro);
+  const hasVerifiedMolecules = molecules.some((m) => m?.evidenceLevel === 'verified_component' || m?.evidenceLevel === 'signature_molecule');
+  if (!hasVerifiedMolecules) {
+    if (stabilizeClassification && perfumeContext) analysis.molecules = buildFallbackMolecules(perfumeContext, isPro);
+    else if (molecules.length === 0) analysis.molecules = buildFallbackMolecules(perfumeContext, isPro);
+  }
   const postMolecules = Array.isArray(analysis.molecules) ? analysis.molecules.filter((i) => cleanString(i?.name)) : [];
   if (postMolecules.length === 0) analysis.molecules = buildFallbackMolecules({ top: analysis?.pyramid?.top || [], heart: analysis?.pyramid?.middle || [], base: analysis?.pyramid?.base || [], evidenceMolecules: [] }, isPro);
   enrichSimilarFragrances(analysis, perfumeContext, isPro);

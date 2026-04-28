@@ -425,11 +425,13 @@ function normalizeGender(g: string | null | undefined): string | null {
 // "bilinmiyor"/"unknown" parfüm için geçerli belirsizlik ifadesiyken
 // deodorant/room spray kesinlikle parfüm değildir.
 const NON_PERFUME_KEYWORDS = [
-  'deodorant', 'body spray', 'room spray', 'oda spreyi', 'deodoran',
+  'deodorant', 'body spray', 'room spray', 'home spray', 'oda spreyi', 'deodoran',
   'ev kokusu', 'tekstil spreyi', 'home fragrance', 'air freshener',
 ];
 
 function predictIsPerfume(analysis: ApiAnalysisResult): boolean {
+  // Trust the API's explicit is_perfume=false signal first
+  if ((analysis as unknown as Record<string, unknown>).is_perfume === false) return false;
   const confidence = analysis.confidence ?? analysis.confidenceScore ?? 0;
   const name = (analysis.name ?? '').toLowerCase();
   if (NON_PERFUME_KEYWORDS.some(kw => name.includes(kw))) return false;

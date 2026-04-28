@@ -25,10 +25,19 @@ function fragranceMap(): Map<string, SeedFragranceRecord> {
 
 function buildFragranceMolecules(fragrance: SeedFragranceRecord): FragranceCatalogMolecule[] {
   const molecules = moleculeMap();
-  return fragrance.key_molecules
-    .map((item) => {
+  const sorted = [...fragrance.key_molecules].sort(
+    (a, b) => Number(b.percentage ?? 0) - Number(a.percentage ?? 0)
+  );
+  return sorted
+    .map((item, index) => {
       const molecule = molecules.get(item.molecule_slug);
       if (!molecule) return null;
+      const evidence_level = index === 0 ? 'signature_molecule' : 'verified_component';
+      const role = item.role ?? 'base';
+      const noteList =
+        role === 'top' ? fragrance.top_notes?.slice(0, 2) ?? []
+        : role === 'heart' ? fragrance.heart_notes?.slice(0, 2) ?? []
+        : fragrance.base_notes?.slice(0, 2) ?? [];
       return {
         id: molecule.id,
         slug: molecule.slug,
@@ -36,6 +45,10 @@ function buildFragranceMolecules(fragrance: SeedFragranceRecord): FragranceCatal
         smiles: molecule.smiles,
         percentage: item.percentage,
         role: item.role,
+        evidence_level: evidence_level as FragranceCatalogMolecule['evidence_level'],
+        evidence_label: evidence_level === 'signature_molecule' ? 'İmza Molekül' : 'Doğrulanmış Bileşen',
+        evidence_reason: `${molecule.name} bu parfümün ${role} katmanını destekler.`,
+        matched_notes: noteList,
       };
     })
     .filter((item): item is FragranceCatalogMolecule => Boolean(item));

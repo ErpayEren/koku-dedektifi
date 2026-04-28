@@ -329,6 +329,8 @@ module.exports = async function analyzeHandler(req, res) {
       perfumeContext ||
       (await findCatalogContextByIdentity(input, analysis));
     const stableResult = applySafetyFallbacks(analysis, identityContext, isPro, { inputText: input, mode, providerHealthy: true });
+    // Carry LLM's is_perfume signal before it gets overwritten by attachIsPerfumeFlag
+    if (payload?.is_perfume === false) stableResult.is_perfume = false;
     stableResult.dataConfidence = { hasDbMatch: Boolean(identityContext), source: identityContext ? 'db' : 'ai' };
     const contextMatchScore = computeContextMatchScore(input, identityContext);
     stableResult.confidenceScore = computeConfidenceScore({ contextMatchScore, analysis: stableResult, mode, hasDbMatch: Boolean(identityContext) });
